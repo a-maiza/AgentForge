@@ -24,16 +24,16 @@
 
 ### 1.1 Infrastructure & DevOps
 
-- [ ] **P0** Initialise Turborepo monorepo with `apps/` and `packages/` workspaces; add root `package.json` with shared scripts (`dev`, `build`, `lint`, `test`)
-- [ ] **P0** Scaffold `packages/shared`: export shared TypeScript types, DTOs, Zod schemas, and constants shared between `web` and `api`
-- [ ] **P0** Write `docker-compose.yml` with services: `postgres` (15), `redis` (7), `minio` (latest), `api`, `worker`, `gateway`, `web`; bind env vars via `.env.local`
-- [ ] **P0** Add `.env.example` covering all variables from Appendix B (DATABASE_URL, REDIS_URL, JWT_SECRET, CLERK keys, S3/MinIO, ENCRYPTION_KEY, SMTP, SENTRY_DSN)
-- [ ] **P1** Configure GitHub Actions workflow for PR checks: ESLint + Prettier, `tsc --noEmit`, Vitest, Pytest, Docker build smoke test
-- [ ] **P1** Configure GitHub Actions workflow for `main` merge: all PR checks + integration tests + push images to GHCR + deploy to staging
-- [ ] **P1** Configure GitHub Actions workflow for version tags (`v*.*.*`): all above + Playwright E2E + deploy to prod + GitHub Release
-- [ ] **P2** Add Dockerfile for each app (`api`, `worker`, `gateway`, `web`) with multi-stage builds (builder → runner)
-- [ ] **P2** Configure ESLint (flat config), Prettier, and Ruff (Python) with shared rules; wire into Turborepo pipeline
-- [ ] **P2** Set up Sentry SDK in `api` (NestJS) and `web` (Next.js) with source maps upload in CI
+- [x] **P0** Initialise Turborepo monorepo with `apps/` and `packages/` workspaces; add root `package.json` with shared scripts (`dev`, `build`, `lint`, `test`)
+- [x] **P0** Scaffold `packages/shared`: export shared TypeScript types, DTOs, Zod schemas, and constants shared between `web` and `api`
+- [x] **P0** Write `docker-compose.yml` with services: `postgres` (15), `redis` (7), `minio` (latest), `api`, `worker`, `gateway`, `web`; bind env vars via `.env.local`
+- [x] **P0** Add `.env.example` covering all variables from Appendix B (DATABASE_URL, REDIS_URL, JWT_SECRET, CLERK keys, S3/MinIO, ENCRYPTION_KEY, SMTP, SENTRY_DSN)
+- [x] **P1** Configure GitHub Actions workflow for PR checks: ESLint + Prettier, `tsc --noEmit`, Vitest, Pytest, Docker build smoke test
+- [x] **P1** Configure GitHub Actions workflow for `main` merge: all PR checks + integration tests + push images to GHCR + deploy to staging
+- [x] **P1** Configure GitHub Actions workflow for version tags (`v*.*.*`): all above + Playwright E2E + deploy to prod + GitHub Release
+- [x] **P2** Add Dockerfile for each app (`api`, `worker`, `gateway`, `web`) with multi-stage builds (builder → runner)
+- [x] **P2** Configure ESLint (flat config), Prettier, and Ruff (Python) with shared rules; wire into Turborepo pipeline
+- [x] **P2** Set up Sentry SDK in `api` (NestJS) and `web` (Next.js) with source maps upload in CI
 
 ### 1.2 Database & Schema
 
