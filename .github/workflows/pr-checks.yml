@@ -149,7 +149,7 @@ jobs:
 
       - name: Run Pytest
         working-directory: apps/worker
-        run: uv run pytest --cov=main --cov-report=xml -q
+        run: .venv/bin/pytest --cov=main --cov-report=xml -q
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4
