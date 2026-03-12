@@ -1,6 +1,5 @@
-import type { NextConfig } from 'next';
-
-const config: NextConfig = {
+/** @type {import('next').NextConfig} */
+const config = {
   // Required for Docker: runner stage copies .next/standalone
   output: 'standalone',
   compress: true,
