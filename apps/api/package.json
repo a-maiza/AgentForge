@@ -11,7 +11,16 @@
     "typecheck": "tsc --noEmit",
     "test": "jest --passWithNoTests",
     "test:integration": "jest --config jest.integration.json --passWithNoTests",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:migrate:reset": "prisma migrate reset",
+    "db:seed": "prisma db seed",
+    "db:studio": "prisma studio"
+  },
+  "prisma": {
+    "seed": "ts-node --project tsconfig.seed.json prisma/seed.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
