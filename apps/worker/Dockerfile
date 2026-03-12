@@ -17,21 +17,21 @@ RUN uv venv .venv && \
 # ── Stage 2: runner ───────────────────────────────────────────────────────────
 FROM python:3.11-slim AS runner
 
+# Create user first so COPY --chown can reference it immediately.
+# Avoids a separate chown -R pass over the large .venv tree.
+RUN groupadd --gid 1001 worker && \
+    useradd --uid 1001 --gid worker --no-create-home workeruser
+
 WORKDIR /app
 
-# Copy venv from builder
-COPY --from=builder /app/.venv ./.venv
-
-# Copy application code
-COPY apps/worker ./
+# Copy with correct ownership upfront — no chown -R needed
+COPY --from=builder --chown=workeruser:worker /app/.venv ./.venv
+COPY --chown=workeruser:worker apps/worker ./
 
 ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-RUN addgroup --system --gid 1001 worker && \
-    adduser --system --uid 1001 --ingroup worker workeruser && \
-    chown -R workeruser:worker /app
 USER workeruser
 
 EXPOSE 8000
