@@ -6,11 +6,14 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 WORKDIR /app
 
+# Tell uv where the venv lives so uv pip commands target it automatically.
+# /venv is outside /app so docker-compose source volume mounts don't shadow it.
+ENV VIRTUAL_ENV=/venv
+ENV PATH="/venv/bin:$PATH"
+
 # Copy only pyproject first for layer caching
 COPY apps/worker/pyproject.toml ./pyproject.toml
 
-# Install dependencies into /venv (outside /app so docker-compose source
-# volume mounts on /app don't shadow the venv)
 RUN uv venv /venv && \
     uv pip compile pyproject.toml -o requirements.txt && \
     uv pip install --no-cache -r requirements.txt
