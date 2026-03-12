@@ -11,7 +11,8 @@ COPY apps/worker/pyproject.toml ./pyproject.toml
 
 # Install dependencies into /app/.venv
 RUN uv venv .venv && \
-    uv pip install --no-cache -r <(uv pip compile pyproject.toml)
+    uv pip compile pyproject.toml -o requirements.txt && \
+    uv pip install --no-cache -r requirements.txt
 
 # ── Stage 2: runner ───────────────────────────────────────────────────────────
 FROM python:3.11-slim AS runner
