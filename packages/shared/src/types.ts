@@ -110,7 +110,10 @@ export interface Prompt {
   variables?: PromptVariable[];
 }
 
-export interface PromptSummary extends Pick<Prompt, 'id' | 'name' | 'description' | 'status' | 'createdAt' | 'updatedAt'> {
+export interface PromptSummary extends Pick<
+  Prompt,
+  'id' | 'name' | 'description' | 'status' | 'createdAt' | 'updatedAt'
+> {
   currentVersionNumber: number;
   evaluationCount: number;
   latestGrade: EvaluationGrade | null;

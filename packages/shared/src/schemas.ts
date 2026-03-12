@@ -37,12 +37,7 @@ export type CreateWorkspaceInput = z.infer<typeof CreateWorkspaceSchema>;
 
 export const InviteMemberSchema = z.object({
   email: z.string().email(),
-  role: z.enum([
-    UserRole.ADMIN,
-    UserRole.DEVELOPER,
-    UserRole.VIEWER,
-    UserRole.API_USER,
-  ] as const),
+  role: z.enum([UserRole.ADMIN, UserRole.DEVELOPER, UserRole.VIEWER, UserRole.API_USER] as const),
 });
 export type InviteMemberInput = z.infer<typeof InviteMemberSchema>;
 

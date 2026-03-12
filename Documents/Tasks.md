@@ -7,15 +7,15 @@
 
 ## Legend
 
-| Symbol | Meaning |
-|--------|---------|
-| `[ ]` | Not started |
-| `[x]` | Complete |
-| `[~]` | In progress |
-| `[!]` | Blocked |
-| **P0** | Critical path |
-| **P1** | High priority |
-| **P2** | Normal |
+| Symbol | Meaning                       |
+| ------ | ----------------------------- |
+| `[ ]`  | Not started                   |
+| `[x]`  | Complete                      |
+| `[~]`  | In progress                   |
+| `[!]`  | Blocked                       |
+| **P0** | Critical path                 |
+| **P1** | High priority                 |
+| **P2** | Normal                        |
 | **P3** | Nice-to-have / Phase 6 polish |
 
 ---
@@ -268,4 +268,4 @@
 
 ---
 
-*Tasks are derived from [Documents/Requirements.md](Requirements.md) v1.1.0. Update task status as work progresses.*
+_Tasks are derived from [Documents/Requirements.md](Requirements.md) v1.1.0. Update task status as work progresses._

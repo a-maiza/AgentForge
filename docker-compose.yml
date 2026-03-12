@@ -1,5 +1,4 @@
 services:
-
   # ── Data stores ──────────────────────────────────────────────────────────────
 
   postgres:
@@ -9,11 +8,11 @@ services:
       POSTGRES_PASSWORD: agentforge
       POSTGRES_DB: agentforge
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U agentforge -d agentforge"]
+      test: ['CMD-SHELL', 'pg_isready -U agentforge -d agentforge']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -31,7 +30,7 @@ services:
       PGBOUNCER_MAX_CLIENT_CONN: 200
       PGBOUNCER_DEFAULT_POOL_SIZE: 20
     ports:
-      - "5433:6432"
+      - '5433:6432'
     depends_on:
       postgres:
         condition: service_healthy
@@ -41,11 +40,11 @@ services:
     image: redis:7-alpine
     command: redis-server --appendonly yes
     ports:
-      - "6379:6379"
+      - '6379:6379'
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -58,12 +57,12 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     ports:
-      - "9000:9000"   # S3 API
-      - "9001:9001"   # Web console → http://localhost:9001
+      - '9000:9000' # S3 API
+      - '9001:9001' # Web console → http://localhost:9001
     volumes:
       - minio-data:/data
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ['CMD', 'mc', 'ready', 'local']
       interval: 30s
       timeout: 20s
       retries: 3
@@ -89,23 +88,23 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
-      target: builder   # Use builder stage for dev hot-reload
+      target: builder # Use builder stage for dev hot-reload
     env_file: .env.local
     environment:
       DATABASE_URL: postgresql://agentforge:agentforge@pgbouncer:6432/agentforge
       REDIS_URL: redis://redis:6379
-      PORT: "3001"
+      PORT: '3001'
     ports:
-      - "3001:3001"
+      - '3001:3001'
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     volumes:
-      - ./apps/api/src:/repo/apps/api/src   # Hot-reload source
+      - ./apps/api/src:/repo/apps/api/src # Hot-reload source
       - ./packages/shared/src:/repo/packages/shared/src
-    command: ["pnpm", "--filter", "@agentforge/api", "dev"]
+    command: ['pnpm', '--filter', '@agentforge/api', 'dev']
     restart: unless-stopped
 
   worker:
@@ -123,8 +122,8 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - ./apps/worker:/app   # Hot-reload for dev
-    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+      - ./apps/worker:/app # Hot-reload for dev
+    command: ['uvicorn', 'main:app', '--host', '0.0.0.0', '--port', '8000', '--reload']
     restart: unless-stopped
 
   gateway:
@@ -136,9 +135,9 @@ services:
     environment:
       DATABASE_URL: postgresql://agentforge:agentforge@pgbouncer:6432/agentforge
       REDIS_URL: redis://redis:6379
-      PORT: "3002"
+      PORT: '3002'
     ports:
-      - "3002:3002"
+      - '3002:3002'
     depends_on:
       postgres:
         condition: service_healthy
@@ -146,7 +145,7 @@ services:
         condition: service_healthy
     volumes:
       - ./apps/gateway/src:/repo/apps/gateway/src
-    command: ["pnpm", "--filter", "@agentforge/gateway", "dev"]
+    command: ['pnpm', '--filter', '@agentforge/gateway', 'dev']
     restart: unless-stopped
 
   web:
@@ -158,14 +157,14 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:3001
       NEXT_PUBLIC_GATEWAY_URL: http://localhost:3002
-      PORT: "3000"
+      PORT: '3000'
     ports:
-      - "3000:3000"
+      - '3000:3000'
     depends_on:
       - api
     volumes:
       - ./apps/web/src:/repo/apps/web/src
-    command: ["pnpm", "--filter", "@agentforge/web", "dev"]
+    command: ['pnpm', '--filter', '@agentforge/web', 'dev']
     restart: unless-stopped
 
 volumes:

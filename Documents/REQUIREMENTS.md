@@ -37,6 +37,7 @@
 25. [Milestones & Phased Delivery](#25-milestones--phased-delivery)
 
 **Appendices**
+
 - [Appendix A — Glossary](#appendix-a--glossary)
 - [Appendix B — Environment Variables](#appendix-b--environment-variables)
 - [Appendix C — Technology Stack Quick Reference](#appendix-c--technology-stack-quick-reference)
@@ -58,19 +59,19 @@ Build a **full-stack LLM Governance Platform** that allows engineering teams to:
 
 ### 1.2 Core Value Propositions
 
-| Value | Description |
-|-------|-------------|
-| **Version Control for Prompts** | Full git-like versioning for every prompt change |
-| **Automated Evaluation** | Run batch evaluations with 15+ metrics (accuracy, F1, cost, latency...) |
-| **Production Deployment** | Promote prompts from DEV to PROD with rollback support |
-| **Failover** | Automatic fallback to secondary AI provider if primary fails |
-| **Visual Agents** | Build multi-prompt pipelines visually with a node-based editor |
-| **API Gateway** | Serve prompts as authenticated REST endpoints |
-| **Observability** | Real-time monitoring with per-endpoint analytics |
+| Value                           | Description                                                             |
+| ------------------------------- | ----------------------------------------------------------------------- |
+| **Version Control for Prompts** | Full git-like versioning for every prompt change                        |
+| **Automated Evaluation**        | Run batch evaluations with 15+ metrics (accuracy, F1, cost, latency...) |
+| **Production Deployment**       | Promote prompts from DEV to PROD with rollback support                  |
+| **Failover**                    | Automatic fallback to secondary AI provider if primary fails            |
+| **Visual Agents**               | Build multi-prompt pipelines visually with a node-based editor          |
+| **API Gateway**                 | Serve prompts as authenticated REST endpoints                           |
+| **Observability**               | Real-time monitoring with per-endpoint analytics                        |
 
 ### 1.3 Tagline
 
-> *"Deploy and scale AI features with confidence."*
+> _"Deploy and scale AI features with confidence."_
 
 ---
 
@@ -85,13 +86,13 @@ Build a **full-stack LLM Governance Platform** that allows engineering teams to:
 
 ### 2.2 User Roles
 
-| Role | Permissions |
-|------|-------------|
-| `owner` | Full access, billing, user management |
-| `admin` | Full access except billing |
+| Role        | Permissions                                            |
+| ----------- | ------------------------------------------------------ |
+| `owner`     | Full access, billing, user management                  |
+| `admin`     | Full access except billing                             |
 | `developer` | Create/edit prompts, agents, datasets; run evaluations |
-| `viewer` | Read-only access to all resources |
-| `api_user` | API access only (service accounts) |
+| `viewer`    | Read-only access to all resources                      |
+| `api_user`  | API access only (service accounts)                     |
 
 ---
 
@@ -99,20 +100,20 @@ Build a **full-stack LLM Governance Platform** that allows engineering teams to:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                     Frontend (Next.js)                   │
-│  Prompt Hub | Dataset Hub | Eval | Agents | Monitoring   │
+│                     Frontend (Next.js)                  │
+│  Prompt Hub | Dataset Hub | Eval | Agents | Monitoring  │
 └────────────────────────┬────────────────────────────────┘
                          │ REST / WebSocket
 ┌────────────────────────▼────────────────────────────────┐
-│                   Backend API (Node.js / FastAPI)         │
-│  Auth | Prompts | Datasets | Evals | Agents | Gateway    │
+│                   Backend API (Node.js / FastAPI)       │
+│  Auth | Prompts | Datasets | Evals | Agents | Gateway   │
 └──────┬──────────────┬──────────────────┬────────────────┘
        │              │                  │
-┌──────▼───┐   ┌──────▼───┐    ┌─────────▼──────┐
-│PostgreSQL│   │  Redis   │    │  AI Providers  │
-│  (main)  │   │ (cache/  │    │ (OpenAI, TogetherAI,│
-│          │   │  queue)  │    │  Mistral, etc.)│
-└──────────┘   └──────────┘    └────────────────┘
+┌──────▼───┐   ┌──────▼───┐    ┌─────────▼────────────┐
+│PostgreSQL│   │  Redis   │    │  AI Providers        │
+│  (main)  │   │ (cache/  │    │ (OpenAI, TogetherAI, │
+│          │   │  queue)  │    │  Mistral, etc.)      │
+└──────────┘   └──────────┘    └──────────────────────┘
        │
 ┌──────▼──────────────────────┐
 │  S3 / Object Storage        │
@@ -122,13 +123,13 @@ Build a **full-stack LLM Governance Platform** that allows engineering teams to:
 
 ### 3.1 Services Breakdown
 
-| Service | Responsibility |
-|---------|---------------|
-| `api-server` | Main REST API, business logic |
-| `eval-worker` | Async evaluation job processing (queue-based) |
-| `proxy-gateway` | Live API proxy for deployed prompts/agents |
-| `monitoring-service` | Real-time metrics aggregation (WebSocket) |
-| `scheduler` | Cron jobs for auto-refresh, cleanup, scheduled evals |
+| Service              | Responsibility                                       |
+| -------------------- | ---------------------------------------------------- |
+| `api-server`         | Main REST API, business logic                        |
+| `eval-worker`        | Async evaluation job processing (queue-based)        |
+| `proxy-gateway`      | Live API proxy for deployed prompts/agents           |
+| `monitoring-service` | Real-time metrics aggregation (WebSocket)            |
+| `scheduler`          | Cron jobs for auto-refresh, cleanup, scheduled evals |
 
 ---
 
@@ -147,21 +148,21 @@ Build a **full-stack LLM Governance Platform** that allows engineering teams to:
 - **Why Next.js over plain React:** Next.js provides SSR/RSC for data-heavy dashboards, file-based routing, built-in API routes for lightweight BFF (Backend for Frontend) patterns, automatic code splitting, and image optimization — all out of the box. Plain React requires manually assembling these capabilities with separate libraries.
 - **Why TypeScript:** Types are shared between frontend and backend (NestJS), eliminating an entire class of integration bugs. All LLM response schemas, prompt variable definitions, and API contracts are typed end-to-end.
 
-| Layer | Technology | Justification |
-|-------|-----------|---------------|
-| Framework | **Next.js 14 (App Router)** | SSR, routing, BFF, built-in optimizations |
-| Language | **TypeScript 5+** | End-to-end type safety with backend |
-| Styling | **Tailwind CSS + shadcn/ui** | Production-grade design system, zero config |
-| State (server) | **TanStack Query v5** | Cache, refetch, optimistic updates for API data |
-| State (client) | **Zustand** | Lightweight global state (workflow studio, sidebar) |
-| Node Editor | **React Flow** | Industry standard for node-based editors (n8n, Flowise use it) |
-| Charts | **Recharts** | Composable, TypeScript-native, integrates cleanly with React |
-| Forms | **React Hook Form + Zod** | Performance forms with schema validation |
-| Auth Client | **Clerk** | Magic link, OAuth, session management — no config needed |
-| Real-time | **Socket.io-client** | Live monitoring WebSocket connection |
-| Notifications | **Sonner** | Toast notifications |
-| Icons | **Lucide React** | Consistent icon set |
-| Date handling | **date-fns** | Lightweight, tree-shakeable |
+| Layer          | Technology                   | Justification                                                  |
+| -------------- | ---------------------------- | -------------------------------------------------------------- |
+| Framework      | **Next.js 14 (App Router)**  | SSR, routing, BFF, built-in optimizations                      |
+| Language       | **TypeScript 5+**            | End-to-end type safety with backend                            |
+| Styling        | **Tailwind CSS + shadcn/ui** | Production-grade design system, zero config                    |
+| State (server) | **TanStack Query v5**        | Cache, refetch, optimistic updates for API data                |
+| State (client) | **Zustand**                  | Lightweight global state (workflow studio, sidebar)            |
+| Node Editor    | **React Flow**               | Industry standard for node-based editors (n8n, Flowise use it) |
+| Charts         | **Recharts**                 | Composable, TypeScript-native, integrates cleanly with React   |
+| Forms          | **React Hook Form + Zod**    | Performance forms with schema validation                       |
+| Auth Client    | **Clerk**                    | Magic link, OAuth, session management — no config needed       |
+| Real-time      | **Socket.io-client**         | Live monitoring WebSocket connection                           |
+| Notifications  | **Sonner**                   | Toast notifications                                            |
+| Icons          | **Lucide React**             | Consistent icon set                                            |
+| Date handling  | **date-fns**                 | Lightweight, tree-shakeable                                    |
 
 #### 4.1.2 Frontend Architecture Patterns
 
@@ -180,22 +181,23 @@ Build a **full-stack LLM Governance Platform** that allows engineering teams to:
 The backend is split into **two specialized services** to leverage the best of each ecosystem:
 
 ```
-┌─────────────────────────────┐    ┌──────────────────────────────┐
+┌──────────────────────────────┐    ┌───────────────────────────────┐
 │   API Server (NestJS)        │    │   Eval Worker (FastAPI)       │
-│   TypeScript / Node.js 20+   │    │   Python 3.11+               │
-│                              │    │                              │
-│  • Prompt CRUD               │    │  • Job execution             │
-│  • Dataset management        │    │  • LLM calls via LiteLLM     │
-│  • Deployment pipeline       │    │  • Metric scoring            │
-│  • API Gateway proxy         │    │    (HuggingFace evaluate)    │
-│  • Auth & API Keys           │    │  • Cost calculation          │
-│  • WebSocket monitoring      │    │  • Carbon footprint          │
-│  • Agent orchestration       │    │  • AI metric suggestions     │
-└─────────────────────────────┘    └──────────────────────────────┘
+│   TypeScript / Node.js 20+   │    │   Python 3.11+                │
+│                              │    │                               │
+│  • Prompt CRUD               │    │  • Job execution              │
+│  • Dataset management        │    │  • LLM calls via LiteLLM      │
+│  • Deployment pipeline       │    │  • Metric scoring             │
+│  • API Gateway proxy         │    │    (HuggingFace evaluate)     │
+│  • Auth & API Keys           │    │  • Cost calculation           │
+│  • WebSocket monitoring      │    │  • Carbon footprint           │
+│  • Agent orchestration       │    │  • AI metric suggestions      │
+└──────────────────────────────┘    └───────────────────────────────┘
          shares PostgreSQL + Redis
 ```
 
 **Why NestJS for the main API:**
+
 - TypeScript shared with frontend = single source of truth for all types/DTOs
 - Modular architecture maps perfectly to the platform's domains (prompts, datasets, evaluations, agents...)
 - Built-in support for WebSockets, Guards (auth), Interceptors (logging), Pipes (validation)
@@ -203,6 +205,7 @@ The backend is split into **two specialized services** to leverage the best of e
 - Much faster to develop than Java Spring Boot with equivalent enterprise patterns
 
 **Why FastAPI for the eval worker:**
+
 - Python is the only language with a mature LLMOps ecosystem
 - `LiteLLM` for unified multi-provider LLM calls
 - `HuggingFace evaluate` for F1, Exact Match, BERTScore, BLEU, ROUGE natively
@@ -211,57 +214,57 @@ The backend is split into **two specialized services** to leverage the best of e
 
 #### 4.2.2 API Server — NestJS
 
-| Layer | Technology | Justification |
-|-------|-----------|---------------|
-| Runtime | **Node.js 20+** | Native async/await, low memory, fast I/O |
-| Framework | **NestJS 10+** | Modular, enterprise patterns, TypeScript-native |
-| ORM | **Prisma 5+** | Type-safe queries, auto-generated client, migrations |
-| Validation | **class-validator + class-transformer** | DTO validation with decorators |
-| HTTP Client | **Axios** | Provider SDK calls, webhook delivery |
-| Queue Client | **BullMQ** | Push jobs to Redis queue |
-| WebSockets | **@nestjs/websockets + Socket.io** | Live monitoring push |
-| Encryption | **Node.js crypto (AES-256-GCM)** | AI provider key encryption at rest |
-| Logging | **Pino** | Structured JSON logs, extremely fast |
-| Config | **@nestjs/config + Joi** | Typed env var validation |
+| Layer        | Technology                              | Justification                                        |
+| ------------ | --------------------------------------- | ---------------------------------------------------- |
+| Runtime      | **Node.js 20+**                         | Native async/await, low memory, fast I/O             |
+| Framework    | **NestJS 10+**                          | Modular, enterprise patterns, TypeScript-native      |
+| ORM          | **Prisma 5+**                           | Type-safe queries, auto-generated client, migrations |
+| Validation   | **class-validator + class-transformer** | DTO validation with decorators                       |
+| HTTP Client  | **Axios**                               | Provider SDK calls, webhook delivery                 |
+| Queue Client | **BullMQ**                              | Push jobs to Redis queue                             |
+| WebSockets   | **@nestjs/websockets + Socket.io**      | Live monitoring push                                 |
+| Encryption   | **Node.js crypto (AES-256-GCM)**        | AI provider key encryption at rest                   |
+| Logging      | **Pino**                                | Structured JSON logs, extremely fast                 |
+| Config       | **@nestjs/config + Joi**                | Typed env var validation                             |
 
 #### 4.2.3 Eval Worker — FastAPI
 
-| Layer | Technology | Justification |
-|-------|-----------|---------------|
-| Runtime | **Python 3.11+** | Best LLM ecosystem support |
-| Framework | **FastAPI** | Async-native, automatic OpenAPI docs, fast |
-| LLM Calls | **LiteLLM** | Single interface for all providers (OpenAI, Together, Mistral, Anthropic, Groq, Ollama...) |
-| ML Metrics | **HuggingFace `evaluate`** | F1, EM, BLEU, ROUGE, BERTScore, Perplexity |
-| Semantic Similarity | **sentence-transformers** | Embedding-based similarity scoring |
-| Queue Consumer | **BullMQ (via bullmq Python port) or Celery** | Job consumption from Redis |
-| ORM | **SQLAlchemy 2+ (async)** | Database access for job state updates |
-| HTTP Client | **httpx** | Async HTTP calls |
-| Env Config | **pydantic-settings** | Type-safe config from env vars |
+| Layer               | Technology                                    | Justification                                                                              |
+| ------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Runtime             | **Python 3.11+**                              | Best LLM ecosystem support                                                                 |
+| Framework           | **FastAPI**                                   | Async-native, automatic OpenAPI docs, fast                                                 |
+| LLM Calls           | **LiteLLM**                                   | Single interface for all providers (OpenAI, Together, Mistral, Anthropic, Groq, Ollama...) |
+| ML Metrics          | **HuggingFace `evaluate`**                    | F1, EM, BLEU, ROUGE, BERTScore, Perplexity                                                 |
+| Semantic Similarity | **sentence-transformers**                     | Embedding-based similarity scoring                                                         |
+| Queue Consumer      | **BullMQ (via bullmq Python port) or Celery** | Job consumption from Redis                                                                 |
+| ORM                 | **SQLAlchemy 2+ (async)**                     | Database access for job state updates                                                      |
+| HTTP Client         | **httpx**                                     | Async HTTP calls                                                                           |
+| Env Config          | **pydantic-settings**                         | Type-safe config from env vars                                                             |
 
 #### 4.2.4 Proxy Gateway Service
 
 A lightweight dedicated service that handles all live API calls to deployed prompts and agents.
 
-| Layer | Technology | Justification |
-|-------|-----------|---------------|
-| Framework | **Fastify** (Node.js) | Highest throughput Node.js framework, ideal for proxy |
-| Rate Limiting | **@fastify/rate-limit** | Per-key rate limiting |
-| Auth | **JWT verification** | Stateless API key validation |
-| Caching | **Redis** | Cache prompt configs to avoid DB lookups on every request |
-| Logging | **Pino** | Structured request logs → API call records |
+| Layer Technology | Justification           |
+| ---------------- | ----------------------- | --------------------------------------------------------- |
+| Framework        | **Fastify** (Node.js)   | Highest throughput Node.js framework, ideal for proxy     |
+| Rate Limiting    | **@fastify/rate-limit** | Per-key rate limiting                                     |
+| Auth             | **JWT verification**    | Stateless API key validation                              |
+| Caching          | **Redis**               | Cache prompt configs to avoid DB lookups on every request |
+| Logging          | **Pino**                | Structured request logs → API call records                |
 
 ---
 
 ### 4.3 Data Layer
 
-| Component | Technology | Justification |
-|-----------|-----------|---------------|
-| Primary Database | **PostgreSQL 15+** | JSONB for workflow definitions and eval results, ACID, mature |
-| Connection Pooling | **PgBouncer** | Prevent connection exhaustion under load |
-| Cache | **Redis 7+** | Session store, rate limit counters, prompt config cache |
-| Job Queue | **BullMQ (Redis-backed)** | Evaluation jobs, async processing, retries, priority |
-| Object Storage | **AWS S3 / MinIO** | Dataset files (CSV/JSON), exports, evaluation artifacts |
-| Search (future) | **pgvector** | Semantic prompt search using embeddings |
+| Component          | Technology                | Justification                                                 |
+| ------------------ | ------------------------- | ------------------------------------------------------------- |
+| Primary Database   | **PostgreSQL 15+**        | JSONB for workflow definitions and eval results, ACID, mature |
+| Connection Pooling | **PgBouncer**             | Prevent connection exhaustion under load                      |
+| Cache              | **Redis 7+**              | Session store, rate limit counters, prompt config cache       |
+| Job Queue          | **BullMQ (Redis-backed)** | Evaluation jobs, async processing, retries, priority          |
+| Object Storage     | **AWS S3 / MinIO**        | Dataset files (CSV/JSON), exports, evaluation artifacts       |
+| Search (future)    | **pgvector**              | Semantic prompt search using embeddings                       |
 
 **Why PostgreSQL over MongoDB:**
 The data model is highly relational (prompts → versions → evaluations → results, datasets → versions → mappings). PostgreSQL's JSONB handles the flexible parts (workflow graphs, model configs, variable definitions) while relational integrity is maintained for the structured core.
@@ -270,25 +273,25 @@ The data model is highly relational (prompts → versions → evaluations → re
 
 ### 4.4 Authentication & Security
 
-| Component | Technology | Justification |
-|-----------|-----------|---------------|
-| Auth Provider | **Clerk** | Magic link, Google/GitHub OAuth, session management, webhooks — zero config |
-| Alternative (self-hosted) | **Auth.js v5 (NextAuth)** | Full control, no external dependency |
-| JWT | **jose** library | Standard JWT sign/verify, edge-compatible |
-| Password hashing | **bcrypt** | API key prefix storage |
-| Encryption | **AES-256-GCM** (Node.js crypto) | AI provider API keys at rest |
-| API Key format | `sk_org_[random-32-chars]` / `sk_ws_[random-32-chars]` | Scoped, identifiable |
+| Component                 | Technology                                             | Justification                                                               |
+| ------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------- |
+| Auth Provider             | **Clerk**                                              | Magic link, Google/GitHub OAuth, session management, webhooks — zero config |
+| Alternative (self-hosted) | **Auth.js v5 (NextAuth)**                              | Full control, no external dependency                                        |
+| JWT                       | **jose** library                                       | Standard JWT sign/verify, edge-compatible                                   |
+| Password hashing          | **bcrypt**                                             | API key prefix storage                                                      |
+| Encryption                | **AES-256-GCM** (Node.js crypto)                       | AI provider API keys at rest                                                |
+| API Key format            | `sk_org_[random-32-chars]` / `sk_ws_[random-32-chars]` | Scoped, identifiable                                                        |
 
 ---
 
 ### 4.5 Real-Time & Messaging
 
-| Component | Technology | Justification |
-|-----------|-----------|---------------|
-| WebSocket server | **Socket.io** (NestJS adapter) | Live monitoring dashboard, eval job progress |
-| Job Queue | **BullMQ** | Evaluation jobs with retries, concurrency control, priority |
-| Event Bus (internal) | **Redis Pub/Sub** | Cross-service events (eval completed → notify frontend) |
-| Email (magic links) | **Resend** or **SendGrid** | Transactional email delivery |
+| Component            | Technology                     | Justification                                               |
+| -------------------- | ------------------------------ | ----------------------------------------------------------- |
+| WebSocket server     | **Socket.io** (NestJS adapter) | Live monitoring dashboard, eval job progress                |
+| Job Queue            | **BullMQ**                     | Evaluation jobs with retries, concurrency control, priority |
+| Event Bus (internal) | **Redis Pub/Sub**              | Cross-service events (eval completed → notify frontend)     |
+| Email (magic links)  | **Resend** or **SendGrid**     | Transactional email delivery                                |
 
 ---
 
@@ -299,31 +302,31 @@ The data model is highly relational (prompts → versions → evaluations → re
 ```yaml
 # docker-compose.yml services
 services:
-  postgres:     # PostgreSQL 15
-  redis:        # Redis 7
-  minio:        # S3-compatible local storage
-  api:          # NestJS API server
-  worker:       # FastAPI eval worker
-  gateway:      # Fastify proxy
-  frontend:     # Next.js dev server
+  postgres: # PostgreSQL 15
+  redis: # Redis 7
+  minio: # S3-compatible local storage
+  api: # NestJS API server
+  worker: # FastAPI eval worker
+  gateway: # Fastify proxy
+  frontend: # Next.js dev server
 ```
 
 All services orchestrated with **Docker Compose** for a one-command local setup: `docker compose up`.
 
 #### 4.6.2 Production Infrastructure
 
-| Component | Technology | Justification |
-|-----------|-----------|---------------|
-| Containerization | **Docker** | Consistent environments dev→prod |
-| Container Registry | **GitHub Container Registry (GHCR)** | Free, integrated with GitHub Actions |
-| Hosting (startup) | **Railway** or **Render** | Managed, minimal DevOps, supports Docker |
-| Hosting (scale) | **AWS ECS + Fargate** | Serverless containers, auto-scaling |
-| Orchestration (enterprise) | **Kubernetes (EKS/GKE)** | Full control, horizontal scaling |
-| CDN | **Vercel** (for Next.js) or **CloudFront** | Edge caching, global performance |
-| Reverse Proxy | **Nginx** or **Traefik** | SSL termination, routing, rate limiting |
-| Database hosting | **AWS RDS PostgreSQL** or **Supabase** | Managed, automated backups |
-| Redis hosting | **AWS ElastiCache** or **Upstash** | Managed Redis, serverless option |
-| Object storage | **AWS S3** | Reliable, cheap, S3-standard |
+| Component                  | Technology                                 | Justification                            |
+| -------------------------- | ------------------------------------------ | ---------------------------------------- |
+| Containerization           | **Docker**                                 | Consistent environments dev→prod         |
+| Container Registry         | **GitHub Container Registry (GHCR)**       | Free, integrated with GitHub Actions     |
+| Hosting (startup)          | **Railway** or **Render**                  | Managed, minimal DevOps, supports Docker |
+| Hosting (scale)            | **AWS ECS + Fargate**                      | Serverless containers, auto-scaling      |
+| Orchestration (enterprise) | **Kubernetes (EKS/GKE)**                   | Full control, horizontal scaling         |
+| CDN                        | **Vercel** (for Next.js) or **CloudFront** | Edge caching, global performance         |
+| Reverse Proxy              | **Nginx** or **Traefik**                   | SSL termination, routing, rate limiting  |
+| Database hosting           | **AWS RDS PostgreSQL** or **Supabase**     | Managed, automated backups               |
+| Redis hosting              | **AWS ElastiCache** or **Upstash**         | Managed Redis, serverless option         |
+| Object storage             | **AWS S3**                                 | Reliable, cheap, S3-standard             |
 
 #### 4.6.3 CI/CD Pipeline (GitHub Actions)
 
@@ -349,29 +352,30 @@ Tag (v*.*.*):
 
 #### 4.6.4 Observability Stack
 
-| Component | Technology | Purpose |
-|-----------|-----------|---------|
-| Error tracking | **Sentry** | Frontend + backend exception capture |
-| Application metrics | **Prometheus** | Custom metrics (eval jobs, API latency, queue depth) |
-| Metrics visualization | **Grafana** | Dashboards for infra and app metrics |
-| Logs aggregation | **Loki + Grafana** (self-hosted) or **Datadog** | Structured log search |
-| Distributed tracing | **OpenTelemetry + Jaeger** | Trace LLM calls end-to-end |
-| Uptime monitoring | **BetterUptime** or **UptimeRobot** | External availability checks |
+| Component             | Technology                                      | Purpose                                              |
+| --------------------- | ----------------------------------------------- | ---------------------------------------------------- |
+| Error tracking        | **Sentry**                                      | Frontend + backend exception capture                 |
+| Application metrics   | **Prometheus**                                  | Custom metrics (eval jobs, API latency, queue depth) |
+| Metrics visualization | **Grafana**                                     | Dashboards for infra and app metrics                 |
+| Logs aggregation      | **Loki + Grafana** (self-hosted) or **Datadog** | Structured log search                                |
+| Distributed tracing   | **OpenTelemetry + Jaeger**                      | Trace LLM calls end-to-end                           |
+| Uptime monitoring     | **BetterUptime** or **UptimeRobot**             | External availability checks                         |
 
 ---
 
 ### 4.7 Testing Strategy
 
-| Layer | Technology | Coverage Target |
-|-------|-----------|----------------|
-| Unit tests (frontend) | **Vitest + React Testing Library** | 80% coverage |
-| Unit tests (backend) | **Jest** (NestJS) + **Pytest** (FastAPI) | 80% coverage |
-| Integration tests | **Supertest** (API) + **pytest-asyncio** (worker) | All endpoints |
-| E2E tests | **Playwright** | Critical user flows |
-| Load tests | **k6** | API Gateway (target: 1000 req/s) |
-| Visual regression | **Percy** or **Chromatic** | UI component snapshots |
+| Layer                 | Technology                                        | Coverage Target                  |
+| --------------------- | ------------------------------------------------- | -------------------------------- |
+| Unit tests (frontend) | **Vitest + React Testing Library**                | 80% coverage                     |
+| Unit tests (backend)  | **Jest** (NestJS) + **Pytest** (FastAPI)          | 80% coverage                     |
+| Integration tests     | **Supertest** (API) + **pytest-asyncio** (worker) | All endpoints                    |
+| E2E tests             | **Playwright**                                    | Critical user flows              |
+| Load tests            | **k6**                                            | API Gateway (target: 1000 req/s) |
+| Visual regression     | **Percy** or **Chromatic**                        | UI component snapshots           |
 
 **Key E2E flows to cover with Playwright:**
+
 1. Create prompt → version → connect dataset → run evaluation → view results
 2. Deploy prompt DEV → STAGING → PROD
 3. Build agent workflow → connect nodes → test run
@@ -381,24 +385,24 @@ Tag (v*.*.*):
 
 ### 4.8 Full Stack Summary Table
 
-| Layer | Technology | Alternative considered | Why chosen |
-|-------|-----------|----------------------|-----------|
-| Frontend framework | **Next.js 14** | Vite + React | SSR, routing, BFF built-in |
-| Frontend language | **TypeScript** | JavaScript | Type safety, shared types |
-| UI components | **shadcn/ui + Tailwind** | MUI, Chakra | Composable, no runtime overhead |
-| Node editor | **React Flow** | Custom canvas | Battle-tested, feature-complete |
-| Main API | **NestJS** | Express, Django | TypeScript ecosystem, fast dev |
-| Eval worker | **FastAPI** | Node.js | Python LLM ecosystem (LiteLLM, HF evaluate) |
-| LLM abstraction | **LiteLLM** | Direct SDKs | Unified interface for all providers |
-| ML metrics | **HuggingFace evaluate** | Custom implementations | Native F1, EM, BERTScore, BLEU |
-| Database | **PostgreSQL** | MongoDB | Relational integrity + JSONB flexibility |
-| Queue | **BullMQ** | Kafka, RabbitMQ | Redis-based, simple, TypeScript-native |
-| Auth | **Clerk** | Auth.js, Supabase Auth | Fastest to implement, feature-rich |
-| Proxy gateway | **Fastify** | Express, NestJS | Highest throughput for hot path |
-| Real-time | **Socket.io** | SSE, raw WebSocket | Reconnection, rooms, wide browser support |
-| Storage | **S3 / MinIO** | Local filesystem | Scalable, standard, works local+cloud |
-| CI/CD | **GitHub Actions** | GitLab CI, CircleCI | Free, integrated with repo |
-| Error tracking | **Sentry** | Rollbar | Best Next.js + NestJS integration |
+| Layer              | Technology               | Alternative considered | Why chosen                                  |
+| ------------------ | ------------------------ | ---------------------- | ------------------------------------------- |
+| Frontend framework | **Next.js 14**           | Vite + React           | SSR, routing, BFF built-in                  |
+| Frontend language  | **TypeScript**           | JavaScript             | Type safety, shared types                   |
+| UI components      | **shadcn/ui + Tailwind** | MUI, Chakra            | Composable, no runtime overhead             |
+| Node editor        | **React Flow**           | Custom canvas          | Battle-tested, feature-complete             |
+| Main API           | **NestJS**               | Express, Django        | TypeScript ecosystem, fast dev              |
+| Eval worker        | **FastAPI**              | Node.js                | Python LLM ecosystem (LiteLLM, HF evaluate) |
+| LLM abstraction    | **LiteLLM**              | Direct SDKs            | Unified interface for all providers         |
+| ML metrics         | **HuggingFace evaluate** | Custom implementations | Native F1, EM, BERTScore, BLEU              |
+| Database           | **PostgreSQL**           | MongoDB                | Relational integrity + JSONB flexibility    |
+| Queue              | **BullMQ**               | Kafka, RabbitMQ        | Redis-based, simple, TypeScript-native      |
+| Auth               | **Clerk**                | Auth.js, Supabase Auth | Fastest to implement, feature-rich          |
+| Proxy gateway      | **Fastify**              | Express, NestJS        | Highest throughput for hot path             |
+| Real-time          | **Socket.io**            | SSE, raw WebSocket     | Reconnection, rooms, wide browser support   |
+| Storage            | **S3 / MinIO**           | Local filesystem       | Scalable, standard, works local+cloud       |
+| CI/CD              | **GitHub Actions**       | GitLab CI, CircleCI    | Free, integrated with repo                  |
+| Error tracking     | **Sentry**               | Rollbar                | Best Next.js + NestJS integration           |
 
 ---
 
@@ -451,6 +455,7 @@ workspace_members (id, workspace_id, user_id, role)
 ### 6.2 Overview Dashboard
 
 The workspace overview page shows:
+
 - Total prompts, agents, datasets
 - Recent evaluation results
 - Active deployments count
@@ -489,6 +494,7 @@ Body: {
 ```
 
 **Variable detection:**
+
 - Auto-parse `{{variable_name}}` patterns from prompt content
 - Each variable has: `name`, `type` (string | number | boolean | array | object), `description`, `default_value`
 
@@ -508,6 +514,7 @@ Tabs: **Overview** | **Prompt** | **Dataset** | **AI Provider** | **Environments
 #### 7.5.1 Overview Tab
 
 Three cards:
+
 1. **Version & Data Card**: current prompt version, dataset version, total versions, dataset rows, connected dataset status, total evaluations (completed count)
 2. **Configuration & Performance Card**: AI provider name, model name, success rate (%), avg response time (seconds), model parameters (temp, top_p, max_tokens)
 3. **Deployment & Quality Card**: failover toggle status, staging version, production version, evaluation quality (last grade, best grade), last evaluation timestamp
@@ -521,6 +528,7 @@ Three cards:
 - Button: **Back to Overview**
 
 **Edit Mode:**
+
 - Rich text editor with `{{variable}}` syntax highlighting
 - Variables panel (left sidebar) showing all extracted variables as draggable chips
 - "Create Variables" button to manually add variables
@@ -586,6 +594,7 @@ Body: {
 ```
 
 Upload via:
+
 - CSV file upload
 - JSON file upload
 - Manual row entry (future)
@@ -616,6 +625,7 @@ Upload via:
 ### 8.7 Version Comparison Modal
 
 Side-by-side comparison showing:
+
 - Version numbers, creation dates, row/column counts
 - **Changes Summary**:
   - Row Count Diff (e.g., -8)
@@ -629,6 +639,7 @@ Side-by-side comparison showing:
 ### 8.8 Dataset Engineering Hub Features
 
 Quick access buttons:
+
 - **Model Testing**: test a model against a dataset directly
 - **Data Quality Analysis**: run quality checks (null values, duplicates, schema validation)
 - **Performance Benchmarks**: compare dataset versions' impact on eval scores
@@ -643,14 +654,14 @@ Accessible at `/ai-providers`. Manage connections to external LLM providers.
 
 ### 9.2 Supported Providers (at launch)
 
-| Provider | Notes |
-|----------|-------|
-| OpenAI | GPT-4, GPT-3.5, etc. |
-| TogetherAI | Open-source models |
-| Mistral AI | Mistral 7B, Mixtral, etc. |
-| Anthropic | Claude models |
-| Groq | Fast inference |
-| Ollama | Local models |
+| Provider             | Notes                            |
+| -------------------- | -------------------------------- |
+| OpenAI               | GPT-4, GPT-3.5, etc.             |
+| TogetherAI           | Open-source models               |
+| Mistral AI           | Mistral 7B, Mixtral, etc.        |
+| Anthropic            | Claude models                    |
+| Groq                 | Fast inference                   |
+| Ollama               | Local models                     |
 | Custom / Self-hosted | BYO endpoint (OpenAI-compatible) |
 
 ### 9.3 Provider Configuration
@@ -683,52 +694,56 @@ The evaluation system runs batch jobs that send each dataset row through the pro
 ### 10.2 Configure Evaluation Flow (2-step wizard)
 
 **Step 1 — Select Metrics:**
+
 - Grid of available metrics with category filters
 - Categories: Quality, Coherence, Consistency, Cost, Performance, Relevance, Reliability, Similarity, Speed, Sustainability, Technical
 - Each metric card shows: name, category, description, "Learn more" toggle, selection checkbox
 - **AI-Powered Metric Suggestions**: analyze the prompt and auto-recommend top metrics with match % and AI insight explanation
 
 **Step 2 — Review:**
+
 - Summary of: prompt name, version, dataset name/version, row count, selected metrics list, AI config
 - Status: "Ready to evaluate" (green) when all components configured
 - **Start Evaluation** button
 
 ### 10.3 Available Metrics (Minimum)
 
-| Metric | Category | Description |
-|--------|----------|-------------|
-| Accuracy | Quality | Overall correct response rate |
-| Exact Match (EM) | Quality | % of exactly correct responses |
-| F1-Score | Quality | Balance between precision and recall |
-| Precision | Quality | Correct positive predictions ratio |
-| Recall | Quality | Ability to find all positive instances |
-| Fluency Score | Coherence | Grammar and readability |
-| Grammar Score | Coherence | Syntactic correctness |
-| Perplexity | Coherence | Model confidence measure |
-| Consistency Score | Consistency | Output stability across runs |
-| Response Variance | Consistency | Standard deviation of outputs |
-| Cost Estimate | Cost | Estimated cost per evaluation |
-| Cost per Request | Performance | Average cost per API call |
-| Eval Duration | Performance | Total evaluation time |
-| Input Tokens | Performance | Average input token count |
-| Output Tokens | Performance | Average output token count |
-| Overall Efficiency Score | Composite | Quality/cost ratio |
-| Latency (p50/p90/p99) | Speed | Response time percentiles |
-| Processing Speed | Speed | Tokens per second |
-| Carbon Footprint | Sustainability | gCO₂ per 1000 tokens |
-| Power Consumption | Sustainability | mWh per 1000 tokens |
+| Metric                   | Category       | Description                            |
+| ------------------------ | -------------- | -------------------------------------- |
+| Accuracy                 | Quality        | Overall correct response rate          |
+| Exact Match (EM)         | Quality        | % of exactly correct responses         |
+| F1-Score                 | Quality        | Balance between precision and recall   |
+| Precision                | Quality        | Correct positive predictions ratio     |
+| Recall                   | Quality        | Ability to find all positive instances |
+| Fluency Score            | Coherence      | Grammar and readability                |
+| Grammar Score            | Coherence      | Syntactic correctness                  |
+| Perplexity               | Coherence      | Model confidence measure               |
+| Consistency Score        | Consistency    | Output stability across runs           |
+| Response Variance        | Consistency    | Standard deviation of outputs          |
+| Cost Estimate            | Cost           | Estimated cost per evaluation          |
+| Cost per Request         | Performance    | Average cost per API call              |
+| Eval Duration            | Performance    | Total evaluation time                  |
+| Input Tokens             | Performance    | Average input token count              |
+| Output Tokens            | Performance    | Average output token count             |
+| Overall Efficiency Score | Composite      | Quality/cost ratio                     |
+| Latency (p50/p90/p99)    | Speed          | Response time percentiles              |
+| Processing Speed         | Speed          | Tokens per second                      |
+| Carbon Footprint         | Sustainability | gCO₂ per 1000 tokens                   |
+| Power Consumption        | Sustainability | mWh per 1000 tokens                    |
 
 ### 10.4 Evaluation Job Execution
 
 **Job lifecycle:** `pending` → `running` → `completed` | `failed`
 
 **Execution steps (shown in UI):**
+
 1. Running prompts through the AI model and collecting responses
 2. Evaluating responses against defined metrics
 3. Calculating performance scores and generating insights
 4. Preparing comprehensive results and recommendations
 
 **Job metadata stored:**
+
 - Job ID (UUID)
 - prompt_id, prompt_version
 - dataset_id, dataset_version
@@ -742,30 +757,35 @@ The evaluation system runs batch jobs that send each dataset row through the pro
 Sections:
 
 **Overview:**
+
 - Progress bar (0-100%)
 - Prompt name, Model, Provider, Created date
 - Model config parameters
 - Status badge + Grade badge (A+, A, B, C, D, F)
 
 **Performance Metrics:**
+
 - Accuracy %, Processing Speed (tok/s), Latency p50 (s), Reliability %, Consistency %
 - Each with color-coded progress bar and grade badge
 
 **Cost & Performance Analysis:**
+
 - Cost Metrics: Cost/1k Correct Outputs ($), Cost/1M Tokens ($), Cost Efficiency %
 - Performance Metrics: Cost per Second ($), Power Consumption (mWh), Carbon Footprint (gCO₂)
 - Focus tags: Cost, Power, Speed, Accuracy
 
 **Evaluation Metrics Detail (5 selected):**
+
 - Card per metric: score %, threshold %, trend indicator (↑↓), grade badge, description, "Suggestion d'amélioration" link
 
 **Grading Scale:**
+
 - A+ : ≥ 95%
-- A  : ≥ 90%
-- B  : ≥ 80%
-- C  : ≥ 70%
-- D  : ≥ 60%
-- F  : < 60%
+- A : ≥ 90%
+- B : ≥ 80%
+- C : ≥ 70%
+- D : ≥ 60%
+- F : < 60%
 
 ### 10.6 Evaluation Jobs List Page (`/evaluation-jobs`)
 
@@ -794,6 +814,7 @@ DEV (development)
 ### 11.2 Environment Detail (per environment card)
 
 Each card shows:
+
 - Environment name + status (LIVE badge if active)
 - Version deployed (semver, e.g., 1.0.0.1)
 - Deployment timestamp
@@ -829,6 +850,7 @@ Each card shows:
 ### 11.7 History View
 
 Full audit log of all deployments:
+
 - Timestamp, actor (user), action (promoted/rolled back), from_version, to_version, environment
 
 ### 11.8 Versioning Scheme
@@ -852,14 +874,14 @@ Configure automatic fallback to a secondary AI provider/model when the primary f
 
 ### 12.3 Failover Triggers
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| Automatic Failover | ON | Switch to secondary when primary fails |
-| Timeout (ms) | 30000 | Max wait before triggering failover |
-| Error Threshold | 3 | Number of errors before switching |
-| Max Latency (ms) | 5000 | Latency threshold to trigger failover |
-| Auto Recovery | ON | Return to primary when available |
-| Recovery Check Interval (ms) | 300000 | How often to check primary availability |
+| Setting                      | Default | Description                             |
+| ---------------------------- | ------- | --------------------------------------- |
+| Automatic Failover           | ON      | Switch to secondary when primary fails  |
+| Timeout (ms)                 | 30000   | Max wait before triggering failover     |
+| Error Threshold              | 3       | Number of errors before switching       |
+| Max Latency (ms)             | 5000    | Latency threshold to trigger failover   |
+| Auto Recovery                | ON      | Return to primary when available        |
+| Recovery Check Interval (ms) | 300000  | How often to check primary availability |
 
 ### 12.4 Failover Status
 
@@ -885,12 +907,14 @@ A visual no-code/low-code workflow builder for creating multi-step AI agent pipe
 Tabs: **Overview** | **Workflow Builder** | **Environments** | **Execution** | **Analytics**
 
 **Overview Tab:**
+
 - Agent Information: name, description, workspace, environment, version, created_at
 - KPIs: Nodes count, Version, Success Rate, Avg Cost, Last Run timestamp
 
 ### 13.4 Workflow Studio Editor (`/agents/:id/edit`)
 
 **Canvas:**
+
 - Dark background dot-grid canvas (infinite, pannable, zoomable)
 - Zoom controls (+ / -)
 - Node counter display ("2 nodes · 1 edges")
@@ -899,20 +923,22 @@ Tabs: **Overview** | **Workflow Builder** | **Environments** | **Execution** | *
 
 **Node Palette (left sidebar):**
 
-| Node Type | Color | Description |
-|-----------|-------|-------------|
-| Start | Green | Entry point, defines input variables |
-| Prompt | Blue | Calls a deployed prompt API |
-| Condition | Orange | If/else branching logic |
-| Loop | Purple | Iterate over a list |
-| Parallel | Dark Green | Execute multiple nodes concurrently |
-| Output | Pink | Define the final output format |
+| Node Type | Color      | Description                          |
+| --------- | ---------- | ------------------------------------ |
+| Start     | Green      | Entry point, defines input variables |
+| Prompt    | Blue       | Calls a deployed prompt API          |
+| Condition | Orange     | If/else branching logic              |
+| Loop      | Purple     | Iterate over a list                  |
+| Parallel  | Dark Green | Execute multiple nodes concurrently  |
+| Output    | Pink       | Define the final output format       |
 
 **Node Connections:**
+
 - Drag from output handle (right circle) to input handle (left circle)
 - Arrows/bezier curves connecting nodes
 
 **Start Node Configuration:**
+
 - Import Variables from Prompt (auto-extract from selected prompt)
 - Prompt Environment selector: Dev / Staging / Prod
 - Select Prompt dropdown (searchable, shows prompt name + description)
@@ -922,12 +948,14 @@ Tabs: **Overview** | **Workflow Builder** | **Environments** | **Execution** | *
   - Variables auto-populated when prompt selected
 
 **Prompt Node Configuration:**
+
 - Prompt Environment selector: Dev / Staging / Prod
 - Select Prompt dropdown (searchable)
 - Output Key: string key to store this node's output (e.g., "result", "analysis_result")
 - The node displays the live API URL: `/api/v1/live/[env]-prompt-[id]`
 
 **Test Run:**
+
 - Opens test panel with input variable form
 - Shows execution trace (node by node)
 - Shows final output
@@ -954,12 +982,14 @@ Accessible at `/proxy`.
 ### 14.2 Gateway Overview Page
 
 Key Features listed:
+
 - Environment Management (dev, staging, prod)
 - API Key Authentication
 - Real-time Monitoring
 - Version Control
 
 Quick Start Guide:
+
 1. Create an API Key
 2. Deploy Your Prompt
 3. Make Your First API Call
@@ -982,7 +1012,7 @@ Quick Start Guide:
 ### 14.5 API Test Modal
 
 - Endpoint name in header
-- API Key input field (sk_org_...)
+- API Key input field (sk*org*...)
 - **Quick Fill** button (populate from saved keys)
 - Dynamic variable input fields (one per prompt variable)
 - **Test API** button
@@ -991,6 +1021,7 @@ Quick Start Guide:
 ### 14.6 Docs Generation
 
 Auto-generate API documentation for each endpoint:
+
 - Endpoint URL
 - Authentication header format
 - Request body schema (JSON)
@@ -1035,11 +1066,11 @@ Accessible at `/api-keys`. Manage authentication keys for API access.
 
 ### 15.2 Key Types / Scopes
 
-| Scope | Prefix | Description |
-|-------|--------|-------------|
-| Organization | `sk_org_` | Access all workspaces in org |
-| Workspace | `sk_ws_` | Access only the specific workspace |
-| Read-only | `sk_ro_` | GET requests only |
+| Scope        | Prefix    | Description                        |
+| ------------ | --------- | ---------------------------------- |
+| Organization | `sk_org_` | Access all workspaces in org       |
+| Workspace    | `sk_ws_`  | Access only the specific workspace |
+| Read-only    | `sk_ro_`  | GET requests only                  |
 
 ### 15.3 Key Metadata
 
@@ -1094,16 +1125,17 @@ Accessible at `/monitoring`. Real-time API performance monitoring with auto-refr
 
 ### 16.3 KPI Cards (Top Row)
 
-| KPI | Description |
-|-----|-------------|
-| Total API Calls | Count in selected time range |
-| Success Rate | % success + "X success, Y errors" |
-| Avg Latency | Response time in seconds |
-| Total Tokens | Input ↓ / Output ↑ counts |
+| KPI             | Description                       |
+| --------------- | --------------------------------- |
+| Total API Calls | Count in selected time range      |
+| Success Rate    | % success + "X success, Y errors" |
+| Avg Latency     | Response time in seconds          |
+| Total Tokens    | Input ↓ / Output ↑ counts         |
 
 ### 16.4 Activity Windows
 
 Three cards showing call counts:
+
 - Last Minute
 - Last Hour
 - Last 24 Hours
@@ -1155,6 +1187,7 @@ Tabs: All | Dev | Staging | Prod
 ### 17.4 Per-Endpoint Breakdown
 
 Each endpoint section shows:
+
 - Endpoint URL with status dot (green = healthy)
 - Total Calls count
 - Last Call (relative time: "1d ago")
@@ -1168,6 +1201,7 @@ Each endpoint section shows:
 ### 17.5 Individual Call Log
 
 Each call record:
+
 - Timestamp
 - Request ID
 - Input variables (truncated)
@@ -1184,6 +1218,7 @@ Each call record:
 ### 18.1 Prompt-Level Analytics (`/prompt-analytics/:id`)
 
 **KPI Header:**
+
 - Avg Accuracy %
 - Avg Reliability %
 - Avg Consistency %
@@ -1191,6 +1226,7 @@ Each call record:
 - Latest Grade (A+, A, B...)
 
 **Performance Over Time Chart:**
+
 - X-axis: evaluation number (#1 to #N)
 - Y-axis left: Score % (0-100)
 - Y-axis right: Latency (seconds)
@@ -1199,6 +1235,7 @@ Each call record:
 - Interactive tooltips on hover showing: eval number, date, model, config, metric value
 
 **Tooltip data:**
+
 ```
 Evaluation 47 - 13/10/2025 10:08:15
 Model: ServiceNow-AI/Apriel-1.5-15b-Thinker
@@ -1207,18 +1244,21 @@ Latency: 2.33s
 ```
 
 **Recent Evaluations Table:**
+
 - Tabs: All / Completed / Failed
 - Columns: eval ID, status, provider, model, prompt version, dataset version, parameters, duration, score/10, grade
 
 ### 18.2 Prompt Inline Analytics (inside Prompt detail page)
 
 Smaller version of the analytics with:
+
 - Performance Over Time (last 10 evals)
 - **Optimization Suggestions** panel (right side):
   - Config warnings (orange, with specific action)
   - **Improved Prompt Version** (AI-generated improved version of the prompt)
 
 **Example Optimization Suggestions:**
+
 - "Config: The model's temperature setting might be too high, leading to less reliable predictions. → Decrease the temperature setting to 0.5 or lower."
 - "Config: Adjust max_tokens to 200"
 - "Improved Prompt Version: [AI-rewritten prompt with improvements]"
@@ -1252,16 +1292,16 @@ Projects group related prompts, datasets, agents, and evaluations together.
 
 ### 20.1 Performance
 
-| Metric | Target |
-|--------|--------|
-| API response time (p95) | < 200ms (excluding LLM calls) |
-| Dashboard load time | < 2 seconds |
-| Evaluation job throughput | 10+ concurrent jobs |
-| Live monitoring refresh | Every 5 seconds |
-| Dataset upload size | Up to 100MB |
-| Max dataset rows | 100,000 rows |
-| Max prompts per workspace | 1,000 |
-| Max versions per prompt | Unlimited |
+| Metric                    | Target                        |
+| ------------------------- | ----------------------------- |
+| API response time (p95)   | < 200ms (excluding LLM calls) |
+| Dashboard load time       | < 2 seconds                   |
+| Evaluation job throughput | 10+ concurrent jobs           |
+| Live monitoring refresh   | Every 5 seconds               |
+| Dataset upload size       | Up to 100MB                   |
+| Max dataset rows          | 100,000 rows                  |
+| Max prompts per workspace | 1,000                         |
+| Max versions per prompt   | Unlimited                     |
 
 ### 20.2 Scalability
 
@@ -1513,6 +1553,7 @@ agents (
 ## 22. API Endpoints Reference
 
 ### 22.1 Authentication
+
 ```
 POST   /auth/magic-link
 GET    /auth/verify
@@ -1521,6 +1562,7 @@ GET    /auth/me
 ```
 
 ### 22.2 Prompts
+
 ```
 GET    /api/prompts                          → list
 POST   /api/prompts                          → create
@@ -1534,6 +1576,7 @@ GET    /api/prompts/:id/analytics            → analytics data
 ```
 
 ### 22.3 Datasets
+
 ```
 GET    /api/datasets
 POST   /api/datasets
@@ -1547,6 +1590,7 @@ GET    /api/datasets/:id/versions/:v/preview → get rows preview
 ```
 
 ### 22.4 Evaluations
+
 ```
 GET    /api/evaluations                      → list jobs
 POST   /api/evaluations                      → create + start job
@@ -1557,6 +1601,7 @@ POST   /api/metrics/suggest                  → AI metric suggestions for promp
 ```
 
 ### 22.5 Deployments
+
 ```
 GET    /api/prompts/:id/deployments          → list all envs
 POST   /api/prompts/:id/deploy               → deploy to env
@@ -1566,6 +1611,7 @@ POST   /api/prompts/:id/go-live              → activate live endpoint
 ```
 
 ### 22.6 Agents
+
 ```
 GET    /api/agents
 POST   /api/agents
@@ -1577,6 +1623,7 @@ POST   /api/agents/:id/test-run             → execute workflow with test input
 ```
 
 ### 22.7 API Keys
+
 ```
 GET    /api/api-keys
 POST   /api/api-keys
@@ -1586,6 +1633,7 @@ GET    /api/api-keys/:id/usage
 ```
 
 ### 22.8 Gateway / Proxy
+
 ```
 GET    /api/gateway/endpoints               → list live endpoints
 GET    /api/gateway/endpoints/:hash         → endpoint detail + docs
@@ -1594,6 +1642,7 @@ GET    /api/gateway/analytics
 ```
 
 ### 22.9 Monitoring
+
 ```
 GET    /api/monitoring/summary              → KPI summary
 GET    /api/monitoring/timeseries           → time-series data
@@ -1713,6 +1762,7 @@ DEPLOYMENT
 ## 25. Milestones & Phased Delivery
 
 ### Phase 1 — Foundation (Weeks 1-4)
+
 - [ ] Project scaffolding (monorepo, Docker, CI/CD)
 - [ ] Auth system (magic link + JWT)
 - [ ] Organizations, Workspaces, Users, Roles
@@ -1720,6 +1770,7 @@ DEPLOYMENT
 - [ ] Basic prompt editor with variable detection
 
 ### Phase 2 — Datasets & Evaluation (Weeks 5-8)
+
 - [ ] Dataset upload and versioning
 - [ ] Variable mapping (prompt ↔ dataset)
 - [ ] AI Provider configuration
@@ -1727,6 +1778,7 @@ DEPLOYMENT
 - [ ] Evaluation job detail page
 
 ### Phase 3 — Deployment Pipeline (Weeks 9-11)
+
 - [ ] DEV / STAGING / PROD environments
 - [ ] Promote / Rollback / Go Live
 - [ ] API Key management
@@ -1734,6 +1786,7 @@ DEPLOYMENT
 - [ ] Basic API call logging
 
 ### Phase 4 — Monitoring & Analytics (Weeks 12-14)
+
 - [ ] Live Monitoring (WebSocket, auto-refresh)
 - [ ] API Calls by endpoint view
 - [ ] Performance Over Time charts
@@ -1741,6 +1794,7 @@ DEPLOYMENT
 - [ ] Failover configuration + runtime switching
 
 ### Phase 5 — Advanced Features (Weeks 15-18)
+
 - [ ] Agent Workflow Studio (node editor)
 - [ ] AI-powered metric suggestions
 - [ ] AI-powered optimization suggestions
@@ -1749,6 +1803,7 @@ DEPLOYMENT
 - [ ] Regression Testing feature
 
 ### Phase 6 — Polish & Scale (Weeks 19-20)
+
 - [ ] Performance optimization
 - [ ] Security hardening
 - [ ] Full test coverage (unit + integration + e2e)
@@ -1760,19 +1815,19 @@ DEPLOYMENT
 
 ## Appendix A — Glossary
 
-| Term | Definition |
-|------|-----------|
-| Prompt | A templated instruction sent to an LLM, with `{{variable}}` placeholders |
-| Prompt Version | An immutable snapshot of a prompt's content at a point in time |
-| Dataset | A collection of rows used as inputs/expected outputs for evaluation |
+| Term           | Definition                                                                         |
+| -------------- | ---------------------------------------------------------------------------------- |
+| Prompt         | A templated instruction sent to an LLM, with `{{variable}}` placeholders           |
+| Prompt Version | An immutable snapshot of a prompt's content at a point in time                     |
+| Dataset        | A collection of rows used as inputs/expected outputs for evaluation                |
 | Evaluation Job | A batch run that executes a prompt against all dataset rows and scores the results |
-| Workspace | An isolated environment for organizing resources (prompts, datasets, agents) |
-| Environment | A deployment stage: Dev, Staging, or Production |
-| Endpoint | A live REST URL that executes a deployed prompt |
-| Node | A single step in an agent workflow (Start, Prompt, Condition, Loop, etc.) |
-| Grade | A letter score (A+, A, B, C, D, F) summarizing evaluation quality |
-| Failover | Automatic switch to a backup AI provider when the primary fails |
-| API Proxy | The reverse proxy layer that routes requests to the correct model/version |
+| Workspace      | An isolated environment for organizing resources (prompts, datasets, agents)       |
+| Environment    | A deployment stage: Dev, Staging, or Production                                    |
+| Endpoint       | A live REST URL that executes a deployed prompt                                    |
+| Node           | A single step in an agent workflow (Start, Prompt, Condition, Loop, etc.)          |
+| Grade          | A letter score (A+, A, B, C, D, F) summarizing evaluation quality                  |
+| Failover       | Automatic switch to a backup AI provider when the primary fails                    |
+| API Proxy      | The reverse proxy layer that routes requests to the correct model/version          |
 
 ---
 
@@ -1828,53 +1883,53 @@ SENTRY_DSN=https://xxx@sentry.io/xxx
 
 The following table summarizes the final technology choices for the entire platform with recommended versions:
 
-| Layer | Technology | Version |
-|-------|-----------|---------|
-| **Frontend framework** | Next.js (App Router) | 14+ |
-| **Frontend language** | TypeScript | 5+ |
-| **Styling** | Tailwind CSS + shadcn/ui | Latest |
-| **Node Editor** | React Flow | 11+ |
-| **Charts** | Recharts | 2+ |
-| **Forms** | React Hook Form + Zod | Latest |
-| **Server state** | TanStack Query | v5 |
-| **Client state** | Zustand | 4+ |
-| **Auth client** | Clerk | Latest |
-| **Real-time client** | Socket.io-client | 4+ |
-| **API principale** | NestJS (TypeScript) | 10+ |
-| **Runtime API** | Node.js | 20+ |
-| **ORM (Node)** | Prisma | 5+ |
-| **Eval Worker** | FastAPI (Python) | 0.110+ |
-| **Runtime Worker** | Python | 3.11+ |
-| **ORM (Python)** | SQLAlchemy (async) | 2+ |
-| **Proxy Gateway** | Fastify | 4+ |
-| **Base de données** | PostgreSQL | 15+ |
-| **Connection pool** | PgBouncer | Latest |
-| **Cache / Queue** | Redis 7 + BullMQ | 7+ / 5+ |
-| **Stockage fichiers** | AWS S3 / MinIO | Latest |
-| **LLM Integration** | LiteLLM | Latest |
-| **Métriques ML** | HuggingFace `evaluate` | Latest |
-| **Semantic similarity** | sentence-transformers | Latest |
-| **Auth** | Clerk (ou Auth.js v5) | Latest |
-| **Temps réel (server)** | Socket.io / NestJS WebSockets | 4+ |
-| **Email** | Resend ou SendGrid | Latest |
-| **Error tracking** | Sentry | Latest |
-| **Infra locale** | Docker Compose | Latest |
-| **Containerization** | Docker | Latest |
-| **Registry** | GitHub Container Registry | — |
-| **Infra prod (startup)** | Railway / Fly.io | — |
-| **Infra prod (scale)** | AWS ECS + Fargate | — |
-| **Infra prod (enterprise)** | Kubernetes (EKS/GKE) | — |
-| **CDN** | Vercel / CloudFront | — |
-| **Reverse proxy** | Nginx / Traefik | Latest |
-| **CI/CD** | GitHub Actions | — |
-| **Tests unitaires (front)** | Vitest + React Testing Library | Latest |
-| **Tests unitaires (back)** | Jest (NestJS) + Pytest (FastAPI) | Latest |
-| **Tests E2E** | Playwright | Latest |
-| **Tests de charge** | k6 | Latest |
-| **Métriques infra** | Prometheus + Grafana | Latest |
-| **Logs** | Pino + Loki | Latest |
-| **Tracing** | OpenTelemetry + Jaeger | Latest |
+| Layer                       | Technology                       | Version |
+| --------------------------- | -------------------------------- | ------- |
+| **Frontend framework**      | Next.js (App Router)             | 14+     |
+| **Frontend language**       | TypeScript                       | 5+      |
+| **Styling**                 | Tailwind CSS + shadcn/ui         | Latest  |
+| **Node Editor**             | React Flow                       | 11+     |
+| **Charts**                  | Recharts                         | 2+      |
+| **Forms**                   | React Hook Form + Zod            | Latest  |
+| **Server state**            | TanStack Query                   | v5      |
+| **Client state**            | Zustand                          | 4+      |
+| **Auth client**             | Clerk                            | Latest  |
+| **Real-time client**        | Socket.io-client                 | 4+      |
+| **API principale**          | NestJS (TypeScript)              | 10+     |
+| **Runtime API**             | Node.js                          | 20+     |
+| **ORM (Node)**              | Prisma                           | 5+      |
+| **Eval Worker**             | FastAPI (Python)                 | 0.110+  |
+| **Runtime Worker**          | Python                           | 3.11+   |
+| **ORM (Python)**            | SQLAlchemy (async)               | 2+      |
+| **Proxy Gateway**           | Fastify                          | 4+      |
+| **Base de données**         | PostgreSQL                       | 15+     |
+| **Connection pool**         | PgBouncer                        | Latest  |
+| **Cache / Queue**           | Redis 7 + BullMQ                 | 7+ / 5+ |
+| **Stockage fichiers**       | AWS S3 / MinIO                   | Latest  |
+| **LLM Integration**         | LiteLLM                          | Latest  |
+| **Métriques ML**            | HuggingFace `evaluate`           | Latest  |
+| **Semantic similarity**     | sentence-transformers            | Latest  |
+| **Auth**                    | Clerk (ou Auth.js v5)            | Latest  |
+| **Temps réel (server)**     | Socket.io / NestJS WebSockets    | 4+      |
+| **Email**                   | Resend ou SendGrid               | Latest  |
+| **Error tracking**          | Sentry                           | Latest  |
+| **Infra locale**            | Docker Compose                   | Latest  |
+| **Containerization**        | Docker                           | Latest  |
+| **Registry**                | GitHub Container Registry        | —       |
+| **Infra prod (startup)**    | Railway / Fly.io                 | —       |
+| **Infra prod (scale)**      | AWS ECS + Fargate                | —       |
+| **Infra prod (enterprise)** | Kubernetes (EKS/GKE)             | —       |
+| **CDN**                     | Vercel / CloudFront              | —       |
+| **Reverse proxy**           | Nginx / Traefik                  | Latest  |
+| **CI/CD**                   | GitHub Actions                   | —       |
+| **Tests unitaires (front)** | Vitest + React Testing Library   | Latest  |
+| **Tests unitaires (back)**  | Jest (NestJS) + Pytest (FastAPI) | Latest  |
+| **Tests E2E**               | Playwright                       | Latest  |
+| **Tests de charge**         | k6                               | Latest  |
+| **Métriques infra**         | Prometheus + Grafana             | Latest  |
+| **Logs**                    | Pino + Loki                      | Latest  |
+| **Tracing**                 | OpenTelemetry + Jaeger           | Latest  |
 
 ---
 
-*This document is a living specification. Features marked for future phases should be tracked in the project issue tracker.*
+_This document is a living specification. Features marked for future phases should be tracked in the project issue tracker._

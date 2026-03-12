@@ -3,16 +3,16 @@ name: Release to Production
 on:
   push:
     tags:
-      - "v*.*.*"
+      - 'v*.*.*'
 
 concurrency:
   group: release
   cancel-in-progress: false
 
 env:
-  NODE_VERSION: "20"
-  PYTHON_VERSION: "3.11"
-  PNPM_VERSION: "9.12.0"
+  NODE_VERSION: '20'
+  PYTHON_VERSION: '3.11'
+  PNPM_VERSION: '9.12.0'
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/agentforge
 
@@ -72,7 +72,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.local/share/pnpm/store
-          key: pnpm-store-${{ runner.os }}-${{ hashFiles('**/package.json') }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: pnpm-store-${{ runner.os }}-
 
       - name: Install dependencies

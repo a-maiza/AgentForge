@@ -10,9 +10,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: "20"
-  PYTHON_VERSION: "3.11"
-  PNPM_VERSION: "9.12.0"
+  NODE_VERSION: '20'
+  PYTHON_VERSION: '3.11'
+  PNPM_VERSION: '9.12.0'
 
 jobs:
   # ── Lint & format ────────────────────────────────────────────────────────────
@@ -36,7 +36,7 @@ jobs:
           path: ~/.local/share/pnpm/store
           # Use package.json hash until pnpm-lock.yaml is committed;
           # switch to hashFiles('**/pnpm-lock.yaml') after first `pnpm install`
-          key: pnpm-store-${{ runner.os }}-${{ hashFiles('**/package.json') }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: pnpm-store-${{ runner.os }}-
 
       - name: Install dependencies
@@ -76,7 +76,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.local/share/pnpm/store
-          key: pnpm-store-${{ runner.os }}-${{ hashFiles('**/package.json') }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: pnpm-store-${{ runner.os }}-
 
       - name: Install dependencies
@@ -107,7 +107,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.local/share/pnpm/store
-          key: pnpm-store-${{ runner.os }}-${{ hashFiles('**/package.json') }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: pnpm-store-${{ runner.os }}-
 
       - name: Install dependencies

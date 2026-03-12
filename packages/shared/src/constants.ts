@@ -122,7 +122,8 @@ export const DeploymentEnvironment = {
   STAGING: 'staging',
   PROD: 'prod',
 } as const;
-export type DeploymentEnvironment = (typeof DeploymentEnvironment)[keyof typeof DeploymentEnvironment];
+export type DeploymentEnvironment =
+  (typeof DeploymentEnvironment)[keyof typeof DeploymentEnvironment];
 
 export const DEPLOYMENT_PIPELINE: DeploymentEnvironment[] = ['dev', 'staging', 'prod'];
 
