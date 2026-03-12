@@ -1,0 +1,11 @@
+node_modules
+dist
+build
+.next
+.turbo
+coverage
+pnpm-lock.yaml
+*.min.js
+*.min.css
+# Python files handled by Ruff/Black
+apps/worker/**/*.py

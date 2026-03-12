@@ -127,16 +127,16 @@ Provider API keys are encrypted at rest with AES-256-GCM (Node.js `crypto`). A u
 
 ## Key technology choices
 
-| Concern | Choice | Note |
-|---------|--------|------|
-| LLM calls (worker) | LiteLLM | Unified interface for all providers |
-| ML metrics | HuggingFace `evaluate` | F1, EM, BLEU, ROUGE, BERTScore |
-| Semantic similarity | `sentence-transformers` | Embedding-based scoring |
-| Job queue | BullMQ (Redis-backed) | Shared between api (producer) and worker (consumer) |
-| Node editor | React Flow | Workflow Studio canvas |
-| Real-time | Socket.io + NestJS WebSockets | Live monitoring dashboard |
-| ORM | Prisma 5 (api) + SQLAlchemy 2 async (worker) | Both target the same PostgreSQL DB |
-| Object storage | AWS S3 / MinIO (local) | Dataset files, evaluation artefacts |
+| Concern             | Choice                                       | Note                                                |
+| ------------------- | -------------------------------------------- | --------------------------------------------------- |
+| LLM calls (worker)  | LiteLLM                                      | Unified interface for all providers                 |
+| ML metrics          | HuggingFace `evaluate`                       | F1, EM, BLEU, ROUGE, BERTScore                      |
+| Semantic similarity | `sentence-transformers`                      | Embedding-based scoring                             |
+| Job queue           | BullMQ (Redis-backed)                        | Shared between api (producer) and worker (consumer) |
+| Node editor         | React Flow                                   | Workflow Studio canvas                              |
+| Real-time           | Socket.io + NestJS WebSockets                | Live monitoring dashboard                           |
+| ORM                 | Prisma 5 (api) + SQLAlchemy 2 async (worker) | Both target the same PostgreSQL DB                  |
+| Object storage      | AWS S3 / MinIO (local)                       | Dataset files, evaluation artefacts                 |
 
 ---
 
@@ -151,18 +151,17 @@ Copy `.env.example` to `.env.local`. Required vars before any service starts:
 - `ENCRYPTION_KEY` — 32-byte hex string for AES-256 provider key encryption
 - `S3_BUCKET`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` (or MinIO equivalents)
 
-
 ## Git Workflow
 
 When working on tasks listed in Tasks.md:
 
 1. Before starting, create a new branch named `<type>/<task-number>-<brief-description>`,
    where the branch type reflects the nature of the change:
-   - feat      → new features
-   - fix       → bug fixes
-   - docs      → documentation updates
-   - test      → tests
-   - refactor  → refactoring
+   - feat → new features
+   - fix → bug fixes
+   - docs → documentation updates
+   - test → tests
+   - refactor → refactoring
 
 2. Use atomic commits with conventional commit messages.
 
@@ -171,7 +170,6 @@ When working on tasks listed in Tasks.md:
    - A brief summary of the changes made
    - Any relevant testing notes or considerations
    - An updated checkbox in TASKS.md to mark the task as complete
-
 
 ## Testing Requirements
 
@@ -182,4 +180,4 @@ Before marking any task as complete:
 3. If tests fail:
    - Analyse the failure output
    - Fix the code (not the tests, unless the tests are incorrect)
-   - Re-run tests until all pass   
+   - Re-run tests until all pass
