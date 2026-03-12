@@ -7,7 +7,7 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* ./
 COPY packages/shared/package.json ./packages/shared/package.json
 COPY apps/web/package.json ./apps/web/package.json
 
-RUN pnpm install --frozen-lockfile --filter @agentforge/web... --ignore-scripts
+RUN pnpm install --filter @agentforge/web... --ignore-scripts
 
 # ── Stage 2: builder ──────────────────────────────────────────────────────────
 FROM node:20-alpine AS builder

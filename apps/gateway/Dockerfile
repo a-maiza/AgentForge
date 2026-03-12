@@ -7,7 +7,7 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* ./
 COPY packages/shared/package.json ./packages/shared/package.json
 COPY apps/gateway/package.json ./apps/gateway/package.json
 
-RUN pnpm install --frozen-lockfile --filter @agentforge/gateway... --ignore-scripts
+RUN pnpm install --filter @agentforge/gateway... --ignore-scripts
 
 # ── Stage 2: builder ──────────────────────────────────────────────────────────
 FROM node:20-alpine AS builder

@@ -67,10 +67,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('**/package.json') }}
+          restore-keys: pnpm-store-${{ runner.os }}-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: Install Playwright browsers
         run: pnpm --filter @agentforge/web exec playwright install --with-deps chromium
@@ -153,7 +159,7 @@ jobs:
       # TODO(task 4.6.2): Replace with actual production deploy command.
       - name: Deploy to production
         run: |
-          echo "🚀 Deploying ${{ github.ref_name }} to production…"
+          echo "Deploying ${{ github.ref_name }} to production..."
           echo "Configure production deploy (ECS update-service, K8s rollout, etc.)."
 
   # ── Create GitHub Release ─────────────────────────────────────────────────────

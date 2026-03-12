@@ -3,6 +3,7 @@ name: PR Checks
 on:
   pull_request:
     branches: [main]
+  workflow_call: # allow deploy-staging.yml to call this as a reusable workflow
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -28,10 +29,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          # Use package.json hash until pnpm-lock.yaml is committed;
+          # switch to hashFiles('**/pnpm-lock.yaml') after first `pnpm install`
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('**/package.json') }}
+          restore-keys: pnpm-store-${{ runner.os }}-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: ESLint
         run: pnpm lint
@@ -62,10 +71,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('**/package.json') }}
+          restore-keys: pnpm-store-${{ runner.os }}-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: Build shared package
         run: pnpm --filter @agentforge/shared build
@@ -87,10 +102,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('**/package.json') }}
+          restore-keys: pnpm-store-${{ runner.os }}-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: Build shared package
         run: pnpm --filter @agentforge/shared build

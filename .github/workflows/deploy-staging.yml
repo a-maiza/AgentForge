@@ -16,22 +16,28 @@ env:
   IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/agentforge
 
 jobs:
-  # ── Run all PR checks first ───────────────────────────────────────────────────
-  lint:
+  # ── Run all PR checks first (reusable workflow) ───────────────────────────────
+  pr-checks:
     uses: ./.github/workflows/pr-checks.yml
 
   # ── Integration tests ─────────────────────────────────────────────────────────
   test-integration:
     name: Integration Tests
     runs-on: ubuntu-latest
-    needs: [lint]
+    needs: [pr-checks]
+    # Credentials for the ephemeral CI Postgres container.
+    # Override CI_DB_PASSWORD via a GitHub Actions secret for stricter environments.
+    env:
+      CI_DB_USER: agentforge
+      CI_DB_NAME: agentforge_test
+      CI_DB_PASSWORD: ${{ secrets.CI_DB_PASSWORD || 'agentforge' }}
     services:
       postgres:
         image: postgres:15-alpine
         env:
-          POSTGRES_USER: agentforge
-          POSTGRES_PASSWORD: agentforge
-          POSTGRES_DB: agentforge_test
+          POSTGRES_USER: ${{ env.CI_DB_USER }}
+          POSTGRES_PASSWORD: ${{ env.CI_DB_PASSWORD }}
+          POSTGRES_DB: ${{ env.CI_DB_NAME }}
         ports:
           - 5432:5432
         options: >-
@@ -58,17 +64,23 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('**/package.json') }}
+          restore-keys: pnpm-store-${{ runner.os }}-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: Build shared package
         run: pnpm --filter @agentforge/shared build
 
       - name: Run NestJS integration tests
         env:
-          DATABASE_URL: postgresql://agentforge:agentforge@localhost:5432/agentforge_test
+          DATABASE_URL: postgresql://${{ env.CI_DB_USER }}:${{ env.CI_DB_PASSWORD }}@localhost:5432/${{ env.CI_DB_NAME }}
           REDIS_URL: redis://localhost:6379
         run: pnpm --filter @agentforge/api test:integration
 
@@ -86,7 +98,7 @@ jobs:
       - name: Run FastAPI integration tests
         working-directory: apps/worker
         env:
-          DATABASE_ASYNC_URL: postgresql+asyncpg://agentforge:agentforge@localhost:5432/agentforge_test
+          DATABASE_ASYNC_URL: postgresql+asyncpg://${{ env.CI_DB_USER }}:${{ env.CI_DB_PASSWORD }}@localhost:5432/${{ env.CI_DB_NAME }}
           REDIS_URL: redis://localhost:6379
         run: uv run pytest tests/integration -v
 
@@ -144,12 +156,7 @@ jobs:
       - uses: actions/checkout@v4
 
       # TODO(task 4.6.2): Replace with actual staging deploy command.
-      # Options: Railway CLI, Render deploy hook, AWS ECS update-service, etc.
       - name: Deploy to staging
         run: |
-          echo "🚀 Deploying sha-${{ github.sha }} to staging…"
+          echo "Deploying sha-${{ github.sha }} to staging..."
           echo "Configure STAGING_DEPLOY_HOOK or Railway/Render CLI in this step."
-          # Example for Railway:
-          # railway up --service api --detach
-          # Example for Render deploy hook:
-          # curl -X POST "${{ secrets.RENDER_STAGING_DEPLOY_HOOK }}"
