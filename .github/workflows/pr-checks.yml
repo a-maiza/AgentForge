@@ -179,5 +179,7 @@ jobs:
           file: apps/${{ matrix.app }}/Dockerfile
           push: false
           cache-from: type=gha,scope=${{ matrix.app }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.app }}
+          # mode=min: only cache final-image layers, not intermediate builder layers.
+          # mode=max would upload the full .venv tree for the worker (1-2 GB) on every run.
+          cache-to: type=gha,mode=min,scope=${{ matrix.app }}
           tags: agentforge/${{ matrix.app }}:pr-${{ github.event.number }}
