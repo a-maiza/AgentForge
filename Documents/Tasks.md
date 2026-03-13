@@ -37,12 +37,12 @@
 
 ### 1.2 Database & Schema
 
-- [ ] **P0** Initialise Prisma in `apps/api`; configure `schema.prisma` with `postgresql` datasource and `DATABASE_URL` env var
-- [ ] **P0** Define Prisma models for Phase 1 entities: `User`, `Organization`, `OrgMember`, `Workspace`, `WorkspaceMember`
-- [ ] **P0** Define Prisma models for `Prompt`, `PromptVersion`, `PromptVariable`
-- [ ] **P0** Add migration `0001_foundation`; verify with `prisma migrate dev`
-- [ ] **P1** Seed script (`prisma/seed.ts`): create a default org, workspace, and admin user for local dev
-- [ ] **P2** Document PgBouncer pool config (transaction mode, max 20 connections per service); add `pgbouncer` service to docker-compose
+- [x] **P0** Initialise Prisma in `apps/api`; configure `schema.prisma` with `postgresql` datasource and `DATABASE_URL` env var
+- [x] **P0** Define Prisma models for Phase 1 entities: `User`, `Organization`, `OrgMember`, `Workspace`, `WorkspaceMember`
+- [x] **P0** Define Prisma models for `Prompt`, `PromptVersion`, `PromptVariable`
+- [x] **P0** Add migration `0001_foundation`; verify with `prisma migrate dev`
+- [x] **P1** Seed script (`prisma/seed.ts`): create a default org, workspace, and admin user for local dev
+- [x] **P2** Document PgBouncer pool config (transaction mode, max 20 connections per service); add `pgbouncer` service to docker-compose
 
 ### 1.3 Backend — NestJS API (`apps/api`)
 
