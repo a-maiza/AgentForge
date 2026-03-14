@@ -1,12 +1,13 @@
-import {
+import type {
   CanActivate,
-  ExecutionContext,
+  ExecutionContext} from '@nestjs/common';
+import {
   Injectable,
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { OrganizationsService } from '../organizations.service';
+import type { Reflector } from '@nestjs/core';
+import type { OrganizationsService } from '../organizations.service';
 import type { User } from '@prisma/client';
 
 export const REQUIRED_ORG_ROLES = 'requiredOrgRoles';

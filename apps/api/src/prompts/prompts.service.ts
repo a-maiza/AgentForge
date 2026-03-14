@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import type { PrismaService } from '../prisma/prisma.service';
 import { VARIABLE_PATTERN } from '@agentforge/shared';
 import type { UpdatePromptInput } from '@agentforge/shared';
 import type { Prompt, PromptVersion, PromptVariable } from '@prisma/client';

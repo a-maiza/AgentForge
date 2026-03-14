@@ -10,7 +10,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { WorkspacesService } from './workspaces.service';
+import type { WorkspacesService } from './workspaces.service';
 import { WorkspaceGuard } from './guards/workspace.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
