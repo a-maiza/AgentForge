@@ -38,8 +38,6 @@ ENV NODE_ENV=production
 COPY --from=builder /repo/apps/api/dist ./dist
 COPY --from=builder /repo/apps/api/node_modules ./node_modules
 COPY --from=builder /repo/apps/api/package.json ./package.json
-# Prisma query-engine binary (pnpm hoists .prisma/client to workspace root)
-COPY --from=builder /repo/node_modules/.prisma ./node_modules/.prisma
 
 RUN addgroup --system --gid 1001 nodejs \
   && adduser --system --uid 1001 nestjs \
