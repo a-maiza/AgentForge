@@ -78,11 +78,11 @@
 
 ### 2.1 Database & Schema
 
-- [ ] **P0** Add Prisma models: `Dataset`, `DatasetVersion`, `PromptDatasetConfig`
-- [ ] **P0** Add Prisma models: `AiProvider`, `PromptAiConfig`
-- [ ] **P0** Add Prisma models: `EvaluationJob`, `EvaluationResult`
-- [ ] **P0** Migration `0002_datasets_evals`
-- [ ] **P1** Add `storage_path` index on `DatasetVersion`; add composite index `(prompt_id, status)` on `EvaluationJob`
+- [x] **P0** Add Prisma models: `Dataset`, `DatasetVersion`, `PromptDatasetConfig`
+- [x] **P0** Add Prisma models: `AiProvider`, `PromptAiConfig`
+- [x] **P0** Add Prisma models: `EvaluationJob`, `EvaluationResult`
+- [x] **P0** Migration `0002_datasets_evals`
+- [x] **P1** Add `storage_path` index on `DatasetVersion`; add composite index `(prompt_id, status)` on `EvaluationJob`
 
 ### 2.2 Backend — NestJS API
 

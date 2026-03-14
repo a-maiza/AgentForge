@@ -35,6 +35,24 @@ enum org_plan {
   enterprise
 }
 
+enum dataset_status {
+  active
+  archived
+}
+
+enum dataset_version_status {
+  latest
+  archived
+}
+
+enum eval_job_status {
+  pending
+  running
+  completed
+  failed
+  cancelled
+}
+
 model User {
   id        String   @id @default(uuid()) @db.Uuid
   clerkId   String   @unique @map("clerk_id")
@@ -47,6 +65,8 @@ model User {
   workspaceMembers WorkspaceMember[]
   prompts          Prompt[]
   promptVersions   PromptVersion[]
+  datasets         Dataset[]
+  evaluationJobs   EvaluationJob[]
 
   @@map("users")
 }
@@ -85,9 +105,11 @@ model Workspace {
   slug      String
   createdAt DateTime @default(now()) @map("created_at")
 
-  org     Organization      @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  members WorkspaceMember[]
-  prompts Prompt[]
+  org         Organization      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  members     WorkspaceMember[]
+  prompts     Prompt[]
+  datasets    Dataset[]
+  aiProviders AiProvider[]
 
   @@unique([orgId, slug])
   @@map("workspaces")
@@ -116,10 +138,13 @@ model Prompt {
   createdAt   DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")
 
-  workspace Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  creator   User             @relation(fields: [createdBy], references: [id])
-  versions  PromptVersion[]
-  variables PromptVariable[]
+  workspace      Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  creator        User                  @relation(fields: [createdBy], references: [id])
+  versions       PromptVersion[]
+  variables      PromptVariable[]
+  datasetConfigs PromptDatasetConfig[]
+  aiConfigs      PromptAiConfig[]
+  evaluationJobs EvaluationJob[]
 
   @@map("prompts")
 }
@@ -133,8 +158,9 @@ model PromptVersion {
   createdBy     String   @map("created_by") @db.Uuid
   createdAt     DateTime @default(now()) @map("created_at")
 
-  prompt  Prompt @relation(fields: [promptId], references: [id], onDelete: Cascade)
-  creator User   @relation(fields: [createdBy], references: [id])
+  prompt         Prompt          @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  creator        User            @relation(fields: [createdBy], references: [id])
+  evaluationJobs EvaluationJob[]
 
   @@unique([promptId, versionNumber])
   @@map("prompt_versions")
@@ -152,4 +178,140 @@ model PromptVariable {
 
   @@unique([promptId, name])
   @@map("prompt_variables")
+}
+
+model Dataset {
+  id          String         @id @default(uuid()) @db.Uuid
+  workspaceId String         @map("workspace_id") @db.Uuid
+  name        String
+  description String?
+  status      dataset_status @default(active)
+  createdBy   String         @map("created_by") @db.Uuid
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  workspace      Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  creator        User                  @relation(fields: [createdBy], references: [id])
+  versions       DatasetVersion[]
+  promptConfigs  PromptDatasetConfig[]
+  evaluationJobs EvaluationJob[]
+
+  @@map("datasets")
+}
+
+model DatasetVersion {
+  id            String                 @id @default(uuid()) @db.Uuid
+  datasetId     String                 @map("dataset_id") @db.Uuid
+  versionNumber Int                    @map("version_number")
+  storagePath   String                 @map("storage_path")
+  rowCount      Int                    @map("row_count")
+  columnCount   Int                    @map("column_count")
+  fileSizeBytes BigInt                 @map("file_size_bytes")
+  columns       Json
+  status        dataset_version_status @default(latest)
+  createdAt     DateTime               @default(now()) @map("created_at")
+
+  dataset       Dataset               @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+  promptConfigs PromptDatasetConfig[]
+  evaluationJobs EvaluationJob[]
+
+  @@unique([datasetId, versionNumber])
+  @@index([storagePath])
+  @@map("dataset_versions")
+}
+
+model PromptDatasetConfig {
+  id               String  @id @default(uuid()) @db.Uuid
+  promptId         String  @map("prompt_id") @db.Uuid
+  datasetId        String  @map("dataset_id") @db.Uuid
+  datasetVersionId String  @map("dataset_version_id") @db.Uuid
+  variableMapping  Json    @map("variable_mapping")
+  isActive         Boolean @default(true) @map("is_active")
+
+  prompt         Prompt         @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  dataset        Dataset        @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+  datasetVersion DatasetVersion @relation(fields: [datasetVersionId], references: [id], onDelete: Cascade)
+
+  @@map("prompt_dataset_configs")
+}
+
+model AiProvider {
+  id              String   @id @default(uuid()) @db.Uuid
+  workspaceId     String   @map("workspace_id") @db.Uuid
+  name            String
+  providerType    String   @map("provider_type")
+  apiKeyEncrypted String   @map("api_key_encrypted")
+  baseUrl         String?  @map("base_url")
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  workspace      Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  promptConfigs  PromptAiConfig[]
+  evaluationJobs EvaluationJob[]
+
+  @@map("ai_providers")
+}
+
+model PromptAiConfig {
+  id          String  @id @default(uuid()) @db.Uuid
+  promptId    String  @map("prompt_id") @db.Uuid
+  providerId  String  @map("provider_id") @db.Uuid
+  modelName   String  @map("model_name")
+  temperature Float?
+  topP        Float?  @map("top_p")
+  topK        Int?    @map("top_k")
+  maxTokens   Int?    @map("max_tokens")
+  isActive    Boolean @default(true) @map("is_active")
+
+  prompt   Prompt     @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  provider AiProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@map("prompt_ai_configs")
+}
+
+model EvaluationJob {
+  id              String          @id @default(uuid()) @db.Uuid
+  promptId        String          @map("prompt_id") @db.Uuid
+  promptVersionId String          @map("prompt_version_id") @db.Uuid
+  datasetId       String          @map("dataset_id") @db.Uuid
+  datasetVersionId String         @map("dataset_version_id") @db.Uuid
+  providerId      String          @map("provider_id") @db.Uuid
+  modelName       String          @map("model_name")
+  modelConfig     Json            @map("model_config")
+  metrics         String[]
+  status          eval_job_status @default(pending)
+  progress        Int             @default(0)
+  grade           String?
+  startedAt       DateTime?       @map("started_at")
+  completedAt     DateTime?       @map("completed_at")
+  errorMessage    String?         @map("error_message")
+  createdBy       String          @map("created_by") @db.Uuid
+  createdAt       DateTime        @default(now()) @map("created_at")
+
+  prompt         Prompt           @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  promptVersion  PromptVersion    @relation(fields: [promptVersionId], references: [id])
+  dataset        Dataset          @relation(fields: [datasetId], references: [id])
+  datasetVersion DatasetVersion   @relation(fields: [datasetVersionId], references: [id])
+  provider       AiProvider       @relation(fields: [providerId], references: [id])
+  creator        User             @relation(fields: [createdBy], references: [id])
+  results        EvaluationResult[]
+
+  @@index([promptId, status])
+  @@map("evaluation_jobs")
+}
+
+model EvaluationResult {
+  id          String   @id @default(uuid()) @db.Uuid
+  jobId       String   @map("job_id") @db.Uuid
+  metricName  String   @map("metric_name")
+  score       Float
+  grade       String?
+  threshold   Float?
+  details     Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  job EvaluationJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@map("evaluation_results")
 }
