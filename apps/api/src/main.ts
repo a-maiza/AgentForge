@@ -1,10 +1,39 @@
-// Entry point — bootstrapped fully in task 1.3
-import { NestFactory } from '@nestjs/core';
+import './sentry.js';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
+import { ValidationPipe, ClassSerializerInterceptor } from '@nestjs/common';
+import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module.js';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter.js';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter());
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    new FastifyAdapter({ logger: false }),
+  );
+
+  // Capture raw body for webhook signature verification (svix)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const fastify = app.getHttpAdapter().getInstance() as any;
+  fastify.addContentTypeParser(
+    'application/json',
+    { parseAs: 'buffer' },
+    (_req: unknown, body: Buffer, done: (err: Error | null, body?: unknown) => void) => {
+      try {
+        const parsed = JSON.parse(body.toString('utf8')) as unknown;
+        (_req as Record<string, unknown>)['rawBody'] = body;
+        done(null, parsed);
+      } catch (err) {
+        done(err as Error);
+      }
+    },
+  );
+
+  app.useLogger(app.get(Logger));
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
+  app.useGlobalFilters(new HttpExceptionFilter());
+
   await app.listen(Number(process.env['PORT'] ?? 3001), '0.0.0.0');
 }
 

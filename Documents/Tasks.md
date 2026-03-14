@@ -46,17 +46,17 @@
 
 ### 1.3 Backend — NestJS API (`apps/api`)
 
-- [ ] **P0** Bootstrap NestJS app with `@nestjs/config` + Joi schema validation; fail fast on missing required env vars
-- [ ] **P0** Implement `AuthModule`: Clerk JWT strategy (`PassportStrategy` wrapping Clerk `verifyToken`), `AuthGuard`, `CurrentUser` decorator
-- [ ] **P0** Implement `UsersModule`: sync Clerk webhook (`user.created`, `user.updated`, `user.deleted`) → upsert `User` row; expose `GET /auth/me`
-- [ ] **P0** Implement `OrganizationsModule`: CRUD endpoints, role enforcement (`owner`/`admin`/`developer`/`viewer`/`api_user`), `OrgMemberGuard`
-- [ ] **P0** Implement `WorkspacesModule`: CRUD, workspace-scoped resource guard (`WorkspaceGuard`); all subsequent resource modules inherit workspace scoping
-- [ ] **P0** Implement `PromptsModule`: `GET /api/prompts`, `POST /api/prompts`, `GET /api/prompts/:id`, `PUT /api/prompts/:id`, `DELETE /api/prompts/:id`
-- [ ] **P0** Implement prompt versioning: every `PUT` (content change) auto-creates a new `PromptVersion`; expose `GET /api/prompts/:id/versions` and `GET /api/prompts/:id/versions/:v`
-- [ ] **P0** Implement variable auto-extraction: parse `{{variable_name}}` patterns on prompt save; upsert `PromptVariable` rows
-- [ ] **P1** Add `PinoLogger` (`nestjs-pino`) with request-scoped `requestId`, `userId`, `workspaceId` context
-- [ ] **P1** Add global `ValidationPipe` (class-validator + class-transformer), `ClassSerializerInterceptor`, and HTTP exception filter returning RFC 7807 error shape
-- [ ] **P2** Write unit tests (Jest) for `PromptsService` version logic and variable extraction regex
+- [x] **P0** Bootstrap NestJS app with `@nestjs/config` + Joi schema validation; fail fast on missing required env vars
+- [x] **P0** Implement `AuthModule`: Clerk JWT strategy (`PassportStrategy` wrapping Clerk `verifyToken`), `AuthGuard`, `CurrentUser` decorator
+- [x] **P0** Implement `UsersModule`: sync Clerk webhook (`user.created`, `user.updated`, `user.deleted`) → upsert `User` row; expose `GET /auth/me`
+- [x] **P0** Implement `OrganizationsModule`: CRUD endpoints, role enforcement (`owner`/`admin`/`developer`/`viewer`/`api_user`), `OrgMemberGuard`
+- [x] **P0** Implement `WorkspacesModule`: CRUD, workspace-scoped resource guard (`WorkspaceGuard`); all subsequent resource modules inherit workspace scoping
+- [x] **P0** Implement `PromptsModule`: `GET /api/prompts`, `POST /api/prompts`, `GET /api/prompts/:id`, `PUT /api/prompts/:id`, `DELETE /api/prompts/:id`
+- [x] **P0** Implement prompt versioning: every `PUT` (content change) auto-creates a new `PromptVersion`; expose `GET /api/prompts/:id/versions` and `GET /api/prompts/:id/versions/:v`
+- [x] **P0** Implement variable auto-extraction: parse `{{variable_name}}` patterns on prompt save; upsert `PromptVariable` rows
+- [x] **P1** Add `PinoLogger` (`nestjs-pino`) with request-scoped `requestId`, `userId`, `workspaceId` context
+- [x] **P1** Add global `ValidationPipe` (class-validator + class-transformer), `ClassSerializerInterceptor`, and HTTP exception filter returning RFC 7807 error shape
+- [x] **P2** Write unit tests (Jest) for `PromptsService` version logic and variable extraction regex
 
 ### 1.4 Frontend — Next.js (`apps/web`)
 
