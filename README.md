@@ -8,31 +8,34 @@
 
 ### Services
 
-| Service       | Technology            | Port  | Purpose                                      |
-| ------------- | --------------------- | ----- | -------------------------------------------- |
-| `web`         | Next.js 14            | 3000  | Frontend dashboard (App Router)              |
-| `api`         | NestJS 10             | 3001  | REST API + WebSocket server                  |
-| `gateway`     | Fastify 4             | 3002  | High-throughput live API proxy               |
-| `worker`      | FastAPI (Python 3.11) | 8000  | Async evaluation job processor               |
-| `postgres`    | PostgreSQL 15         | 5432  | Primary database                             |
-| `pgbouncer`   | PgBouncer             | 5433  | Connection pooling (transaction mode)        |
-| `redis`       | Redis 7               | 6379  | Cache, BullMQ job queue, Pub/Sub             |
-| `minio`       | MinIO                 | 9000  | S3-compatible object storage (datasets)      |
-| `minio` (UI)  | MinIO Console         | 9001  | Web UI — http://localhost:9001               |
+| Service      | Technology            | Port | Purpose                                 |
+| ------------ | --------------------- | ---- | --------------------------------------- |
+| `web`        | Next.js 14            | 3000 | Frontend dashboard (App Router)         |
+| `api`        | NestJS 10             | 3001 | REST API + WebSocket server             |
+| `gateway`    | Fastify 4             | 3002 | High-throughput live API proxy          |
+| `worker`     | FastAPI (Python 3.11) | 8000 | Async evaluation job processor          |
+| `postgres`   | PostgreSQL 15         | 5432 | Primary database                        |
+| `pgbouncer`  | PgBouncer             | 5433 | Connection pooling (transaction mode)   |
+| `redis`      | Redis 7               | 6379 | Cache, BullMQ job queue, Pub/Sub        |
+| `minio`      | MinIO                 | 9000 | S3-compatible object storage (datasets) |
+| `minio` (UI) | MinIO Console         | 9001 | Web UI — http://localhost:9001          |
 
 ### Request flows
 
 **Dashboard (browser → data):**
+
 ```
 Browser → Next.js SSR → NestJS REST API → PostgreSQL
 ```
 
 **Live API call (external consumer):**
+
 ```
 Client → Fastify Gateway → Redis cache (TTL 30s) → LiteLLM → AI Provider
 ```
 
 **Evaluation job:**
+
 ```
 NestJS API → BullMQ (Redis) → FastAPI Worker → LiteLLM + HuggingFace evaluate → PostgreSQL
                                                       ↓
@@ -40,6 +43,7 @@ NestJS API → BullMQ (Redis) → FastAPI Worker → LiteLLM + HuggingFace evalu
 ```
 
 **Failover:**
+
 ```
 Gateway detects timeout / error threshold → switches to secondary provider → emits failover.triggered
 ```
@@ -48,13 +52,13 @@ Gateway detects timeout / error threshold → switches to secondary provider →
 
 ## Prerequisites
 
-| Tool           | Version    | Install                                            |
-| -------------- | ---------- | -------------------------------------------------- |
-| Node.js        | >= 20      | https://nodejs.org or `nvm install 20`             |
-| pnpm           | 9.12.0     | `npm install -g pnpm@9.12.0`                       |
-| Python         | >= 3.11    | https://python.org or `pyenv install 3.11`         |
-| uv             | latest     | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
-| Docker Desktop | latest     | https://docs.docker.com/get-docker/                |
+| Tool           | Version | Install                                            |
+| -------------- | ------- | -------------------------------------------------- |
+| Node.js        | >= 20   | https://nodejs.org or `nvm install 20`             |
+| pnpm           | 9.12.0  | `npm install -g pnpm@9.12.0`                       |
+| Python         | >= 3.11 | https://python.org or `pyenv install 3.11`         |
+| uv             | latest  | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| Docker Desktop | latest  | https://docs.docker.com/get-docker/                |
 
 ---
 
@@ -90,6 +94,7 @@ docker compose up --build
 ```
 
 The app will be available at:
+
 - Frontend: http://localhost:3000
 - API: http://localhost:3001
 - Gateway: http://localhost:3002
@@ -215,47 +220,47 @@ Copy `.env.example` to `.env.local`. Variables marked **required** must be set b
 
 ### Database
 
-| Variable            | Default (local)                                                         | Notes                                  |
-| ------------------- | ----------------------------------------------------------------------- | -------------------------------------- |
-| `DATABASE_URL`      | `postgresql://agentforge:agentforge@localhost:5432/agentforge`          | Direct connection — migrations, studio |
-| `DATABASE_POOL_URL` | `postgresql://agentforge:agentforge@localhost:5433/agentforge`          | PgBouncer — runtime app usage          |
-| `DATABASE_ASYNC_URL`| `postgresql+asyncpg://agentforge:agentforge@localhost:5432/agentforge`  | FastAPI worker                         |
-| `REDIS_URL`         | `redis://localhost:6379`                                                |                                        |
+| Variable             | Default (local)                                                        | Notes                                  |
+| -------------------- | ---------------------------------------------------------------------- | -------------------------------------- |
+| `DATABASE_URL`       | `postgresql://agentforge:agentforge@localhost:5432/agentforge`         | Direct connection — migrations, studio |
+| `DATABASE_POOL_URL`  | `postgresql://agentforge:agentforge@localhost:5433/agentforge`         | PgBouncer — runtime app usage          |
+| `DATABASE_ASYNC_URL` | `postgresql+asyncpg://agentforge:agentforge@localhost:5432/agentforge` | FastAPI worker                         |
+| `REDIS_URL`          | `redis://localhost:6379`                                               |                                        |
 
 ### Authentication — Clerk _(required)_
 
-| Variable                             | Notes                                         |
-| ------------------------------------ | --------------------------------------------- |
-| `CLERK_SECRET_KEY`                   | From Clerk dashboard → API Keys               |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`  | From Clerk dashboard → API Keys               |
-| `CLERK_WEBHOOK_SECRET`               | From Clerk dashboard → Webhooks               |
+| Variable                            | Notes                           |
+| ----------------------------------- | ------------------------------- |
+| `CLERK_SECRET_KEY`                  | From Clerk dashboard → API Keys |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | From Clerk dashboard → API Keys |
+| `CLERK_WEBHOOK_SECRET`              | From Clerk dashboard → Webhooks |
 
 ### Security _(required)_
 
-| Variable          | Notes                                           |
-| ----------------- | ----------------------------------------------- |
-| `JWT_SECRET`      | Min 32 characters — used for service-to-service |
-| `ENCRYPTION_KEY`  | 32-byte hex string: `openssl rand -hex 32`      |
+| Variable         | Notes                                           |
+| ---------------- | ----------------------------------------------- |
+| `JWT_SECRET`     | Min 32 characters — used for service-to-service |
+| `ENCRYPTION_KEY` | 32-byte hex string: `openssl rand -hex 32`      |
 
 ### Object Storage
 
-| Variable               | Local default         | Notes                               |
-| ---------------------- | --------------------- | ----------------------------------- |
-| `USE_MINIO`            | `true`                | Set `false` in prod to use AWS S3   |
-| `S3_ENDPOINT`          | `http://localhost:9000`|                                    |
-| `S3_BUCKET`            | `agentforge-datasets` |                                     |
-| `MINIO_ROOT_USER`      | `minioadmin`          |                                     |
-| `MINIO_ROOT_PASSWORD`  | `minioadmin`          |                                     |
-| `AWS_ACCESS_KEY_ID`    | —                     | Required in production              |
-| `AWS_SECRET_ACCESS_KEY`| —                     | Required in production              |
+| Variable                | Local default           | Notes                             |
+| ----------------------- | ----------------------- | --------------------------------- |
+| `USE_MINIO`             | `true`                  | Set `false` in prod to use AWS S3 |
+| `S3_ENDPOINT`           | `http://localhost:9000` |                                   |
+| `S3_BUCKET`             | `agentforge-datasets`   |                                   |
+| `MINIO_ROOT_USER`       | `minioadmin`            |                                   |
+| `MINIO_ROOT_PASSWORD`   | `minioadmin`            |                                   |
+| `AWS_ACCESS_KEY_ID`     | —                       | Required in production            |
+| `AWS_SECRET_ACCESS_KEY` | —                       | Required in production            |
 
 ### Frontend URLs
 
-| Variable                    | Default                    |
-| --------------------------- | -------------------------- |
-| `NEXT_PUBLIC_API_URL`       | `http://localhost:3001`    |
-| `NEXT_PUBLIC_GATEWAY_URL`   | `http://localhost:3002`    |
-| `NEXT_PUBLIC_WS_URL`        | `ws://localhost:3001`      |
+| Variable                  | Default                 |
+| ------------------------- | ----------------------- |
+| `NEXT_PUBLIC_API_URL`     | `http://localhost:3001` |
+| `NEXT_PUBLIC_GATEWAY_URL` | `http://localhost:3002` |
+| `NEXT_PUBLIC_WS_URL`      | `ws://localhost:3001`   |
 
 ### AI Providers _(optional — can be set per workspace in UI)_
 
@@ -269,30 +274,108 @@ Copy `.env.example` to `.env.local`. Variables marked **required** must be set b
 
 ## Tech Stack
 
-| Concern              | Technology                          |
-| -------------------- | ----------------------------------- |
-| Monorepo             | Turborepo 2 + pnpm workspaces       |
-| Frontend             | Next.js 14 (App Router)             |
-| UI                   | Tailwind CSS + shadcn/ui            |
-| State management     | Zustand + TanStack Query v5         |
-| Node editor          | React Flow                          |
-| Real-time            | Socket.io + NestJS WebSockets       |
-| Backend API          | NestJS 10 + Fastify adapter         |
-| Auth                 | Clerk (JWT + webhooks)              |
-| ORM                  | Prisma 5 (api) + SQLAlchemy 2 async (worker) |
-| Job queue            | BullMQ (Redis-backed)               |
-| API proxy            | Fastify 4 (gateway)                 |
-| Eval worker          | FastAPI + uvicorn                   |
-| LLM interface        | LiteLLM                             |
-| ML metrics           | HuggingFace `evaluate`              |
-| Semantic similarity  | `sentence-transformers`             |
-| Object storage       | AWS S3 / MinIO (local)              |
-| Linting              | ESLint 9 (flat config) + Ruff       |
-| Formatting           | Prettier 3                          |
-| Testing (Node)       | Vitest (web/gateway) + Jest (api)   |
-| Testing (Python)     | pytest + pytest-asyncio             |
-| CI/CD                | GitHub Actions                      |
-| Containerization     | Docker + Docker Compose             |
+| Concern             | Technology                                   |
+| ------------------- | -------------------------------------------- |
+| Monorepo            | Turborepo 2 + pnpm workspaces                |
+| Frontend            | Next.js 14 (App Router)                      |
+| UI                  | Tailwind CSS + shadcn/ui                     |
+| State management    | Zustand + TanStack Query v5                  |
+| Node editor         | React Flow                                   |
+| Real-time           | Socket.io + NestJS WebSockets                |
+| Backend API         | NestJS 10 + Fastify adapter                  |
+| Auth                | Clerk (JWT + webhooks)                       |
+| ORM                 | Prisma 5 (api) + SQLAlchemy 2 async (worker) |
+| Job queue           | BullMQ (Redis-backed)                        |
+| API proxy           | Fastify 4 (gateway)                          |
+| Eval worker         | FastAPI + uvicorn                            |
+| LLM interface       | LiteLLM                                      |
+| ML metrics          | HuggingFace `evaluate`                       |
+| Semantic similarity | `sentence-transformers`                      |
+| Object storage      | AWS S3 / MinIO (local)                       |
+| Linting             | ESLint 9 (flat config) + Ruff                |
+| Formatting          | Prettier 3                                   |
+| Testing (Node)      | Vitest (web/gateway) + Jest (api)            |
+| Testing (Python)    | pytest + pytest-asyncio                      |
+| CI/CD               | GitHub Actions                               |
+| Containerization    | Docker + Docker Compose                      |
+
+---
+
+## NestJS API — Module Overview (`apps/api`)
+
+> Implemented in task 1.3. All modules live under `apps/api/src/`.
+
+### Authentication & Security
+
+| Mechanism            | Details                                                                        |
+| -------------------- | ------------------------------------------------------------------------------ |
+| **JWT verification** | `AuthGuard` calls `verifyToken()` from `@clerk/backend` on every request       |
+| **Global guard**     | Registered as `APP_GUARD` in `AppModule` — all routes are protected by default |
+| **Opt-out**          | Decorate a route with `@Public()` to skip auth (e.g. the Clerk webhook)        |
+| **Current user**     | Inject the authenticated user with `@CurrentUser()` param decorator            |
+| **Webhook security** | `POST /webhooks/clerk` verifies the `svix` signature before processing events  |
+
+### Module map
+
+```
+src/
+├── prisma/               PrismaService (@Global) — shared across all modules
+├── auth/                 AuthGuard, @Public(), @CurrentUser()
+├── users/                UsersService + UsersController
+│                           GET  /auth/me
+│                           POST /webhooks/clerk  (@Public — svix-verified)
+├── organizations/        OrganizationsService + OrganizationsController + OrgMemberGuard
+│                           GET    /api/organizations
+│                           POST   /api/organizations
+│                           GET    /api/organizations/:orgId
+│                           PUT    /api/organizations/:orgId
+│                           DELETE /api/organizations/:orgId
+│                           GET    /api/organizations/:orgId/members
+│                           POST   /api/organizations/:orgId/members
+│                           DELETE /api/organizations/:orgId/members/:userId
+├── workspaces/           WorkspacesService + WorkspacesController + WorkspaceGuard
+│                           GET    /api/workspaces
+│                           POST   /api/organizations/:orgId/workspaces
+│                           GET    /api/organizations/:orgId/workspaces/:workspaceId
+│                           PUT    /api/organizations/:orgId/workspaces/:workspaceId
+│                           DELETE /api/organizations/:orgId/workspaces/:workspaceId
+│                           GET    /api/organizations/:orgId/workspaces/:workspaceId/members
+├── prompts/              PromptsService + PromptsController
+│                           GET    /api/workspaces/:workspaceId/prompts
+│                           POST   /api/workspaces/:workspaceId/prompts
+│                           GET    /api/workspaces/:workspaceId/prompts/:id
+│                           PUT    /api/workspaces/:workspaceId/prompts/:id
+│                           DELETE /api/workspaces/:workspaceId/prompts/:id
+│                           GET    /api/workspaces/:workspaceId/prompts/:id/versions
+│                           GET    /api/workspaces/:workspaceId/prompts/:id/versions/:v
+└── common/
+    ├── filters/          HttpExceptionFilter — RFC 7807 application/problem+json errors
+    └── pipes/            ZodValidationPipe — Zod-backed body validation
+```
+
+### Prompt versioning & variable extraction
+
+Every `PUT /api/workspaces/:workspaceId/prompts/:id` that changes `content`:
+
+1. Creates an immutable `PromptVersion` row with an incremented `version_number`
+2. Extracts all `{{variable_name}}` patterns from the new content
+3. Updates `PromptVariable` rows — adds new variables, removes obsolete ones
+
+Name-only or description-only updates do **not** create a new version.
+
+### Error format (RFC 7807)
+
+All errors return `Content-Type: application/problem+json`:
+
+```json
+{
+  "type": "about:blank",
+  "title": "UNAUTHORIZED",
+  "status": 401,
+  "detail": "Missing or invalid authorization header",
+  "instance": "/auth/me"
+}
+```
 
 ---
 
@@ -304,6 +387,13 @@ AgentForge/
 │   ├── api/              # NestJS 10 — REST API + WebSocket (port 3001)
 │   │   ├── prisma/       # Schema, migrations, seed
 │   │   └── src/
+│   │       ├── auth/         # AuthGuard, @Public(), @CurrentUser()
+│   │       ├── common/       # HttpExceptionFilter, ZodValidationPipe
+│   │       ├── organizations/# CRUD + OrgMemberGuard
+│   │       ├── prisma/       # PrismaService (@Global)
+│   │       ├── prompts/      # CRUD + versioning + variable extraction
+│   │       ├── users/        # Clerk webhook sync + GET /auth/me
+│   │       └── workspaces/   # CRUD + WorkspaceGuard
 │   ├── gateway/          # Fastify 4 — live API proxy (port 3002)
 │   │   └── src/
 │   ├── web/              # Next.js 14 — dashboard frontend (port 3000)
@@ -316,6 +406,7 @@ AgentForge/
 │       └── src/
 ├── .github/
 │   └── workflows/        # PR checks, staging deploy, prod release
+├── Makefile              # make setup / make dev / make migrate / make reset
 ├── docker-compose.yml
 ├── .env.example
 ├── turbo.json

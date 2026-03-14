@@ -24,6 +24,8 @@ COPY packages/shared ./packages/shared
 COPY apps/api ./apps/api
 
 RUN pnpm --filter @agentforge/shared build
+# Generate Prisma client before compiling — required for @prisma/client types
+RUN pnpm --filter @agentforge/api db:generate
 RUN pnpm --filter @agentforge/api build
 
 # ── Stage 3: runner ───────────────────────────────────────────────────────────
