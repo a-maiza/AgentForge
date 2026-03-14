@@ -143,7 +143,7 @@ pnpm --filter @agentforge/api db:generate
 | Migration                      | Phase | Tables added                                                                                                             |
 | ------------------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------ |
 | `0001_foundation`              | 1.2   | users, organizations, org_members, workspaces, workspace_members, prompts, prompt_versions, prompt_variables             |
-| `0002_datasets_evals` _(todo)_ | 2.1   | datasets, dataset_versions, prompt_dataset_configs, ai_providers, prompt_ai_configs, evaluation_jobs, evaluation_results |
+| `0002_datasets_evals`          | 2.1   | datasets, dataset_versions, prompt_dataset_configs, ai_providers, prompt_ai_configs, evaluation_jobs, evaluation_results |
 | `0003_deployments` _(todo)_    | 3.1   | deployments, failover_configs, api_keys, api_call_logs                                                                   |
 | future                         | 4+    | agents                                                                                                                   |
 
