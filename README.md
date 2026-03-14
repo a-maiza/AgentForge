@@ -239,15 +239,15 @@ Copy `.env.example` to `.env.local`. Variables marked **required** must be set b
 
 ### Object Storage
 
-| Variable               | Local default         | Notes                               |
-| ---------------------- | --------------------- | ----------------------------------- |
-| `USE_MINIO`            | `true`                | Set `false` in prod to use AWS S3   |
-| `S3_ENDPOINT`          | `http://localhost:9000`|                                    |
-| `S3_BUCKET`            | `agentforge-datasets` |                                     |
-| `MINIO_ROOT_USER`      | `minioadmin`          |                                     |
-| `MINIO_ROOT_PASSWORD`  | `minioadmin`          |                                     |
-| `AWS_ACCESS_KEY_ID`    | —                     | Required in production              |
-| `AWS_SECRET_ACCESS_KEY`| —                     | Required in production              |
+| Variable               | Local default          | Notes                               |
+| ---------------------- | ---------------------- | ----------------------------------- |
+| `USE_MINIO`            | `true`                 | Set `false` in prod to use AWS S3   |
+| `S3_ENDPOINT`          | `http://localhost:9000`|                                     |
+| `S3_BUCKET`            | `agentforge-datasets`  |                                     |
+| `MINIO_ROOT_USER`      | `minioadmin`           |                                     |
+| `MINIO_ROOT_PASSWORD`  | `minioadmin`           |                                     |
+| `AWS_ACCESS_KEY_ID`    | —                      | Required in production              |
+| `AWS_SECRET_ACCESS_KEY`| —                      | Required in production              |
 
 ### Frontend URLs
 
@@ -296,6 +296,84 @@ Copy `.env.example` to `.env.local`. Variables marked **required** must be set b
 
 ---
 
+## NestJS API — Module Overview (`apps/api`)
+
+> Implemented in task 1.3. All modules live under `apps/api/src/`.
+
+### Authentication & Security
+
+| Mechanism | Details |
+| --- | --- |
+| **JWT verification** | `AuthGuard` calls `verifyToken()` from `@clerk/backend` on every request |
+| **Global guard** | Registered as `APP_GUARD` in `AppModule` — all routes are protected by default |
+| **Opt-out** | Decorate a route with `@Public()` to skip auth (e.g. the Clerk webhook) |
+| **Current user** | Inject the authenticated user with `@CurrentUser()` param decorator |
+| **Webhook security** | `POST /webhooks/clerk` verifies the `svix` signature before processing events |
+
+### Module map
+
+```
+src/
+├── prisma/               PrismaService (@Global) — shared across all modules
+├── auth/                 AuthGuard, @Public(), @CurrentUser()
+├── users/                UsersService + UsersController
+│                           GET  /auth/me
+│                           POST /webhooks/clerk  (@Public — svix-verified)
+├── organizations/        OrganizationsService + OrganizationsController + OrgMemberGuard
+│                           GET    /api/organizations
+│                           POST   /api/organizations
+│                           GET    /api/organizations/:orgId
+│                           PUT    /api/organizations/:orgId
+│                           DELETE /api/organizations/:orgId
+│                           GET    /api/organizations/:orgId/members
+│                           POST   /api/organizations/:orgId/members
+│                           DELETE /api/organizations/:orgId/members/:userId
+├── workspaces/           WorkspacesService + WorkspacesController + WorkspaceGuard
+│                           GET    /api/workspaces
+│                           POST   /api/organizations/:orgId/workspaces
+│                           GET    /api/organizations/:orgId/workspaces/:workspaceId
+│                           PUT    /api/organizations/:orgId/workspaces/:workspaceId
+│                           DELETE /api/organizations/:orgId/workspaces/:workspaceId
+│                           GET    /api/organizations/:orgId/workspaces/:workspaceId/members
+├── prompts/              PromptsService + PromptsController
+│                           GET    /api/workspaces/:workspaceId/prompts
+│                           POST   /api/workspaces/:workspaceId/prompts
+│                           GET    /api/workspaces/:workspaceId/prompts/:id
+│                           PUT    /api/workspaces/:workspaceId/prompts/:id
+│                           DELETE /api/workspaces/:workspaceId/prompts/:id
+│                           GET    /api/workspaces/:workspaceId/prompts/:id/versions
+│                           GET    /api/workspaces/:workspaceId/prompts/:id/versions/:v
+└── common/
+    ├── filters/          HttpExceptionFilter — RFC 7807 application/problem+json errors
+    └── pipes/            ZodValidationPipe — Zod-backed body validation
+```
+
+### Prompt versioning & variable extraction
+
+Every `PUT /api/workspaces/:workspaceId/prompts/:id` that changes `content`:
+
+1. Creates an immutable `PromptVersion` row with an incremented `version_number`
+2. Extracts all `{{variable_name}}` patterns from the new content
+3. Updates `PromptVariable` rows — adds new variables, removes obsolete ones
+
+Name-only or description-only updates do **not** create a new version.
+
+### Error format (RFC 7807)
+
+All errors return `Content-Type: application/problem+json`:
+
+```json
+{
+  "type": "about:blank",
+  "title": "UNAUTHORIZED",
+  "status": 401,
+  "detail": "Missing or invalid authorization header",
+  "instance": "/auth/me"
+}
+```
+
+---
+
 ## Project Structure
 
 ```
@@ -304,6 +382,13 @@ AgentForge/
 │   ├── api/              # NestJS 10 — REST API + WebSocket (port 3001)
 │   │   ├── prisma/       # Schema, migrations, seed
 │   │   └── src/
+│   │       ├── auth/         # AuthGuard, @Public(), @CurrentUser()
+│   │       ├── common/       # HttpExceptionFilter, ZodValidationPipe
+│   │       ├── organizations/# CRUD + OrgMemberGuard
+│   │       ├── prisma/       # PrismaService (@Global)
+│   │       ├── prompts/      # CRUD + versioning + variable extraction
+│   │       ├── users/        # Clerk webhook sync + GET /auth/me
+│   │       └── workspaces/   # CRUD + WorkspaceGuard
 │   ├── gateway/          # Fastify 4 — live API proxy (port 3002)
 │   │   └── src/
 │   ├── web/              # Next.js 14 — dashboard frontend (port 3000)
@@ -316,6 +401,7 @@ AgentForge/
 │       └── src/
 ├── .github/
 │   └── workflows/        # PR checks, staging deploy, prod release
+├── Makefile              # make setup / make dev / make migrate / make reset
 ├── docker-compose.yml
 ├── .env.example
 ├── turbo.json
