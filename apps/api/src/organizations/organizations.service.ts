@@ -7,16 +7,16 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { UserRole } from '@agentforge/shared';
 import type { CreateOrganizationInput, UpdateOrganizationInput } from '@agentforge/shared';
-import type { Organization, OrgMember, User } from '@prisma/client';
+import type { Organization, OrgMember, User, user_role } from '@prisma/client';
 
 @Injectable()
 export class OrganizationsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAllForUser(userId: string): Promise<(OrgMember & { organization: Organization })[]> {
+  findAllForUser(userId: string): Promise<(OrgMember & { org: Organization })[]> {
     return this.prisma.orgMember.findMany({
       where: { userId },
-      include: { organization: true },
+      include: { org: true },
     });
   }
 
@@ -38,7 +38,7 @@ export class OrganizationsService {
         data: {
           orgId: org.id,
           userId: user.id,
-          role: UserRole.OWNER,
+          role: UserRole.OWNER as user_role,
           joinedAt: new Date(),
         },
       });
@@ -58,7 +58,10 @@ export class OrganizationsService {
 
     return this.prisma.organization.update({
       where: { id },
-      data: { name: data.name, slug: data.slug },
+      data: {
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.slug !== undefined && { slug: data.slug }),
+      },
     });
   }
 
@@ -88,7 +91,12 @@ export class OrganizationsService {
     if (existing) throw new ConflictException('User is already a member');
 
     return this.prisma.orgMember.create({
-      data: { orgId, userId: targetUserId, role, joinedAt: new Date() },
+      data: {
+        orgId,
+        userId: targetUserId,
+        role: role as user_role,
+        joinedAt: new Date(),
+      },
     });
   }
 

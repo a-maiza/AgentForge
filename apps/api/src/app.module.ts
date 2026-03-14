@@ -33,10 +33,9 @@ import { PromptsModule } from './prompts/prompts.module';
       pinoHttp: {
         autoLogging: true,
         redact: ['req.headers.authorization'],
-        transport:
-          process.env['NODE_ENV'] !== 'production'
-            ? { target: 'pino-pretty', options: { colorize: true, singleLine: true } }
-            : undefined,
+        ...(process.env['NODE_ENV'] !== 'production' && {
+          transport: { target: 'pino-pretty', options: { colorize: true, singleLine: true } },
+        }),
       },
     }),
     PrismaModule,

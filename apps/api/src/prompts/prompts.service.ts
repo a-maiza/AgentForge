@@ -48,9 +48,9 @@ export class PromptsService {
         data: {
           workspaceId,
           name: data.name,
-          description: data.description,
           status: 'draft',
           createdBy: userId,
+          ...(data.description !== undefined && { description: data.description }),
         },
       });
 
@@ -126,7 +126,10 @@ export class PromptsService {
 
       return tx.prompt.update({
         where: { id },
-        data: { name: data.name, description: data.description },
+        data: {
+          ...(data.name !== undefined && { name: data.name }),
+          ...(data.description !== undefined && { description: data.description }),
+        },
       });
     });
   }
