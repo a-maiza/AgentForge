@@ -24,6 +24,8 @@ COPY packages/shared ./packages/shared
 COPY apps/api ./apps/api
 
 RUN pnpm --filter @agentforge/shared build
+# Generate Prisma client before compiling — required for @prisma/client types
+RUN pnpm --filter @agentforge/api db:generate
 RUN pnpm --filter @agentforge/api build
 
 # ── Stage 3: runner ───────────────────────────────────────────────────────────
@@ -36,6 +38,8 @@ ENV NODE_ENV=production
 COPY --from=builder /repo/apps/api/dist ./dist
 COPY --from=builder /repo/apps/api/node_modules ./node_modules
 COPY --from=builder /repo/apps/api/package.json ./package.json
+# Prisma query-engine binary (pnpm hoists .prisma/client to workspace root)
+COPY --from=builder /repo/node_modules/.prisma ./node_modules/.prisma
 
 RUN addgroup --system --gid 1001 nodejs \
   && adduser --system --uid 1001 nestjs \
