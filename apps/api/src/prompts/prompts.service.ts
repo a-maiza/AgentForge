@@ -36,11 +36,7 @@ export class PromptsService {
     return prompt;
   }
 
-  async create(
-    workspaceId: string,
-    data: CreatePromptData,
-    userId: string,
-  ): Promise<Prompt> {
+  async create(workspaceId: string, data: CreatePromptData, userId: string): Promise<Prompt> {
     const variables = this.extractVariables(data.content);
 
     return this.prisma.$transaction(async (tx) => {
@@ -93,8 +89,7 @@ export class PromptsService {
 
     return this.prisma.$transaction(async (tx) => {
       const latestContent = existing.versions[0]?.content ?? '';
-      const contentChanged =
-        data.content !== undefined && data.content !== latestContent;
+      const contentChanged = data.content !== undefined && data.content !== latestContent;
 
       if (contentChanged && data.content) {
         const nextVersion = (existing.versions[0]?.versionNumber ?? 0) + 1;

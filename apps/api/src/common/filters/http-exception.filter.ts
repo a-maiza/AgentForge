@@ -1,12 +1,5 @@
-import type {
-  ArgumentsHost,
-  ExceptionFilter} from '@nestjs/common';
-import {
-  Catch,
-  HttpException,
-  HttpStatus,
-  Logger,
-} from '@nestjs/common';
+import type { ArgumentsHost, ExceptionFilter } from '@nestjs/common';
+import { Catch, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
 interface ProblemDetail {
@@ -52,9 +45,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
       instance: request.url,
     };
 
-    void reply
-      .status(status)
-      .header('Content-Type', 'application/problem+json')
-      .send(body);
+    void reply.status(status).header('Content-Type', 'application/problem+json').send(body);
   }
 }

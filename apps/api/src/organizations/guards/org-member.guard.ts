@@ -1,11 +1,5 @@
-import type {
-  CanActivate,
-  ExecutionContext} from '@nestjs/common';
-import {
-  Injectable,
-  NotFoundException,
-  ForbiddenException,
-} from '@nestjs/common';
+import type { CanActivate, ExecutionContext } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import type { Reflector } from '@nestjs/core';
 import type { OrganizationsService } from '../organizations.service';
 import type { User } from '@prisma/client';
@@ -31,10 +25,7 @@ export class OrgMemberGuard implements CanActivate {
     const member = await this.orgsService.getMembership(orgId, request.user.id);
     if (!member) throw new NotFoundException('Organization not found');
 
-    const requiredRoles = this.reflector.get<string[]>(
-      REQUIRED_ORG_ROLES,
-      context.getHandler(),
-    );
+    const requiredRoles = this.reflector.get<string[]>(REQUIRED_ORG_ROLES, context.getHandler());
     if (requiredRoles?.length && !requiredRoles.includes(member.role)) {
       throw new ForbiddenException('Insufficient permissions');
     }

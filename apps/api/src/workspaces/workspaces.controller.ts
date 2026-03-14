@@ -14,10 +14,7 @@ import type { WorkspacesService } from './workspaces.service';
 import { WorkspaceGuard } from './guards/workspace.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
-import {
-  CreateWorkspaceSchema,
-  type CreateWorkspaceInput,
-} from '@agentforge/shared';
+import { CreateWorkspaceSchema, type CreateWorkspaceInput } from '@agentforge/shared';
 import type { User } from '@prisma/client';
 
 @Controller('api')

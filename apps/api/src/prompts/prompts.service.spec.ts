@@ -30,10 +30,7 @@ describe('PromptsService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        PromptsService,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+      providers: [PromptsService, { provide: PrismaService, useValue: mockPrisma }],
     }).compile();
 
     service = module.get<PromptsService>(PromptsService);
@@ -124,9 +121,7 @@ describe('PromptsService', () => {
       );
       expect(mockPrisma.promptVariable.createMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.arrayContaining([
-            { promptId: 'p-1', name: 'user', type: 'string' },
-          ]),
+          data: expect.arrayContaining([{ promptId: 'p-1', name: 'user', type: 'string' }]),
         }),
       );
       expect(result).toEqual(prompt);
@@ -200,9 +195,9 @@ describe('PromptsService', () => {
     it('throws NotFoundException when prompt not found', async () => {
       mockPrisma.prompt.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.update('bad-id', 'ws-1', { name: 'X' }, 'user-1'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.update('bad-id', 'ws-1', { name: 'X' }, 'user-1')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 

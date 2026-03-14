@@ -24,15 +24,9 @@ export class UsersService {
   }
 
   upsertFromClerk(data: ClerkUserData): Promise<User> {
-    const primaryEmail = data.email_addresses.find(
-      (e) => e.id === data.primary_email_address_id,
-    );
-    const email =
-      primaryEmail?.email_address ??
-      data.email_addresses[0]?.email_address ??
-      '';
-    const name =
-      [data.first_name, data.last_name].filter(Boolean).join(' ') || email;
+    const primaryEmail = data.email_addresses.find((e) => e.id === data.primary_email_address_id);
+    const email = primaryEmail?.email_address ?? data.email_addresses[0]?.email_address ?? '';
+    const name = [data.first_name, data.last_name].filter(Boolean).join(' ') || email;
 
     return this.prisma.user.upsert({
       where: { clerkId: data.id },

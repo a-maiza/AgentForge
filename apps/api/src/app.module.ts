@@ -23,9 +23,7 @@ import { PromptsModule } from './prompts/prompts.module';
         CLERK_WEBHOOK_SECRET: Joi.string().required(),
         ENCRYPTION_KEY: Joi.string().length(64).required(),
         PORT: Joi.number().default(3001),
-        NODE_ENV: Joi.string()
-          .valid('development', 'production', 'test')
-          .default('development'),
+        NODE_ENV: Joi.string().valid('development', 'production', 'test').default('development'),
       }),
       validationOptions: { abortEarly: true },
     }),

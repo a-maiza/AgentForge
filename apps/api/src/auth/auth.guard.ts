@@ -1,10 +1,5 @@
-import type {
-  CanActivate,
-  ExecutionContext} from '@nestjs/common';
-import {
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import type { CanActivate, ExecutionContext } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import type { Reflector } from '@nestjs/core';
 import type { ConfigService } from '@nestjs/config';
 import { verifyToken } from '@clerk/backend';
@@ -28,9 +23,7 @@ export class AuthGuard implements CanActivate {
     ]);
     if (isPublic) return true;
 
-    const request = context
-      .switchToHttp()
-      .getRequest<FastifyRequest & { user?: User }>();
+    const request = context.switchToHttp().getRequest<FastifyRequest & { user?: User }>();
     const authHeader = request.headers['authorization'];
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {

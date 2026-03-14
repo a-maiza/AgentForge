@@ -1,10 +1,5 @@
-import type {
-  CanActivate,
-  ExecutionContext} from '@nestjs/common';
-import {
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import type { CanActivate, ExecutionContext } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import type { WorkspacesService } from '../workspaces.service';
 import type { User } from '@prisma/client';
 

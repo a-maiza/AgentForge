@@ -15,11 +15,7 @@ import type { PromptsService } from './prompts.service';
 import { WorkspaceGuard } from '../workspaces/guards/workspace.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
-import {
-  CreatePromptSchema,
-  UpdatePromptSchema,
-  type UpdatePromptInput,
-} from '@agentforge/shared';
+import { CreatePromptSchema, UpdatePromptSchema, type UpdatePromptInput } from '@agentforge/shared';
 import type { User } from '@prisma/client';
 
 interface CreatePromptBody {
