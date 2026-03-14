@@ -60,17 +60,17 @@
 
 ### 1.4 Frontend — Next.js (`apps/web`)
 
-- [ ] **P0** Scaffold Next.js 14 App Router project with TypeScript, Tailwind CSS, shadcn/ui init (`components.json`), and path aliases
-- [ ] **P0** Integrate Clerk: `ClerkProvider` in root layout, `middleware.ts` protecting `/dashboard/**` routes, sign-in/sign-up pages at `/sign-in` and `/sign-up`
-- [ ] **P0** Implement persistent sidebar layout (`app/(dashboard)/layout.tsx`): collapsible 240px/64px, navigation per §23.3, active route highlight
-- [ ] **P0** Implement workspace switcher in sidebar header (fetches from `GET /api/workspaces`); store active workspace in Zustand `useWorkspaceStore`
-- [ ] **P0** Set up TanStack Query v5 `QueryClientProvider`; create `lib/api.ts` axios instance with Clerk token injection interceptor
-- [ ] **P1** Implement `/prompts` list page: grid/table/list toggle, search, filter by status/grade, sort; skeleton loaders; empty state with CTA
-- [ ] **P1** Implement prompt creation modal/page (`POST /api/prompts`) with React Hook Form + Zod validation
-- [ ] **P1** Implement prompt editor page (`/prompts/:id/edit`): CodeMirror or Monaco with `{{variable}}` syntax highlighting, live variable panel, character count, save → new version
-- [ ] **P1** Implement prompt detail page with tabs: Overview, Prompt, Dataset, AI Provider, Environments, Failover, Analytics (stubs for later phases)
-- [ ] **P2** Implement Overview dashboard (`/overview`): KPI cards (total prompts, agents, datasets, active deployments), sparkline for API call volume using Recharts
-- [ ] **P2** Add Sonner `<Toaster>` to root layout; create `useToast` wrapper with success/error/warning variants per §23.8
+- [x] **P0** Scaffold Next.js 14 App Router project with TypeScript, Tailwind CSS, shadcn/ui init (`components.json`), and path aliases
+- [x] **P0** Integrate Clerk: `ClerkProvider` in root layout, `middleware.ts` protecting `/dashboard/**` routes, sign-in/sign-up pages at `/sign-in` and `/sign-up`
+- [x] **P0** Implement persistent sidebar layout (`app/(dashboard)/layout.tsx`): collapsible 240px/64px, navigation per §23.3, active route highlight
+- [x] **P0** Implement workspace switcher in sidebar header (fetches from `GET /api/workspaces`); store active workspace in Zustand `useWorkspaceStore`
+- [x] **P0** Set up TanStack Query v5 `QueryClientProvider`; create `lib/api.ts` axios instance with Clerk token injection interceptor
+- [x] **P1** Implement `/prompts` list page: grid/table/list toggle, search, filter by status/grade, sort; skeleton loaders; empty state with CTA
+- [x] **P1** Implement prompt creation modal/page (`POST /api/prompts`) with React Hook Form + Zod validation
+- [x] **P1** Implement prompt editor page (`/prompts/:id/edit`): CodeMirror or Monaco with `{{variable}}` syntax highlighting, live variable panel, character count, save → new version
+- [x] **P1** Implement prompt detail page with tabs: Overview, Prompt, Dataset, AI Provider, Environments, Failover, Analytics (stubs for later phases)
+- [x] **P2** Implement Overview dashboard (`/overview`): KPI cards (total prompts, agents, datasets, active deployments), sparkline for API call volume using Recharts
+- [x] **P2** Add Sonner `<Toaster>` to root layout; create `useToast` wrapper with success/error/warning variants per §23.8
 
 ---
 

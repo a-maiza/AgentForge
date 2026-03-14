@@ -1,4 +1,5 @@
-// Placeholder root page — replaced in task 1.4
+import { redirect } from 'next/navigation';
+
 export default function HomePage() {
-  return <main>AgentForge — coming soon.</main>;
+  redirect('/overview');
 }
