@@ -85,6 +85,9 @@ jobs:
       - name: Build shared package
         run: pnpm --filter @agentforge/shared build
 
+      - name: Generate Prisma client
+        run: pnpm --filter @agentforge/api db:generate
+
       - name: Type check all TypeScript packages
         run: pnpm typecheck
 
@@ -115,6 +118,9 @@ jobs:
 
       - name: Build shared package
         run: pnpm --filter @agentforge/shared build
+
+      - name: Generate Prisma client
+        run: pnpm --filter @agentforge/api db:generate
 
       - name: Run unit tests
         run: pnpm test

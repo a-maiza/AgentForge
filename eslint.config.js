@@ -18,6 +18,15 @@ export default tseslint.config(
       '@typescript-eslint/no-import-type-side-effects': 'error',
     },
   },
+  // NestJS uses emitDecoratorMetadata — constructor-injected classes must be
+  // value imports (not `import type`) so TypeScript emits correct DI metadata.
+  // Disabling consistent-type-imports for the api source avoids false positives.
+  {
+    files: ['apps/api/src/**/*.ts'],
+    rules: {
+      '@typescript-eslint/consistent-type-imports': 'off',
+    },
+  },
   {
     ignores: [
       '**/node_modules/**',
