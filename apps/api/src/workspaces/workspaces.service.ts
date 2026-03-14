@@ -4,7 +4,7 @@ import {
   ConflictException,
   ForbiddenException,
 } from '@nestjs/common';
-import type { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { UserRole } from '@agentforge/shared';
 import type { CreateWorkspaceInput } from '@agentforge/shared';
 import type { Workspace, WorkspaceMember, User } from '@prisma/client';

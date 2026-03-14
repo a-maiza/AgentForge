@@ -11,7 +11,7 @@ import {
   HttpStatus,
   ParseIntPipe,
 } from '@nestjs/common';
-import type { PromptsService } from './prompts.service';
+import { PromptsService } from './prompts.service';
 import { WorkspaceGuard } from '../workspaces/guards/workspace.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';

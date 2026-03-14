@@ -9,9 +9,9 @@ import {
   UnauthorizedException,
   BadRequestException,
 } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
+import { ConfigService } from '@nestjs/config';
 import { Webhook } from 'svix';
-import type { UsersService } from './users.service';
+import { UsersService } from './users.service';
 import { Public } from '../auth/public.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { FastifyRequest } from 'fastify';

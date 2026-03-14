@@ -65,7 +65,8 @@
     },
     "moduleNameMapper": {
       "^@agentforge/shared$": "<rootDir>/../../../packages/shared/src/index.ts",
-      "^@agentforge/shared/(.*)$": "<rootDir>/../../../packages/shared/src/$1"
+      "^@agentforge/shared/(.*)$": "<rootDir>/../../../packages/shared/src/$1",
+      "^(\\.{1,2}/.+)\\.js$": "$1"
     },
     "testEnvironment": "node",
     "collectCoverageFrom": [

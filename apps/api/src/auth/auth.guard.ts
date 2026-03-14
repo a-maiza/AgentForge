@@ -1,10 +1,10 @@
 import type { CanActivate, ExecutionContext } from '@nestjs/common';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import type { Reflector } from '@nestjs/core';
-import type { ConfigService } from '@nestjs/config';
+import { ConfigService } from '@nestjs/config';
 import { verifyToken } from '@clerk/backend';
 import { IS_PUBLIC_KEY } from './public.decorator';
-import type { UsersService } from '../users/users.service';
+import { UsersService } from '../users/users.service';
 import type { FastifyRequest } from 'fastify';
 import type { User } from '@prisma/client';
 

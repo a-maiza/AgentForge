@@ -10,7 +10,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import type { OrganizationsService } from './organizations.service';
+import { OrganizationsService } from './organizations.service';
 import { OrgMemberGuard } from './guards/org-member.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
