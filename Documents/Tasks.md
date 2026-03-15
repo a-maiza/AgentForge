@@ -113,17 +113,17 @@
 
 ### 2.4 Frontend
 
-- [ ] **P0** Implement `/dataset` list page: grid/table/list toggle, search, status indicator, row/version count per card
-- [ ] **P0** Implement dataset creation + CSV/JSON upload flow with drag-and-drop (`react-dropzone`), progress bar, version creation confirmation
-- [ ] **P0** Implement dataset detail page: data preview table, column schema, version history sidebar
-- [ ] **P0** Implement `/dataset/:id/versions` page: version list with checkbox selection, compare button (2-version diff modal per §8.7)
-- [ ] **P0** Implement `/ai-providers` page: provider cards, add/edit provider form with masked API key input, model dropdown (fetched per provider type)
-- [ ] **P0** Implement evaluation configuration wizard (2 steps per §10.2): metric grid with category filter + AI-suggested metrics; review summary; Start Evaluation button
-- [ ] **P0** Implement evaluation job detail page (`/evaluations/:id`): progress bar (polling `GET /api/evaluations/:id` or WebSocket), performance metric cards, cost/carbon section, grade badge
-- [ ] **P1** Implement `/evaluation-jobs` list page: KPI header (total/pending/running/completed/failed), auto-refresh toggle, search + status filter
-- [ ] **P1** Implement Dataset Tab inside prompt detail: connect/disconnect dataset, variable mapping drag-and-drop, 2-row preview
-- [ ] **P1** Implement AI Provider Tab inside prompt detail: provider/model selector, parameter sliders/inputs with validation ranges
-- [ ] **P2** Add Recharts performance-over-time chart component (reusable, used in both prompt analytics and gateway analytics)
+- [x] **P0** Implement `/dataset` list page: grid/table/list toggle, search, status indicator, row/version count per card
+- [x] **P0** Implement dataset creation + CSV/JSON upload flow with drag-and-drop (`react-dropzone`), progress bar, version creation confirmation
+- [x] **P0** Implement dataset detail page: data preview table, column schema, version history sidebar
+- [x] **P0** Implement `/dataset/:id/versions` page: version list with checkbox selection, compare button (2-version diff modal per §8.7)
+- [x] **P0** Implement `/ai-providers` page: provider cards, add/edit provider form with masked API key input, model dropdown (fetched per provider type)
+- [x] **P0** Implement evaluation configuration wizard (2 steps per §10.2): metric grid with category filter + AI-suggested metrics; review summary; Start Evaluation button
+- [x] **P0** Implement evaluation job detail page (`/evaluations/:id`): progress bar (polling `GET /api/evaluations/:id` or WebSocket), performance metric cards, cost/carbon section, grade badge
+- [x] **P1** Implement `/evaluation-jobs` list page: KPI header (total/pending/running/completed/failed), auto-refresh toggle, search + status filter
+- [x] **P1** Implement Dataset Tab inside prompt detail: connect/disconnect dataset, variable mapping drag-and-drop, 2-row preview
+- [x] **P1** Implement AI Provider Tab inside prompt detail: provider/model selector, parameter sliders/inputs with validation ranges
+- [x] **P2** Add Recharts performance-over-time chart component (reusable, used in both prompt analytics and gateway analytics)
 
 ---
 

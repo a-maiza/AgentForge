@@ -9,3 +9,10 @@ pnpm-lock.yaml
 *.min.css
 # Python files handled by Ruff/Black
 apps/worker/**/*.py
+# Worker virtual environment, caches and lock file
+apps/worker/.venv
+apps/worker/uv.lock
+# Python caches (any location)
+**/.mypy_cache
+**/.pytest_cache
+**/.ruff_cache

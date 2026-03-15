@@ -12,6 +12,8 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DatasetTab } from '@/components/prompts/DatasetTab';
+import { AiProviderTab } from '@/components/prompts/AiProviderTab';
 
 interface Version {
   id: string;
@@ -29,6 +31,12 @@ interface Prompt {
   createdAt: string;
   versions?: Version[];
   variables?: { name: string; type: string }[];
+}
+
+function promptStatusVariant(status: string): 'success' | 'warning' | 'outline' {
+  if (status === 'active') return 'success';
+  if (status === 'draft') return 'warning';
+  return 'outline';
 }
 
 export default function PromptDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -82,17 +90,7 @@ export default function PromptDetailPage({ params }: { params: Promise<{ id: str
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold">{prompt.name}</h1>
-            <Badge
-              variant={
-                prompt.status === 'active'
-                  ? 'success'
-                  : prompt.status === 'draft'
-                    ? 'warning'
-                    : 'outline'
-              }
-            >
-              {prompt.status}
-            </Badge>
+            <Badge variant={promptStatusVariant(prompt.status)}>{prompt.status}</Badge>
           </div>
           {prompt.description && (
             <p className="mt-1 text-sm text-muted-foreground">{prompt.description}</p>
@@ -221,16 +219,22 @@ export default function PromptDetailPage({ params }: { params: Promise<{ id: str
           )}
         </TabsContent>
 
-        {(['dataset', 'ai-provider', 'environments', 'failover', 'analytics'] as const).map(
-          (tab) => (
-            <TabsContent key={tab} value={tab} className="mt-4">
-              <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-20 text-center">
-                <p className="text-lg font-semibold capitalize">{tab.replace('-', ' ')}</p>
-                <p className="mt-1 text-sm text-muted-foreground">Coming in a later phase</p>
-              </div>
-            </TabsContent>
-          ),
-        )}
+        <TabsContent value="dataset" className="mt-4">
+          <DatasetTab promptId={id} variables={prompt.variables ?? []} />
+        </TabsContent>
+
+        <TabsContent value="ai-provider" className="mt-4">
+          <AiProviderTab promptId={id} />
+        </TabsContent>
+
+        {(['environments', 'failover', 'analytics'] as const).map((tab) => (
+          <TabsContent key={tab} value={tab} className="mt-4">
+            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-20 text-center">
+              <p className="text-lg font-semibold capitalize">{tab.replace('-', ' ')}</p>
+              <p className="mt-1 text-sm text-muted-foreground">Coming in a later phase</p>
+            </div>
+          </TabsContent>
+        ))}
       </Tabs>
     </div>
   );
