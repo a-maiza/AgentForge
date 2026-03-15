@@ -10,6 +10,12 @@ import { UsersModule } from './users/users.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { WorkspacesModule } from './workspaces/workspaces.module';
 import { PromptsModule } from './prompts/prompts.module';
+import { StorageModule } from './storage/storage.module';
+import { DatasetsModule } from './datasets/datasets.module';
+import { AiProvidersModule } from './ai-providers/ai-providers.module';
+import { PromptAiConfigsModule } from './prompt-ai-configs/prompt-ai-configs.module';
+import { EvaluationsModule } from './evaluations/evaluations.module';
+import { MetricsModule } from './metrics/metrics.module';
 
 @Module({
   imports: [
@@ -42,6 +48,12 @@ import { PromptsModule } from './prompts/prompts.module';
     OrganizationsModule,
     WorkspacesModule,
     PromptsModule,
+    StorageModule,
+    DatasetsModule,
+    AiProvidersModule,
+    PromptAiConfigsModule,
+    EvaluationsModule,
+    MetricsModule,
   ],
   providers: [
     // Apply AuthGuard globally; use @Public() to opt-out on specific routes

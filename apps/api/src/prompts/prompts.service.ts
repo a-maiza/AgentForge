@@ -163,6 +163,45 @@ export class PromptsService {
     return version;
   }
 
+  async saveDatasetConfig(
+    promptId: string,
+    workspaceId: string,
+    data: {
+      datasetId: string;
+      datasetVersionId: string;
+      variableMapping: Record<string, string>;
+      isActive?: boolean;
+    },
+  ): Promise<unknown> {
+    const prompt = await this.prisma.prompt.findFirst({ where: { id: promptId, workspaceId } });
+    if (!prompt) throw new NotFoundException('Prompt not found');
+
+    const existing = await this.prisma.promptDatasetConfig.findFirst({
+      where: { promptId, datasetId: data.datasetId },
+    });
+
+    if (existing) {
+      return this.prisma.promptDatasetConfig.update({
+        where: { id: existing.id },
+        data: {
+          datasetVersionId: data.datasetVersionId,
+          variableMapping: data.variableMapping,
+          ...(data.isActive !== undefined && { isActive: data.isActive }),
+        },
+      });
+    }
+
+    return this.prisma.promptDatasetConfig.create({
+      data: {
+        promptId,
+        datasetId: data.datasetId,
+        datasetVersionId: data.datasetVersionId,
+        variableMapping: data.variableMapping,
+        ...(data.isActive !== undefined && { isActive: data.isActive }),
+      },
+    });
+  }
+
   extractVariables(content: string): string[] {
     const pattern = new RegExp(VARIABLE_PATTERN.source, VARIABLE_PATTERN.flags);
     const names = new Set<string>();
