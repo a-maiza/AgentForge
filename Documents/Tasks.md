@@ -97,19 +97,19 @@
 
 ### 2.3 Backend — FastAPI Eval Worker (`apps/worker`)
 
-- [ ] **P0** Bootstrap FastAPI app with `pydantic-settings` config, SQLAlchemy 2 async engine (same `DATABASE_URL`), and `httpx` client
-- [ ] **P0** Implement BullMQ job consumer: poll `evaluations` queue (via `bullmq` Python port or Redis BRPOP fallback); acquire job, update status to `running`
-- [ ] **P0** Implement LiteLLM call executor: for each dataset row, substitute variables into prompt template, call `litellm.acompletion()`, capture response + token counts + latency
-- [ ] **P0** Implement metric scorers: Accuracy, Exact Match, F1, Precision, Recall (using `evaluate` from HuggingFace), Perplexity, BLEU, ROUGE, BERTScore
-- [ ] **P0** Implement cost estimator: lookup model pricing table (input/output $/1M tokens), compute cost per call and total
-- [ ] **P1** Implement Consistency Score: run same prompt N=3 times on a sample, compute output variance
-- [ ] **P1** Implement Latency percentiles (p50/p90/p99): aggregate from per-row timings
-- [ ] **P1** Implement Carbon Footprint / Power Consumption estimates (gCO₂ per 1k tokens) using published datacenter coefficients
-- [ ] **P1** Implement grade computation: score → A+/A/B/C/D/F per §10.5 scale; store in `EvaluationJob.grade`
-- [ ] **P1** Persist per-metric `EvaluationResult` rows; update job `progress` counter after each row; publish `eval.progress` event to Redis Pub/Sub
-- [ ] **P1** Implement `POST /api/metrics/suggest` (NestJS endpoint): call LiteLLM with a meta-prompt that reads the user's prompt and returns top-N metric recommendations with match % — proxy to worker or handle in API
-- [ ] **P2** Add Pytest unit tests for each metric scorer with fixture data (ground truth vs predictions)
-- [ ] **P2** Add `pytest-asyncio` integration tests for the full job lifecycle against a test PostgreSQL instance
+- [x] **P0** Bootstrap FastAPI app with `pydantic-settings` config, SQLAlchemy 2 async engine (same `DATABASE_URL`), and `httpx` client
+- [x] **P0** Implement BullMQ job consumer: poll `evaluations` queue (via `bullmq` Python port or Redis BRPOP fallback); acquire job, update status to `running`
+- [x] **P0** Implement LiteLLM call executor: for each dataset row, substitute variables into prompt template, call `litellm.acompletion()`, capture response + token counts + latency
+- [x] **P0** Implement metric scorers: Accuracy, Exact Match, F1, Precision, Recall (using `evaluate` from HuggingFace), Perplexity, BLEU, ROUGE, BERTScore
+- [x] **P0** Implement cost estimator: lookup model pricing table (input/output $/1M tokens), compute cost per call and total
+- [x] **P1** Implement Consistency Score: run same prompt N=3 times on a sample, compute output variance
+- [x] **P1** Implement Latency percentiles (p50/p90/p99): aggregate from per-row timings
+- [x] **P1** Implement Carbon Footprint / Power Consumption estimates (gCO₂ per 1k tokens) using published datacenter coefficients
+- [x] **P1** Implement grade computation: score → A+/A/B/C/D/F per §10.5 scale; store in `EvaluationJob.grade`
+- [x] **P1** Persist per-metric `EvaluationResult` rows; update job `progress` counter after each row; publish `eval.progress` event to Redis Pub/Sub
+- [x] **P1** Implement `POST /api/metrics/suggest` (NestJS endpoint): call LiteLLM with a meta-prompt that reads the user's prompt and returns top-N metric recommendations with match % — proxy to worker or handle in API
+- [x] **P2** Add Pytest unit tests for each metric scorer with fixture data (ground truth vs predictions)
+- [x] **P2** Add `pytest-asyncio` integration tests for the full job lifecycle against a test PostgreSQL instance
 
 ### 2.4 Frontend
 
