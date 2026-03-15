@@ -82,7 +82,13 @@ export class PromptsController {
   saveDatasetConfig(
     @Param('workspaceId') workspaceId: string,
     @Param('id') id: string,
-    @Body() body: { datasetId: string; datasetVersionId: string; variableMapping: Record<string, string>; isActive?: boolean },
+    @Body()
+    body: {
+      datasetId: string;
+      datasetVersionId: string;
+      variableMapping: Record<string, string>;
+      isActive?: boolean;
+    },
   ) {
     return this.promptsService.saveDatasetConfig(id, workspaceId, body);
   }

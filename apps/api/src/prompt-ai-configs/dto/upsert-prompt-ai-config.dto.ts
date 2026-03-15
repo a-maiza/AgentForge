@@ -1,4 +1,13 @@
-import { IsString, IsUUID, IsOptional, IsNumber, IsBoolean, Min, Max, IsArray } from 'class-validator';
+import {
+  IsString,
+  IsUUID,
+  IsOptional,
+  IsNumber,
+  IsBoolean,
+  Min,
+  Max,
+  IsArray,
+} from 'class-validator';
 
 export class UpsertPromptAiConfigDto {
   @IsUUID()

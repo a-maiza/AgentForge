@@ -1,4 +1,14 @@
-import { Controller, Get, Put, Delete, Body, Param, HttpCode, HttpStatus, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Put,
+  Delete,
+  Body,
+  Param,
+  HttpCode,
+  HttpStatus,
+  Req,
+} from '@nestjs/common';
 import { PromptAiConfigsService } from './prompt-ai-configs.service';
 import { UpsertPromptAiConfigDto } from './dto/upsert-prompt-ai-config.dto';
 import type { FastifyRequest } from 'fastify';
@@ -9,10 +19,7 @@ export class PromptAiConfigsController {
   constructor(private readonly configs: PromptAiConfigsService) {}
 
   @Get()
-  findAll(
-    @Param('workspaceId') workspaceId: string,
-    @Param('promptId') promptId: string,
-  ) {
+  findAll(@Param('workspaceId') workspaceId: string, @Param('promptId') promptId: string) {
     return this.configs.findByPrompt(promptId, workspaceId);
   }
 

@@ -166,7 +166,12 @@ export class PromptsService {
   async saveDatasetConfig(
     promptId: string,
     workspaceId: string,
-    data: { datasetId: string; datasetVersionId: string; variableMapping: Record<string, string>; isActive?: boolean },
+    data: {
+      datasetId: string;
+      datasetVersionId: string;
+      variableMapping: Record<string, string>;
+      isActive?: boolean;
+    },
   ): Promise<unknown> {
     const prompt = await this.prisma.prompt.findFirst({ where: { id: promptId, workspaceId } });
     if (!prompt) throw new NotFoundException('Prompt not found');

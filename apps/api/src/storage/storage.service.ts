@@ -59,7 +59,12 @@ export class StorageService {
     await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
   }
 
-  buildKey(workspaceId: string, datasetId: string, versionNumber: number, filename: string): string {
+  buildKey(
+    workspaceId: string,
+    datasetId: string,
+    versionNumber: number,
+    filename: string,
+  ): string {
     return `datasets/${workspaceId}/${datasetId}/v${versionNumber}/${filename}`;
   }
 }

@@ -42,7 +42,10 @@ export class DatasetsService {
     });
   }
 
-  async findOne(id: string, workspaceId: string): Promise<Dataset & { versions: DatasetVersion[] }> {
+  async findOne(
+    id: string,
+    workspaceId: string,
+  ): Promise<Dataset & { versions: DatasetVersion[] }> {
     const dataset = await this.prisma.dataset.findFirst({
       where: { id, workspaceId },
       include: { versions: { orderBy: { versionNumber: 'desc' } } },
@@ -224,13 +227,19 @@ export class DatasetsService {
     const isJson = mimetype === 'application/json' || filename.endsWith('.json');
     if (isJson) {
       const data = JSON.parse(buffer.toString('utf8')) as unknown;
-      const rows = Array.isArray(data) ? (data as Record<string, unknown>[]) : [data as Record<string, unknown>];
+      const rows = Array.isArray(data)
+        ? (data as Record<string, unknown>[])
+        : [data as Record<string, unknown>];
       const columns = rows.length > 0 ? Object.keys(rows[0] as Record<string, unknown>) : [];
       return { rows, columns };
     }
     // CSV
     try {
-      const records = parse(buffer, { columns: true, skip_empty_lines: true, trim: true }) as Record<string, unknown>[];
+      const records = parse(buffer, {
+        columns: true,
+        skip_empty_lines: true,
+        trim: true,
+      }) as Record<string, unknown>[];
       const columns = records.length > 0 ? Object.keys(records[0] as Record<string, unknown>) : [];
       return { rows: records, columns };
     } catch {

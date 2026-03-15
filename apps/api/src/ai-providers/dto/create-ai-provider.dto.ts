@@ -1,6 +1,14 @@
 import { IsString, IsOptional, IsBoolean, IsIn, IsUUID } from 'class-validator';
 
-const PROVIDER_TYPES = ['openai', 'togetherai', 'mistral', 'anthropic', 'groq', 'ollama', 'custom'] as const;
+const PROVIDER_TYPES = [
+  'openai',
+  'togetherai',
+  'mistral',
+  'anthropic',
+  'groq',
+  'ollama',
+  'custom',
+] as const;
 
 export class CreateAiProviderDto {
   @IsUUID()

@@ -61,7 +61,9 @@ export class EvaluationsService {
   findAll(filters?: { status?: string; promptId?: string }): Promise<EvaluationJob[]> {
     return this.prisma.evaluationJob.findMany({
       where: {
-        ...(filters?.status && { status: filters.status as 'pending' | 'running' | 'completed' | 'failed' | 'cancelled' }),
+        ...(filters?.status && {
+          status: filters.status as 'pending' | 'running' | 'completed' | 'failed' | 'cancelled',
+        }),
         ...(filters?.promptId && { promptId: filters.promptId }),
       },
       orderBy: { createdAt: 'desc' },

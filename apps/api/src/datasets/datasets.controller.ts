@@ -59,9 +59,20 @@ export class DatasetsController {
   @Post(':id/upload')
   async upload(@Param('id') id: string, @Req() req: FastifyRequest & { user: User }) {
     // @fastify/multipart — consume via req.file()
-    const data = await (req as unknown as { file(): Promise<{ filename: string; mimetype: string; toBuffer(): Promise<Buffer> }> }).file();
+    const data = await (
+      req as unknown as {
+        file(): Promise<{ filename: string; mimetype: string; toBuffer(): Promise<Buffer> }>;
+      }
+    ).file();
     const buffer = await data.toBuffer();
-    return this.datasets.upload(id, (req.query as Record<string, string>)['workspaceId'] ?? '', buffer, data.filename, data.mimetype, req.user.id);
+    return this.datasets.upload(
+      id,
+      (req.query as Record<string, string>)['workspaceId'] ?? '',
+      buffer,
+      data.filename,
+      data.mimetype,
+      req.user.id,
+    );
   }
 
   @Get(':id/versions')

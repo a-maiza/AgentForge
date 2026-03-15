@@ -12,7 +12,9 @@ export class PromptAiConfigsService {
     if (!prompt) throw new NotFoundException('Prompt not found');
     return this.prisma.promptAiConfig.findMany({
       where: { promptId },
-      include: { provider: { select: { id: true, name: true, providerType: true, isActive: true } } },
+      include: {
+        provider: { select: { id: true, name: true, providerType: true, isActive: true } },
+      },
     });
   }
 
@@ -49,7 +51,9 @@ export class PromptAiConfigsService {
   async delete(promptId: string, configId: string, workspaceId: string): Promise<void> {
     const prompt = await this.prisma.prompt.findFirst({ where: { id: promptId, workspaceId } });
     if (!prompt) throw new NotFoundException('Prompt not found');
-    const config = await this.prisma.promptAiConfig.findFirst({ where: { id: configId, promptId } });
+    const config = await this.prisma.promptAiConfig.findFirst({
+      where: { id: configId, promptId },
+    });
     if (!config) throw new NotFoundException('Config not found');
     await this.prisma.promptAiConfig.delete({ where: { id: configId } });
   }
