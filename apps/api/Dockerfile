@@ -12,6 +12,7 @@ RUN pnpm install --filter @agentforge/api... --ignore-scripts
 
 # ── Stage 2: builder ──────────────────────────────────────────────────────────
 FROM node:20-alpine AS builder
+RUN apk add --no-cache openssl
 RUN corepack enable && corepack prepare pnpm@9.12.0 --activate
 WORKDIR /repo
 
@@ -30,6 +31,7 @@ RUN pnpm --filter @agentforge/api build
 
 # ── Stage 3: runner ───────────────────────────────────────────────────────────
 FROM node:20-alpine AS runner
+RUN apk add --no-cache openssl
 WORKDIR /app
 
 ENV NODE_ENV=production

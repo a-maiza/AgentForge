@@ -12,9 +12,18 @@ async function bootstrap() {
     new FastifyAdapter({ logger: false }),
   );
 
-  // Capture raw body for webhook signature verification (svix)
+  app.useLogger(app.get(Logger));
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
+  app.useGlobalFilters(new HttpExceptionFilter());
+
+  // Let NestJS register its default parsers first, then replace the JSON parser
+  // to capture raw body for webhook signature verification (svix).
+  await app.init();
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fastify = app.getHttpAdapter().getInstance() as any;
+  fastify.removeContentTypeParser('application/json');
   fastify.addContentTypeParser(
     'application/json',
     { parseAs: 'buffer' },
@@ -28,11 +37,6 @@ async function bootstrap() {
       }
     },
   );
-
-  app.useLogger(app.get(Logger));
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
-  app.useGlobalFilters(new HttpExceptionFilter());
 
   await app.listen(Number(process.env['PORT'] ?? 3001), '0.0.0.0');
 }

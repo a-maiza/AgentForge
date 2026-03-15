@@ -91,9 +91,10 @@ services:
       target: builder # Use builder stage for dev hot-reload
     env_file: .env.local
     environment:
-      DATABASE_URL: postgresql://agentforge:agentforge@pgbouncer:6432/agentforge
+      DATABASE_URL: postgresql://agentforge:agentforge@postgres:5432/agentforge
       REDIS_URL: redis://redis:6379
       PORT: '3001'
+      NODE_ENV: development
     ports:
       - '3001:3001'
     depends_on:
