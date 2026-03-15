@@ -15,7 +15,7 @@ CREATE TYPE "org_plan" AS ENUM ('free', 'pro', 'enterprise');
 
 -- CreateTable
 CREATE TABLE "users" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "id" UUID NOT NULL,
     "clerk_id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "name" TEXT,
@@ -27,7 +27,7 @@ CREATE TABLE "users" (
 
 -- CreateTable
 CREATE TABLE "organizations" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "id" UUID NOT NULL,
     "name" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
     "plan" "org_plan" NOT NULL DEFAULT 'free',
@@ -38,7 +38,7 @@ CREATE TABLE "organizations" (
 
 -- CreateTable
 CREATE TABLE "org_members" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "id" UUID NOT NULL,
     "org_id" UUID NOT NULL,
     "user_id" UUID NOT NULL,
     "role" "user_role" NOT NULL,
@@ -49,7 +49,7 @@ CREATE TABLE "org_members" (
 
 -- CreateTable
 CREATE TABLE "workspaces" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "id" UUID NOT NULL,
     "org_id" UUID NOT NULL,
     "name" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
@@ -60,7 +60,7 @@ CREATE TABLE "workspaces" (
 
 -- CreateTable
 CREATE TABLE "workspace_members" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "id" UUID NOT NULL,
     "workspace_id" UUID NOT NULL,
     "user_id" UUID NOT NULL,
     "role" "user_role" NOT NULL,
@@ -70,7 +70,7 @@ CREATE TABLE "workspace_members" (
 
 -- CreateTable
 CREATE TABLE "prompts" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "id" UUID NOT NULL,
     "workspace_id" UUID NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
@@ -84,7 +84,7 @@ CREATE TABLE "prompts" (
 
 -- CreateTable
 CREATE TABLE "prompt_versions" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "id" UUID NOT NULL,
     "prompt_id" UUID NOT NULL,
     "version_number" INTEGER NOT NULL,
     "content" TEXT NOT NULL,
@@ -97,7 +97,7 @@ CREATE TABLE "prompt_versions" (
 
 -- CreateTable
 CREATE TABLE "prompt_variables" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "id" UUID NOT NULL,
     "prompt_id" UUID NOT NULL,
     "name" TEXT NOT NULL,
     "type" "variable_type" NOT NULL DEFAULT 'string',
@@ -150,13 +150,13 @@ ALTER TABLE "workspace_members" ADD CONSTRAINT "workspace_members_user_id_fkey" 
 ALTER TABLE "prompts" ADD CONSTRAINT "prompts_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "workspaces"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "prompts" ADD CONSTRAINT "prompts_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "users"("id") ON UPDATE CASCADE;
+ALTER TABLE "prompts" ADD CONSTRAINT "prompts_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "prompt_versions" ADD CONSTRAINT "prompt_versions_prompt_id_fkey" FOREIGN KEY ("prompt_id") REFERENCES "prompts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "prompt_versions" ADD CONSTRAINT "prompt_versions_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "users"("id") ON UPDATE CASCADE;
+ALTER TABLE "prompt_versions" ADD CONSTRAINT "prompt_versions_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "prompt_variables" ADD CONSTRAINT "prompt_variables_prompt_id_fkey" FOREIGN KEY ("prompt_id") REFERENCES "prompts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
