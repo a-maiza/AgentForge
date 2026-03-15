@@ -1,6 +1,6 @@
 import type { CanActivate, ExecutionContext } from '@nestjs/common';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import type { Reflector } from '@nestjs/core';
+import { Reflector } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { verifyToken } from '@clerk/backend';
 import { IS_PUBLIC_KEY } from './public.decorator';

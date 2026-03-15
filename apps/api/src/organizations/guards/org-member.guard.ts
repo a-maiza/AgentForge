@@ -1,6 +1,6 @@
 import type { CanActivate, ExecutionContext } from '@nestjs/common';
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
-import type { Reflector } from '@nestjs/core';
+import { Reflector } from '@nestjs/core';
 import { OrganizationsService } from '../organizations.service';
 import type { User } from '@prisma/client';
 
