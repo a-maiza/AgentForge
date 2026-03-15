@@ -66,3 +66,70 @@ export const workspacesApi = {
   create: (orgId: string, data: { name: string; slug: string }) =>
     api.post(`/api/organizations/${orgId}/workspaces`, data),
 };
+
+// Datasets
+export const datasetsApi = {
+  list: (workspaceId: string) => api.get(`/api/workspaces/${workspaceId}/datasets`),
+  get: (workspaceId: string, id: string) =>
+    api.get(`/api/workspaces/${workspaceId}/datasets/${id}`),
+  create: (workspaceId: string, data: { name: string; description?: string }) =>
+    api.post(`/api/workspaces/${workspaceId}/datasets`, data),
+  update: (workspaceId: string, id: string, data: { name?: string; description?: string }) =>
+    api.put(`/api/workspaces/${workspaceId}/datasets/${id}`, data),
+  delete: (workspaceId: string, id: string) =>
+    api.delete(`/api/workspaces/${workspaceId}/datasets/${id}`),
+  upload: (_workspaceId: string, id: string, file: File, onProgress?: (pct: number) => void) => {
+    const form = new FormData();
+    form.append('file', file);
+    return api.post(`/api/datasets/${id}/upload`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: (e) => onProgress?.(Math.round((e.loaded * 100) / (e.total ?? 1))),
+    });
+  },
+  preview: (id: string, versionId: string) =>
+    api.get(`/api/datasets/${id}/versions/${versionId}/preview`),
+  compare: (id: string, v1: string, v2: string) =>
+    api.post(`/api/datasets/${id}/versions/compare`, { versionId1: v1, versionId2: v2 }),
+  versions: (workspaceId: string, id: string) =>
+    api.get(`/api/workspaces/${workspaceId}/datasets/${id}/versions`),
+};
+
+// AI Providers
+export const aiProvidersApi = {
+  list: (workspaceId: string) => api.get(`/api/workspaces/${workspaceId}/ai-providers`),
+  get: (id: string) => api.get(`/api/ai-providers/${id}`),
+  create: (workspaceId: string, data: Record<string, unknown>) =>
+    api.post(`/api/workspaces/${workspaceId}/ai-providers`, data),
+  update: (id: string, data: Record<string, unknown>) => api.put(`/api/ai-providers/${id}`, data),
+  delete: (id: string) => api.delete(`/api/ai-providers/${id}`),
+};
+
+// Prompt AI Configs
+export const promptAiConfigsApi = {
+  get: (promptId: string) => api.get(`/api/prompts/${promptId}/ai-config`),
+  upsert: (promptId: string, data: Record<string, unknown>) =>
+    api.put(`/api/prompts/${promptId}/ai-config`, data),
+};
+
+// Prompt Dataset Configs
+export const promptDatasetConfigsApi = {
+  get: (promptId: string) => api.get(`/api/prompts/${promptId}/dataset-config`),
+  upsert: (promptId: string, data: Record<string, unknown>) =>
+    api.put(`/api/prompts/${promptId}/dataset-config`, data),
+};
+
+// Evaluations
+export const evaluationsApi = {
+  list: (params?: { status?: string; promptId?: string }) =>
+    api.get('/api/evaluations', { params }),
+  get: (id: string) => api.get(`/api/evaluations/${id}`),
+  create: (data: Record<string, unknown>) => api.post('/api/evaluations', data),
+  cancel: (id: string) => api.delete(`/api/evaluations/${id}`),
+};
+
+// Metrics
+export const metricsApi = {
+  list: () => api.get('/api/metrics'),
+  suggest: (promptContent: string, topN = 5) =>
+    api.post('/api/metrics/suggest', { promptContent, topN }),
+};
