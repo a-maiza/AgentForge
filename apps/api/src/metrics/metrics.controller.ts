@@ -1,10 +1,21 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Post, Body, HttpException, HttpStatus } from '@nestjs/common';
 
 interface Metric {
   id: string;
   name: string;
   category: string;
   description: string;
+}
+
+interface MetricSuggestion {
+  metric: string;
+  match_pct: number;
+  reason: string;
+}
+
+interface SuggestBody {
+  promptContent: string;
+  topN?: number;
 }
 
 const METRICS_CATALOGUE: Metric[] = [
@@ -130,10 +141,35 @@ const METRICS_CATALOGUE: Metric[] = [
   },
 ];
 
+const WORKER_URL = process.env['WORKER_URL'] ?? 'http://worker:8000';
+
 @Controller('api/metrics')
 export class MetricsController {
   @Get()
-  findAll() {
+  findAll(): Metric[] {
     return METRICS_CATALOGUE;
+  }
+
+  @Post('suggest')
+  async suggest(@Body() body: SuggestBody): Promise<{ suggestions: MetricSuggestion[] }> {
+    try {
+      const response = await fetch(`${WORKER_URL}/suggest`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt_content: body.promptContent,
+          top_n: body.topN ?? 5,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new HttpException('Worker suggest endpoint failed', HttpStatus.BAD_GATEWAY);
+      }
+
+      return response.json() as Promise<{ suggestions: MetricSuggestion[] }>;
+    } catch (err) {
+      if (err instanceof HttpException) throw err;
+      throw new HttpException('Worker unreachable', HttpStatus.SERVICE_UNAVAILABLE);
+    }
   }
 }
