@@ -86,14 +86,14 @@
 
 ### 2.2 Backend — NestJS API
 
-- [ ] **P0** Implement `DatasetsModule`: CRUD + `POST /api/datasets/:id/upload` (multipart, stream to S3/MinIO via `@aws-sdk/client-s3`); parse CSV/JSON headers and row count on upload; create new `DatasetVersion`
-- [ ] **P0** Implement `GET /api/datasets/:id/versions/:v/preview`: retrieve file from S3, return first 50 rows as JSON
-- [ ] **P0** Implement `POST /api/datasets/:id/versions/compare`: compute added/removed/modified row diffs (stream both versions, hash rows)
-- [ ] **P0** Implement `AiProvidersModule`: CRUD; encrypt `api_key` at rest with AES-256-GCM (`Node.js crypto`); decrypt only within the service, never expose in responses
-- [ ] **P0** Implement `PromptAiConfigsModule`: save/update model params per prompt; validate param ranges (temp 0–2, top_p 0–1, etc.)
-- [ ] **P0** Implement `EvaluationsModule` (NestJS side): `POST /api/evaluations` validates prompt + dataset + metric selection, enqueues `EvaluationJob` to BullMQ `evaluations` queue, returns job record; `GET /api/evaluations/:id` streams job status
-- [ ] **P1** Implement `GET /api/metrics`: return static metric catalogue (20 metrics from §10.3) with category, description, and schema
-- [ ] **P1** Implement prompt ↔ dataset variable mapping endpoint: `PUT /api/prompts/:id/dataset-config` saves `variable_mapping` JSONB
+- [x] **P0** Implement `DatasetsModule`: CRUD + `POST /api/datasets/:id/upload` (multipart, stream to S3/MinIO via `@aws-sdk/client-s3`); parse CSV/JSON headers and row count on upload; create new `DatasetVersion`
+- [x] **P0** Implement `GET /api/datasets/:id/versions/:v/preview`: retrieve file from S3, return first 50 rows as JSON
+- [x] **P0** Implement `POST /api/datasets/:id/versions/compare`: compute added/removed/modified row diffs (stream both versions, hash rows)
+- [x] **P0** Implement `AiProvidersModule`: CRUD; encrypt `api_key` at rest with AES-256-GCM (`Node.js crypto`); decrypt only within the service, never expose in responses
+- [x] **P0** Implement `PromptAiConfigsModule`: save/update model params per prompt; validate param ranges (temp 0–2, top_p 0–1, etc.)
+- [x] **P0** Implement `EvaluationsModule` (NestJS side): `POST /api/evaluations` validates prompt + dataset + metric selection, enqueues `EvaluationJob` to BullMQ `evaluations` queue, returns job record; `GET /api/evaluations/:id` streams job status
+- [x] **P1** Implement `GET /api/metrics`: return static metric catalogue (20 metrics from §10.3) with category, description, and schema
+- [x] **P1** Implement prompt ↔ dataset variable mapping endpoint: `PUT /api/prompts/:id/dataset-config` saves `variable_mapping` JSONB
 
 ### 2.3 Backend — FastAPI Eval Worker (`apps/worker`)
 
