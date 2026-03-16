@@ -54,6 +54,31 @@ enum eval_job_status {
   cancelled
 }
 
+enum deployment_status {
+  pending
+  active
+  inactive
+  rolled_back
+}
+
+enum deployment_environment {
+  development
+  staging
+  production
+}
+
+enum api_key_type {
+  org
+  workspace
+  readonly
+}
+
+enum api_key_status {
+  active
+  disabled
+  expired
+}
+
 model User {
   id        String   @id @default(uuid()) @db.Uuid
   clerkId   String   @unique @map("clerk_id")
@@ -68,6 +93,8 @@ model User {
   promptVersions   PromptVersion[]
   datasets         Dataset[]
   evaluationJobs   EvaluationJob[]
+  deployments      Deployment[]
+  apiKeys          ApiKey[]
 
   @@map("users")
 }
@@ -111,6 +138,7 @@ model Workspace {
   prompts     Prompt[]
   datasets    Dataset[]
   aiProviders AiProvider[]
+  apiKeys     ApiKey[]
 
   @@unique([orgId, slug])
   @@map("workspaces")
@@ -146,6 +174,8 @@ model Prompt {
   datasetConfigs PromptDatasetConfig[]
   aiConfigs      PromptAiConfig[]
   evaluationJobs EvaluationJob[]
+  deployments    Deployment[]
+  failoverConfig FailoverConfig?
 
   @@map("prompts")
 }
@@ -162,6 +192,7 @@ model PromptVersion {
   prompt         Prompt          @relation(fields: [promptId], references: [id], onDelete: Cascade)
   creator        User            @relation(fields: [createdBy], references: [id])
   evaluationJobs EvaluationJob[]
+  deployments    Deployment[]
 
   @@unique([promptId, versionNumber])
   @@map("prompt_versions")
@@ -247,9 +278,11 @@ model AiProvider {
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
-  workspace      Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  promptConfigs  PromptAiConfig[]
-  evaluationJobs EvaluationJob[]
+  workspace          Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  promptConfigs      PromptAiConfig[]
+  evaluationJobs     EvaluationJob[]
+  primaryFailovers   FailoverConfig[] @relation("primary_provider")
+  secondaryFailovers FailoverConfig[] @relation("secondary_provider")
 
   @@map("ai_providers")
 }
@@ -315,4 +348,101 @@ model EvaluationResult {
   job EvaluationJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@map("evaluation_results")
+}
+
+// ─── Phase 3: Deployment Pipeline ────────────────────────────────────────────
+
+model Deployment {
+  id              String                 @id @default(uuid()) @db.Uuid
+  promptId        String                 @map("prompt_id") @db.Uuid
+  promptVersionId String                 @map("prompt_version_id") @db.Uuid
+  environment     deployment_environment
+  status          deployment_status      @default(pending)
+  /// Semver-like: MAJOR.MINOR.PATCH.BUILD
+  versionLabel    String                 @map("version_label")
+  endpointHash    String?                @unique @map("endpoint_hash")
+  isLive          Boolean                @default(false) @map("is_live")
+  deployedBy      String                 @map("deployed_by") @db.Uuid
+  deployedAt      DateTime               @default(now()) @map("deployed_at")
+  rolledBackAt    DateTime?              @map("rolled_back_at")
+  notes           String?
+
+  prompt        Prompt        @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  promptVersion PromptVersion @relation(fields: [promptVersionId], references: [id])
+  deployer      User          @relation(fields: [deployedBy], references: [id])
+  apiCallLogs   ApiCallLog[]
+
+  @@index([promptId, environment])
+  @@index([endpointHash])
+  @@map("deployments")
+}
+
+model FailoverConfig {
+  id                  String   @id @default(uuid()) @db.Uuid
+  promptId            String   @unique @map("prompt_id") @db.Uuid
+  primaryProviderId   String   @map("primary_provider_id") @db.Uuid
+  secondaryProviderId String   @map("secondary_provider_id") @db.Uuid
+  timeoutMs           Int      @default(30000) @map("timeout_ms")
+  /// Number of errors before switching to secondary
+  errorThreshold      Int      @default(3) @map("error_threshold")
+  /// Max latency (ms) before triggering failover
+  latencyThresholdMs  Int      @default(5000) @map("latency_threshold_ms")
+  /// Seconds to wait before retrying primary after failover
+  recoveryIntervalSec Int      @default(60) @map("recovery_interval_sec")
+  isActive            Boolean  @default(true) @map("is_active")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  prompt            Prompt     @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  primaryProvider   AiProvider @relation("primary_provider", fields: [primaryProviderId], references: [id])
+  secondaryProvider AiProvider @relation("secondary_provider", fields: [secondaryProviderId], references: [id])
+
+  @@map("failover_configs")
+}
+
+model ApiKey {
+  id          String         @id @default(uuid()) @db.Uuid
+  workspaceId String         @map("workspace_id") @db.Uuid
+  name        String
+  /// Prefix shown in UI: sk_org_ | sk_ws_ | sk_ro_
+  prefix      String
+  /// bcrypt hash of the full key — full key returned ONCE on creation
+  keyHash     String         @map("key_hash")
+  type        api_key_type   @default(workspace)
+  status      api_key_status @default(active)
+  expiresAt   DateTime?      @map("expires_at")
+  lastUsedAt  DateTime?      @map("last_used_at")
+  createdBy   String         @map("created_by") @db.Uuid
+  createdAt   DateTime       @default(now()) @map("created_at")
+
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  creator     User         @relation(fields: [createdBy], references: [id])
+  apiCallLogs ApiCallLog[]
+
+  @@index([workspaceId, status])
+  @@map("api_keys")
+}
+
+model ApiCallLog {
+  id             String   @id @default(uuid()) @db.Uuid
+  deploymentId   String   @map("deployment_id") @db.Uuid
+  apiKeyId       String?  @map("api_key_id") @db.Uuid
+  endpointHash   String   @map("endpoint_hash")
+  inputTokens    Int      @map("input_tokens")
+  outputTokens   Int      @map("output_tokens")
+  latencyMs      Int      @map("latency_ms")
+  statusCode     Int      @map("status_code")
+  /// Estimated USD cost for this call
+  costUsd        Float?   @map("cost_usd")
+  /// true = primary provider responded; false = failover was triggered
+  isFailover     Boolean  @default(false) @map("is_failover")
+  errorMessage   String?  @map("error_message")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  deployment Deployment @relation(fields: [deploymentId], references: [id])
+  apiKey     ApiKey?    @relation(fields: [apiKeyId], references: [id])
+
+  @@index([endpointHash])
+  @@index([apiKeyId, createdAt])
+  @@map("api_call_logs")
 }
