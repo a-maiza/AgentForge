@@ -212,6 +212,36 @@ pytest -k "test_f1"                       # Single test by name
 pytest --cov=main --cov-report=xml -q     # With coverage
 ```
 
+#### Python version pinning
+
+`apps/worker/.python-version` pins Python **3.11** so `uv` always creates the virtual environment with the correct interpreter, matching the Dockerfile (`python:3.11-slim`) and CI (`PYTHON_VERSION: '3.11'`).
+
+Without this file, `uv` defaults to the system Python (which may be a newer version, e.g. 3.14 via Homebrew on macOS), causing runtime incompatibilities.
+
+```bash
+# Re-create the venv with the pinned version (first-time or after Python upgrade)
+cd apps/worker
+uv python install 3.11   # download Python 3.11 managed by uv (if not already present)
+rm -rf .venv
+uv venv                  # uv reads .python-version → creates .venv with Python 3.11
+uv sync --extra dev
+```
+
+#### IDE import resolution (Pyright / Pylance)
+
+`apps/worker/pyrightconfig.json` points Pyright and Pylance at the `.venv` directory so that editors resolve `fastapi`, `pydantic`, `cryptography`, `boto3`, `litellm`, and other dependencies without "Unable to import" errors.
+
+For **VS Code** specifically, also add the following to `.vscode/settings.json` (gitignored — each developer configures their own IDE):
+
+```json
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/apps/worker/.venv/bin/python",
+  "python.analysis.venvPath": "${workspaceFolder}/apps/worker",
+  "python.analysis.venv": ".venv",
+  "python.analysis.extraPaths": ["${workspaceFolder}/apps/worker"]
+}
+```
+
 ---
 
 ## Environment Variables
