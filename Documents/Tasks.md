@@ -131,10 +131,10 @@
 
 ### 3.1 Database & Schema
 
-- [ ] **P0** Add Prisma models: `Deployment`, `FailoverConfig`, `ApiKey`, `ApiCallLog`
-- [ ] **P0** Add `LiveEndpoint` model (or denormalize onto `Deployment`): `endpoint_hash`, `is_active`, environment
-- [ ] **P0** Migration `0003_deployments_gateway`
-- [ ] **P1** Add index `(endpoint_hash)` on `ApiCallLog` and `(api_key_id, created_at)` for usage analytics queries
+- [x] **P0** Add Prisma models: `Deployment`, `FailoverConfig`, `ApiKey`, `ApiCallLog`
+- [x] **P0** Add `LiveEndpoint` model (or denormalize onto `Deployment`): `endpoint_hash`, `is_active`, environment
+- [x] **P0** Migration `0003_deployments_gateway`
+- [x] **P1** Add index `(endpoint_hash)` on `ApiCallLog` and `(api_key_id, created_at)` for usage analytics queries
 
 ### 3.2 Backend — NestJS API
 
