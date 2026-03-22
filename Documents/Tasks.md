@@ -146,14 +146,14 @@
 
 ### 3.3 Backend — Fastify Gateway (`apps/gateway`)
 
-- [ ] **P0** Bootstrap Fastify app with `@fastify/cors`, `@fastify/rate-limit`, `@fastify/compress`; Pino logger
-- [ ] **P0** Implement API key authentication plugin: extract `Bearer` token, hash it, lookup in Redis cache (TTL 60s); on miss, query PostgreSQL; reject with 401 if not found/disabled/expired
-- [ ] **P0** Implement `POST /api/v1/live/:hash` route: lookup prompt config from Redis cache (TTL 30s); on miss, query `Deployment` + `PromptAiConfig` + `AiProvider`; substitute variables; call LiteLLM; return `{ output, latency_ms, tokens }`
-- [ ] **P0** Implement failover logic in the gateway: wrap primary LLM call in try/catch; on timeout (configurable) or error threshold breach, retry with secondary provider; emit `failover.triggered` event to Redis Pub/Sub
-- [ ] **P0** Persist `ApiCallLog` row asynchronously (fire-and-forget via Redis queue or direct DB insert on worker); include cost estimate
-- [ ] **P1** Implement rate limiting per API key (req/min + req/day counters in Redis); return `429` with `Retry-After` header
-- [ ] **P1** Add `GET /health` and `GET /ready` probes (checks Redis and DB connectivity)
-- [ ] **P2** Write k6 load test script targeting `POST /api/v1/live/:hash`; target 1 000 req/s sustained; document baseline results
+- [x] **P0** Bootstrap Fastify app with `@fastify/cors`, `@fastify/rate-limit`, `@fastify/compress`; Pino logger
+- [x] **P0** Implement API key authentication plugin: extract `Bearer` token, hash it, lookup in Redis cache (TTL 60s); on miss, query PostgreSQL; reject with 401 if not found/disabled/expired
+- [x] **P0** Implement `POST /api/v1/live/:hash` route: lookup prompt config from Redis cache (TTL 30s); on miss, query `Deployment` + `PromptAiConfig` + `AiProvider`; substitute variables; call LiteLLM; return `{ output, latency_ms, tokens }`
+- [x] **P0** Implement failover logic in the gateway: wrap primary LLM call in try/catch; on timeout (configurable) or error threshold breach, retry with secondary provider; emit `failover.triggered` event to Redis Pub/Sub
+- [x] **P0** Persist `ApiCallLog` row asynchronously (fire-and-forget via Redis queue or direct DB insert on worker); include cost estimate
+- [x] **P1** Implement rate limiting per API key (req/min + req/day counters in Redis); return `429` with `Retry-After` header
+- [x] **P1** Add `GET /health` and `GET /ready` probes (checks Redis and DB connectivity)
+- [x] **P2** Write k6 load test script targeting `POST /api/v1/live/:hash`; target 1 000 req/s sustained; document baseline results
 
 ### 3.4 Frontend
 
