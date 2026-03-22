@@ -446,11 +446,11 @@ All errors return `Content-Type: application/problem+json`:
 
 ### Routes
 
-| Method | Path                  | Description                                          |
-| ------ | --------------------- | ---------------------------------------------------- |
-| `POST` | `/api/v1/live/:hash`  | Execute a live prompt deployment; returns LLM output |
-| `GET`  | `/health`             | Liveness probe — always 200 if the process is up     |
-| `GET`  | `/ready`              | Readiness probe — checks Redis and PostgreSQL        |
+| Method | Path                 | Description                                          |
+| ------ | -------------------- | ---------------------------------------------------- |
+| `POST` | `/api/v1/live/:hash` | Execute a live prompt deployment; returns LLM output |
+| `GET`  | `/health`            | Liveness probe — always 200 if the process is up     |
+| `GET`  | `/ready`             | Readiness probe — checks Redis and PostgreSQL        |
 
 ### Request / response shape
 
@@ -490,10 +490,10 @@ On cache miss for a given `endpoint_hash`, the gateway issues a single SQL query
 
 Per-key counters are stored in Redis:
 
-| Limit           | Counter key             | Window    |
-| --------------- | ----------------------- | --------- |
-| 1 000 req/min   | `ratelimit:<keyId>:min` | 60 s      |
-| 100 000 req/day | `ratelimit:<keyId>:day` | 86 400 s  |
+| Limit           | Counter key             | Window   |
+| --------------- | ----------------------- | -------- |
+| 1 000 req/min   | `ratelimit:<keyId>:min` | 60 s     |
+| 100 000 req/day | `ratelimit:<keyId>:day` | 86 400 s |
 
 Exceeded limits return `429` with a `Retry-After` header (seconds until the window resets).
 
