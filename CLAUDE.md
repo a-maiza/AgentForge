@@ -167,14 +167,14 @@ When working on tasks listed in Tasks.md:
 
 3. Once the task is finished and all tests pass:
    a. Invoke the `readme-doc-updater` subagent to update `README.md` to reflect
-      the task's changes (new modules, routes, files, env vars, migrations, etc.).
-      Commit any README modifications to the current branch before creating the PR,
-      so they are included in the same PR as the implementation.
+   the task's changes (new modules, routes, files, env vars, migrations, etc.).
+   Commit any README modifications to the current branch before creating the PR,
+   so they are included in the same PR as the implementation.
    b. Open a pull request that includes:
-      - A title matching the task description
-      - A brief summary of the changes made
-      - Any relevant testing notes or considerations
-      - An updated checkbox in TASKS.md to mark the task as complete
+   - A title matching the task description
+   - A brief summary of the changes made
+   - Any relevant testing notes or considerations
+   - An updated checkbox in TASKS.md to mark the task as complete
 
 ## Testing Requirements
 

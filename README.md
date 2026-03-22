@@ -534,41 +534,41 @@ k6 run apps/gateway/k6/load-test.js
 
 ### Pages
 
-| Route | File | Description |
-| ----- | ---- | ----------- |
-| `/prompts` | `prompts/page.tsx` | Prompt list with search, filter, and create prompt modal |
-| `/prompts/[id]` | `prompts/[id]/page.tsx` | Prompt detail — tabbed editor (Editor, AI Provider, Dataset, Environments, Failover) |
-| `/prompts/[id]/edit` | `prompts/[id]/edit/page.tsx` | Full-screen prompt content editor |
-| `/api-keys` | `api-keys/page.tsx` | API key management — KPI cards (Total / Active / Expired / Disabled), tabbed key list, create-key modal |
-| `/api-gateway` | `api-gateway/page.tsx` | Live Prompt APIs tab (endpoint cards with Test / Docs / Copy URL actions, API Test Modal with variable fields and response viewer); Live Agent APIs tab (phase 5 stub) |
-| `/api-gateway/[hash]/docs` | `api-gateway/[hash]/docs/page.tsx` | Auto-generated per-endpoint docs — URL, auth header format, request/response schema, code examples in cURL / Python / Node.js |
-| `/datasets` | `datasets/page.tsx` | Dataset list and upload |
-| `/evaluations` | `evaluations/page.tsx` | Evaluation job list |
-| `/evaluations/new` | `evaluations/new/page.tsx` | Evaluation wizard (prompt + dataset + metric selection) |
-| `/evaluations/[id]` | `evaluations/[id]/page.tsx` | Evaluation result viewer with metric breakdown |
-| `/ai-providers` | `ai-providers/page.tsx` | AI provider CRUD and encrypted key management |
-| `/live-monitoring` | `live-monitoring/page.tsx` | Real-time monitoring dashboard (Socket.io) |
-| `/api-calls` | `api-calls/page.tsx` | API call log viewer |
+| Route                      | File                               | Description                                                                                                                                                            |
+| -------------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/prompts`                 | `prompts/page.tsx`                 | Prompt list with search, filter, and create prompt modal                                                                                                               |
+| `/prompts/[id]`            | `prompts/[id]/page.tsx`            | Prompt detail — tabbed editor (Editor, AI Provider, Dataset, Environments, Failover)                                                                                   |
+| `/prompts/[id]/edit`       | `prompts/[id]/edit/page.tsx`       | Full-screen prompt content editor                                                                                                                                      |
+| `/api-keys`                | `api-keys/page.tsx`                | API key management — KPI cards (Total / Active / Expired / Disabled), tabbed key list, create-key modal                                                                |
+| `/api-gateway`             | `api-gateway/page.tsx`             | Live Prompt APIs tab (endpoint cards with Test / Docs / Copy URL actions, API Test Modal with variable fields and response viewer); Live Agent APIs tab (phase 5 stub) |
+| `/api-gateway/[hash]/docs` | `api-gateway/[hash]/docs/page.tsx` | Auto-generated per-endpoint docs — URL, auth header format, request/response schema, code examples in cURL / Python / Node.js                                          |
+| `/datasets`                | `datasets/page.tsx`                | Dataset list and upload                                                                                                                                                |
+| `/evaluations`             | `evaluations/page.tsx`             | Evaluation job list                                                                                                                                                    |
+| `/evaluations/new`         | `evaluations/new/page.tsx`         | Evaluation wizard (prompt + dataset + metric selection)                                                                                                                |
+| `/evaluations/[id]`        | `evaluations/[id]/page.tsx`        | Evaluation result viewer with metric breakdown                                                                                                                         |
+| `/ai-providers`            | `ai-providers/page.tsx`            | AI provider CRUD and encrypted key management                                                                                                                          |
+| `/live-monitoring`         | `live-monitoring/page.tsx`         | Real-time monitoring dashboard (Socket.io)                                                                                                                             |
+| `/api-calls`               | `api-calls/page.tsx`               | API call log viewer                                                                                                                                                    |
 
 ### Prompt detail tabs (`apps/web/src/components/prompts/`)
 
-| Component | Tab label | Description |
-| --------- | --------- | ----------- |
-| `PromptEditor.tsx` | Editor | Content editor with `{{variable}}` highlighting and version history |
-| `AiProviderTab.tsx` | AI Provider | Model and parameter configuration per prompt |
-| `DatasetTab.tsx` | Dataset | Link a dataset to the prompt for evaluation |
+| Component             | Tab label    | Description                                                                                                                                                                                             |
+| --------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PromptEditor.tsx`    | Editor       | Content editor with `{{variable}}` highlighting and version history                                                                                                                                     |
+| `AiProviderTab.tsx`   | AI Provider  | Model and parameter configuration per prompt                                                                                                                                                            |
+| `DatasetTab.tsx`      | Dataset      | Link a dataset to the prompt for evaluation                                                                                                                                                             |
 | `EnvironmentsTab.tsx` | Environments | Three environment cards (DEV / STAGING / PROD) each showing the live version badge; Go Live, Promote, and Rollback action buttons; animated pipeline connector between stages; deployment history modal |
-| `FailoverTab.tsx` | Failover | Primary and secondary provider selectors; failover settings form (timeout ms, error threshold, max latency ms, recovery interval, auto-recovery toggle) |
+| `FailoverTab.tsx`     | Failover     | Primary and secondary provider selectors; failover settings form (timeout ms, error threshold, max latency ms, recovery interval, auto-recovery toggle)                                                 |
 
 ### API client (`apps/web/src/lib/api.ts`)
 
 The frontend API client is grouped by domain. The following groups were added in task 3.4:
 
-| Export | Backend endpoints consumed |
-| ------ | -------------------------- |
-| `deploymentsApi` | `GET/POST /api/prompts/:id/deployments`, promote, rollback, go-live, history |
-| `failoverConfigsApi` | `GET/PUT/DELETE /api/prompts/:id/failover-config` |
-| `apiKeysApi` | `GET/POST/PATCH/DELETE /api/workspaces/:workspaceId/api-keys` |
+| Export               | Backend endpoints consumed                                                   |
+| -------------------- | ---------------------------------------------------------------------------- |
+| `deploymentsApi`     | `GET/POST /api/prompts/:id/deployments`, promote, rollback, go-live, history |
+| `failoverConfigsApi` | `GET/PUT/DELETE /api/prompts/:id/failover-config`                            |
+| `apiKeysApi`         | `GET/POST/PATCH/DELETE /api/workspaces/:workspaceId/api-keys`                |
 
 ---
 
