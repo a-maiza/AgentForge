@@ -1,3 +1,5 @@
+# Claude Code agent definitions and memory (contain {{template}} syntax Prettier breaks)
+.claude/
 node_modules
 dist
 build
