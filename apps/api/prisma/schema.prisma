@@ -62,9 +62,9 @@ enum deployment_status {
 }
 
 enum deployment_environment {
-  development
+  dev
   staging
-  production
+  prod
 }
 
 enum api_key_type {

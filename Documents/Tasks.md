@@ -138,11 +138,11 @@
 
 ### 3.2 Backend — NestJS API
 
-- [ ] **P0** Implement `DeploymentsModule`: `POST /api/prompts/:id/deploy` (create deployment record, assign semver `MAJOR.MINOR.PATCH.BUILD`); `POST /api/prompts/:id/promote` (copy deployment to next env); `POST /api/prompts/:id/rollback`; `POST /api/prompts/:id/go-live` (set `is_live`, generate/update `endpoint_hash`)
-- [ ] **P0** Implement deployment history: append-only audit log of all promotions/rollbacks with actor + timestamp
-- [ ] **P0** Implement `ApiKeysModule`: generate `sk_org_` / `sk_ws_` / `sk_ro_` prefixed keys (32 random chars via `crypto.randomBytes`); store `bcrypt` hash + prefix; return full key **once** at creation; CRUD per §15.4
-- [ ] **P1** Implement `FailoverConfigsModule`: CRUD for failover settings per prompt; defaults per §12.3
-- [ ] **P1** Expose deployment pipeline state: `GET /api/prompts/:id/deployments` returns all three environment cards with current version, timestamps, provider config
+- [x] **P0** Implement `DeploymentsModule`: `POST /api/prompts/:id/deploy` (create deployment record, assign semver `MAJOR.MINOR.PATCH.BUILD`); `POST /api/prompts/:id/promote` (copy deployment to next env); `POST /api/prompts/:id/rollback`; `POST /api/prompts/:id/go-live` (set `is_live`, generate/update `endpoint_hash`)
+- [x] **P0** Implement deployment history: append-only audit log of all promotions/rollbacks with actor + timestamp
+- [x] **P0** Implement `ApiKeysModule`: generate `sk_org_` / `sk_ws_` / `sk_ro_` prefixed keys (32 random chars via `crypto.randomBytes`); store `bcrypt` hash + prefix; return full key **once** at creation; CRUD per §15.4
+- [x] **P1** Implement `FailoverConfigsModule`: CRUD for failover settings per prompt; defaults per §12.3
+- [x] **P1** Expose deployment pipeline state: `GET /api/prompts/:id/deployments` returns all three environment cards with current version, timestamps, provider config
 
 ### 3.3 Backend — Fastify Gateway (`apps/gateway`)
 
