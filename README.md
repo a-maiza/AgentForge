@@ -333,7 +333,7 @@ Copy `.env.example` to `.env.local`. Variables marked **required** must be set b
 
 ## NestJS API — Module Overview (`apps/api`)
 
-> Implemented in task 1.3. All modules live under `apps/api/src/`.
+> Modules implemented across tasks 1.3, 2.2, and 3.2. All modules live under `apps/api/src/`.
 
 ### Authentication & Security
 
@@ -378,6 +378,23 @@ src/
 │                           DELETE /api/workspaces/:workspaceId/prompts/:id
 │                           GET    /api/workspaces/:workspaceId/prompts/:id/versions
 │                           GET    /api/workspaces/:workspaceId/prompts/:id/versions/:v
+├── deployments/          DeploymentsService + DeploymentsController
+│                           GET    /api/prompts/:id/deployments
+│                           GET    /api/prompts/:id/deployments/history
+│                           POST   /api/prompts/:id/deploy
+│                           POST   /api/prompts/:id/promote
+│                           POST   /api/prompts/:id/rollback/:environment
+│                           POST   /api/prompts/:id/go-live/:environment
+├── api-keys/             ApiKeysService + ApiKeysController (WorkspaceGuard)
+│                           GET    /api/workspaces/:workspaceId/api-keys
+│                           POST   /api/workspaces/:workspaceId/api-keys
+│                           GET    /api/workspaces/:workspaceId/api-keys/:id
+│                           PATCH  /api/workspaces/:workspaceId/api-keys/:id/disable
+│                           DELETE /api/workspaces/:workspaceId/api-keys/:id
+├── failover-configs/     FailoverConfigsService + FailoverConfigsController
+│                           GET    /api/prompts/:id/failover-config
+│                           PUT    /api/prompts/:id/failover-config
+│                           DELETE /api/prompts/:id/failover-config
 └── common/
     ├── filters/          HttpExceptionFilter — RFC 7807 application/problem+json errors
     └── pipes/            ZodValidationPipe — Zod-backed body validation
@@ -392,6 +409,20 @@ Every `PUT /api/workspaces/:workspaceId/prompts/:id` that changes `content`:
 3. Updates `PromptVariable` rows — adds new variables, removes obsolete ones
 
 Name-only or description-only updates do **not** create a new version.
+
+### Deployment pipeline
+
+`POST /api/prompts/:id/deploy` creates an append-only `Deployment` row in the requested environment (`dev`, `staging`, or `prod`) and assigns a semver-like version (`MAJOR.MINOR.PATCH.BUILD` — BUILD increments on every deployment). Subsequent actions:
+
+- **Promote** — copies a deployment record from one environment to the next.
+- **Rollback** — sets the previous deployment for the given environment back to `is_live`.
+- **Go-live** — sets `is_live = true` and assigns (or refreshes) the `endpoint_hash` used by the gateway.
+
+All state changes are append-only; `GET /api/prompts/:id/deployments/history` returns the full audit trail with actor and timestamp.
+
+### API key format and storage
+
+Generated keys use the prefix `sk_org_`, `sk_ws_`, or `sk_ro_` followed by 64 hex characters (`crypto.randomBytes(32)`). The `bcrypt` hash of the full key is stored in the database; the prefix is stored in plaintext for display. The complete key is returned **once** at creation and is never exposed again.
 
 ### Error format (RFC 7807)
 
@@ -409,6 +440,94 @@ All errors return `Content-Type: application/problem+json`:
 
 ---
 
+## Fastify Gateway — Live API Proxy (`apps/gateway`)
+
+> Implemented in task 3.3. The gateway runs on port **3002** and handles all external live prompt calls.
+
+### Routes
+
+| Method | Path                  | Description                                          |
+| ------ | --------------------- | ---------------------------------------------------- |
+| `POST` | `/api/v1/live/:hash`  | Execute a live prompt deployment; returns LLM output |
+| `GET`  | `/health`             | Liveness probe — always 200 if the process is up     |
+| `GET`  | `/ready`              | Readiness probe — checks Redis and PostgreSQL        |
+
+### Request / response shape
+
+```http
+POST /api/v1/live/:hash
+Authorization: Bearer sk_ws_<64-hex-chars>
+Content-Type: application/json
+
+{
+  "variables": { "topic": "async programming" }
+}
+```
+
+```json
+{
+  "output": "...",
+  "latency_ms": 412,
+  "tokens": { "input": 38, "output": 192 },
+  "failover": true
+}
+```
+
+The `failover` field is only present in the response when the secondary provider was used.
+
+### Authentication
+
+1. Extract `Bearer` token from the `Authorization` header.
+2. Compute a SHA-256 fingerprint of the token.
+3. Lookup fingerprint in Redis (TTL 60 s). On cache miss, fetch all active `api_keys` rows for the workspace and bcrypt-compare the token against each stored hash.
+4. Reject with `401` if no match, if the key is disabled, or if the key has expired.
+
+### Prompt config caching
+
+On cache miss for a given `endpoint_hash`, the gateway issues a single SQL query joining `deployments`, `prompt_versions`, `prompt_ai_configs`, `ai_providers`, and `failover_configs`. The result is serialised and stored in Redis under `prompt:<hash>` with a **30 s TTL**.
+
+### Rate limiting
+
+Per-key counters are stored in Redis:
+
+| Limit           | Counter key             | Window    |
+| --------------- | ----------------------- | --------- |
+| 1 000 req/min   | `ratelimit:<keyId>:min` | 60 s      |
+| 100 000 req/day | `ratelimit:<keyId>:day` | 86 400 s  |
+
+Exceeded limits return `429` with a `Retry-After` header (seconds until the window resets).
+
+A coarse global IP-level limit (10 000 req/min) is applied by `@fastify/rate-limit` before auth runs.
+
+### Failover logic
+
+The gateway tracks primary provider errors per `endpoint_hash` in Redis (`failover:errors:<hash>`, 1-minute window):
+
+- **Error threshold breach** — if the error counter reaches `FailoverConfig.error_threshold`, subsequent requests are routed to the secondary provider. A `failover.triggered` event is published to Redis Pub/Sub.
+- **Latency threshold breach** — if a successful primary call exceeds `FailoverConfig.latency_threshold_ms`, the error counter is incremented (same mechanism).
+- **Automatic recovery** — a successful, fast primary call resets the error counter via `DEL`.
+- **Both providers fail** — returns `502`.
+
+Failover settings (`timeout_ms`, `error_threshold`, `latency_threshold_ms`, secondary provider) are managed via `PUT /api/prompts/:id/failover-config`.
+
+### ApiCallLog persistence
+
+After each successful response, an `ApiCallLog` row (deployment ID, API key ID, endpoint hash, token counts, latency, cost estimate, `is_failover` flag) is inserted via `setImmediate` (fire-and-forget). Errors in this path are logged but do not affect the caller.
+
+### Supported LLM providers
+
+OpenAI-compatible APIs (openai, together, groq, mistral, ollama, custom base URL) and Anthropic (via native `fetch` against the Anthropic Messages API).
+
+### Load testing
+
+A k6 script is provided at `apps/gateway/k6/load-test.js` targeting `POST /api/v1/live/:hash` at **1 000 req/s** sustained.
+
+```bash
+k6 run apps/gateway/k6/load-test.js
+```
+
+---
+
 ## Project Structure
 
 ```
@@ -416,24 +535,65 @@ AgentForge/
 ├── apps/
 │   ├── api/              # NestJS 10 — REST API + WebSocket (port 3001)
 │   │   ├── prisma/       # Schema, migrations, seed
+│   │   │   ├── migrations/
+│   │   │   │   ├── 20260312000000_foundation/
+│   │   │   │   ├── 20260314193244_0002_datasets_evals/
+│   │   │   │   └── 20260316000000_0003_deployments_gateway/
+│   │   │   ├── schema.prisma
+│   │   │   └── seed.ts
 │   │   └── src/
-│   │       ├── auth/         # AuthGuard, @Public(), @CurrentUser()
-│   │       ├── common/       # HttpExceptionFilter, ZodValidationPipe
-│   │       ├── organizations/# CRUD + OrgMemberGuard
-│   │       ├── prisma/       # PrismaService (@Global)
-│   │       ├── prompts/      # CRUD + versioning + variable extraction
-│   │       ├── users/        # Clerk webhook sync + GET /auth/me
-│   │       └── workspaces/   # CRUD + WorkspaceGuard
+│   │       ├── auth/             # AuthGuard, @Public(), @CurrentUser()
+│   │       ├── common/           # HttpExceptionFilter, ZodValidationPipe, EncryptionService
+│   │       ├── organizations/    # CRUD + OrgMemberGuard
+│   │       ├── prisma/           # PrismaService (@Global)
+│   │       ├── prompts/          # CRUD + versioning + variable extraction
+│   │       ├── users/            # Clerk webhook sync + GET /auth/me
+│   │       ├── workspaces/       # CRUD + WorkspaceGuard
+│   │       ├── datasets/         # CRUD + S3 upload + version diff
+│   │       ├── ai-providers/     # CRUD + AES-256-GCM key encryption
+│   │       ├── prompt-ai-configs/# Model params per prompt
+│   │       ├── evaluations/      # BullMQ job enqueue + status polling
+│   │       ├── metrics/          # Metric catalogue + /suggest proxy
+│   │       ├── storage/          # S3/MinIO abstraction
+│   │       ├── deployments/      # Deploy / promote / rollback / go-live
+│   │       ├── api-keys/         # sk_org_ / sk_ws_ / sk_ro_ key lifecycle
+│   │       └── failover-configs/ # Failover settings per prompt
 │   ├── gateway/          # Fastify 4 — live API proxy (port 3002)
+│   │   ├── k6/
+│   │   │   └── load-test.js      # k6 load test (1 000 req/s)
 │   │   └── src/
+│   │       ├── index.ts          # Bootstrap (cors, compress, rate-limit)
+│   │       ├── db.ts             # pg Pool
+│   │       ├── redis.ts          # ioredis client + publisher
+│   │       ├── crypto.ts         # AES-256-GCM decrypt
+│   │       ├── types.ts          # PromptConfig, LlmCallConfig, etc.
+│   │       ├── lib/
+│   │       │   ├── llm.ts        # LLM dispatch (OpenAI-compat + Anthropic)
+│   │       │   ├── variables.ts  # {{variable}} substitution
+│   │       │   └── cost.ts       # Token cost estimation table
+│   │       └── routes/
+│   │           ├── live.ts       # POST /api/v1/live/:hash (main proxy)
+│   │           └── health.ts     # GET /health, GET /ready
 │   ├── web/              # Next.js 14 — dashboard frontend (port 3000)
 │   │   └── src/
 │   └── worker/           # FastAPI — eval job processor (port 8000)
-│       ├── main.py
+│       ├── app/
+│       │   ├── config.py         # pydantic-settings
+│       │   ├── consumer.py       # BullMQ Redis consumer
+│       │   ├── crypto.py         # AES-256-GCM decrypt
+│       │   ├── worker.py         # Job processor pipeline
+│       │   └── metrics/
+│       │       └── scorers.py    # HuggingFace evaluate scorers
+│       ├── main.py               # FastAPI app + /suggest endpoint
+│       ├── pyrightconfig.json    # Pyright/Pylance venv config
+│       ├── .python-version       # Pins Python 3.11 for uv
 │       └── tests/
 ├── packages/
 │   └── shared/           # Shared TypeScript types, Zod schemas, constants
 │       └── src/
+│           ├── constants.ts      # Enums, API_KEY_PREFIXES, GRADE_THRESHOLDS
+│           ├── types.ts          # Domain interfaces (Prompt, Deployment, etc.)
+│           └── schemas.ts        # Zod validation schemas
 ├── .github/
 │   └── workflows/        # PR checks, staging deploy, prod release
 ├── Makefile              # make setup / make dev / make migrate / make reset
