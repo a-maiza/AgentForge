@@ -2,7 +2,7 @@
 CREATE TYPE "deployment_status" AS ENUM ('pending', 'active', 'inactive', 'rolled_back');
 
 -- CreateEnum
-CREATE TYPE "deployment_environment" AS ENUM ('development', 'staging', 'production');
+CREATE TYPE "deployment_environment" AS ENUM ('dev', 'staging', 'prod');
 
 -- CreateEnum
 CREATE TYPE "api_key_type" AS ENUM ('org', 'workspace', 'readonly');
