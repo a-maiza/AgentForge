@@ -333,7 +333,7 @@ Copy `.env.example` to `.env.local`. Variables marked **required** must be set b
 
 ## NestJS API — Module Overview (`apps/api`)
 
-> Implemented in task 1.3. All modules live under `apps/api/src/`.
+> Modules implemented across tasks 1.3, 2.2, and 3.2. All modules live under `apps/api/src/`.
 
 ### Authentication & Security
 
@@ -378,6 +378,23 @@ src/
 │                           DELETE /api/workspaces/:workspaceId/prompts/:id
 │                           GET    /api/workspaces/:workspaceId/prompts/:id/versions
 │                           GET    /api/workspaces/:workspaceId/prompts/:id/versions/:v
+├── deployments/          DeploymentsService + DeploymentsController
+│                           GET    /api/prompts/:id/deployments
+│                           GET    /api/prompts/:id/deployments/history
+│                           POST   /api/prompts/:id/deploy
+│                           POST   /api/prompts/:id/promote
+│                           POST   /api/prompts/:id/rollback/:environment
+│                           POST   /api/prompts/:id/go-live/:environment
+├── api-keys/             ApiKeysService + ApiKeysController (WorkspaceGuard)
+│                           GET    /api/workspaces/:workspaceId/api-keys
+│                           POST   /api/workspaces/:workspaceId/api-keys
+│                           GET    /api/workspaces/:workspaceId/api-keys/:id
+│                           PATCH  /api/workspaces/:workspaceId/api-keys/:id/disable
+│                           DELETE /api/workspaces/:workspaceId/api-keys/:id
+├── failover-configs/     FailoverConfigsService + FailoverConfigsController
+│                           GET    /api/prompts/:id/failover-config
+│                           PUT    /api/prompts/:id/failover-config
+│                           DELETE /api/prompts/:id/failover-config
 └── common/
     ├── filters/          HttpExceptionFilter — RFC 7807 application/problem+json errors
     └── pipes/            ZodValidationPipe — Zod-backed body validation
@@ -392,6 +409,20 @@ Every `PUT /api/workspaces/:workspaceId/prompts/:id` that changes `content`:
 3. Updates `PromptVariable` rows — adds new variables, removes obsolete ones
 
 Name-only or description-only updates do **not** create a new version.
+
+### Deployment pipeline
+
+`POST /api/prompts/:id/deploy` creates an append-only `Deployment` row in the requested environment (`dev`, `staging`, or `prod`) and assigns a semver-like version (`MAJOR.MINOR.PATCH.BUILD` — BUILD increments on every deployment). Subsequent actions:
+
+- **Promote** — copies a deployment record from one environment to the next.
+- **Rollback** — sets the previous deployment for the given environment back to `is_live`.
+- **Go-live** — sets `is_live = true` and assigns (or refreshes) the `endpoint_hash` used by the gateway.
+
+All state changes are append-only; `GET /api/prompts/:id/deployments/history` returns the full audit trail with actor and timestamp.
+
+### API key format and storage
+
+Generated keys use the prefix `sk_org_`, `sk_ws_`, or `sk_ro_` followed by 64 hex characters (`crypto.randomBytes(32)`). The `bcrypt` hash of the full key is stored in the database; the prefix is stored in plaintext for display. The complete key is returned **once** at creation and is never exposed again.
 
 ### Error format (RFC 7807)
 
@@ -548,16 +579,45 @@ AgentForge/
 ├── apps/
 │   ├── api/              # NestJS 10 — REST API + WebSocket (port 3001)
 │   │   ├── prisma/       # Schema, migrations, seed
+│   │   │   ├── migrations/
+│   │   │   │   ├── 20260312000000_foundation/
+│   │   │   │   ├── 20260314193244_0002_datasets_evals/
+│   │   │   │   └── 20260316000000_0003_deployments_gateway/
+│   │   │   ├── schema.prisma
+│   │   │   └── seed.ts
 │   │   └── src/
-│   │       ├── auth/         # AuthGuard, @Public(), @CurrentUser()
-│   │       ├── common/       # HttpExceptionFilter, ZodValidationPipe
-│   │       ├── organizations/# CRUD + OrgMemberGuard
-│   │       ├── prisma/       # PrismaService (@Global)
-│   │       ├── prompts/      # CRUD + versioning + variable extraction
-│   │       ├── users/        # Clerk webhook sync + GET /auth/me
-│   │       └── workspaces/   # CRUD + WorkspaceGuard
+│   │       ├── auth/             # AuthGuard, @Public(), @CurrentUser()
+│   │       ├── common/           # HttpExceptionFilter, ZodValidationPipe, EncryptionService
+│   │       ├── organizations/    # CRUD + OrgMemberGuard
+│   │       ├── prisma/           # PrismaService (@Global)
+│   │       ├── prompts/          # CRUD + versioning + variable extraction
+│   │       ├── users/            # Clerk webhook sync + GET /auth/me
+│   │       ├── workspaces/       # CRUD + WorkspaceGuard
+│   │       ├── datasets/         # CRUD + S3 upload + version diff
+│   │       ├── ai-providers/     # CRUD + AES-256-GCM key encryption
+│   │       ├── prompt-ai-configs/# Model params per prompt
+│   │       ├── evaluations/      # BullMQ job enqueue + status polling
+│   │       ├── metrics/          # Metric catalogue + /suggest proxy
+│   │       ├── storage/          # S3/MinIO abstraction
+│   │       ├── deployments/      # Deploy / promote / rollback / go-live
+│   │       ├── api-keys/         # sk_org_ / sk_ws_ / sk_ro_ key lifecycle
+│   │       └── failover-configs/ # Failover settings per prompt
 │   ├── gateway/          # Fastify 4 — live API proxy (port 3002)
+│   │   ├── k6/
+│   │   │   └── load-test.js      # k6 load test (1 000 req/s)
 │   │   └── src/
+│   │       ├── index.ts          # Bootstrap (cors, compress, rate-limit)
+│   │       ├── db.ts             # pg Pool
+│   │       ├── redis.ts          # ioredis client + publisher
+│   │       ├── crypto.ts         # AES-256-GCM decrypt
+│   │       ├── types.ts          # PromptConfig, LlmCallConfig, etc.
+│   │       ├── lib/
+│   │       │   ├── llm.ts        # LLM dispatch (OpenAI-compat + Anthropic)
+│   │       │   ├── variables.ts  # {{variable}} substitution
+│   │       │   └── cost.ts       # Token cost estimation table
+│   │       └── routes/
+│   │           ├── live.ts       # POST /api/v1/live/:hash (main proxy)
+│   │           └── health.ts     # GET /health, GET /ready
 │   ├── web/              # Next.js 14 — dashboard frontend (port 3000)
 │   │   └── src/
 │   │       ├── app/
@@ -589,11 +649,23 @@ AgentForge/
 │   │       └── lib/
 │   │           └── api.ts                    # deploymentsApi, failoverConfigsApi, apiKeysApi + prior modules
 │   └── worker/           # FastAPI — eval job processor (port 8000)
-│       ├── main.py
+│       ├── app/
+│       │   ├── config.py         # pydantic-settings
+│       │   ├── consumer.py       # BullMQ Redis consumer
+│       │   ├── crypto.py         # AES-256-GCM decrypt
+│       │   ├── worker.py         # Job processor pipeline
+│       │   └── metrics/
+│       │       └── scorers.py    # HuggingFace evaluate scorers
+│       ├── main.py               # FastAPI app + /suggest endpoint
+│       ├── pyrightconfig.json    # Pyright/Pylance venv config
+│       ├── .python-version       # Pins Python 3.11 for uv
 │       └── tests/
 ├── packages/
 │   └── shared/           # Shared TypeScript types, Zod schemas, constants
 │       └── src/
+│           ├── constants.ts      # Enums, API_KEY_PREFIXES, GRADE_THRESHOLDS
+│           ├── types.ts          # Domain interfaces (Prompt, Deployment, etc.)
+│           └── schemas.ts        # Zod validation schemas
 ├── .github/
 │   └── workflows/        # PR checks, staging deploy, prod release
 ├── Makefile              # make setup / make dev / make migrate / make reset
