@@ -16,6 +16,9 @@ import { AiProvidersModule } from './ai-providers/ai-providers.module';
 import { PromptAiConfigsModule } from './prompt-ai-configs/prompt-ai-configs.module';
 import { EvaluationsModule } from './evaluations/evaluations.module';
 import { MetricsModule } from './metrics/metrics.module';
+import { DeploymentsModule } from './deployments/deployments.module';
+import { ApiKeysModule } from './api-keys/api-keys.module';
+import { FailoverConfigsModule } from './failover-configs/failover-configs.module';
 
 @Module({
   imports: [
@@ -54,6 +57,9 @@ import { MetricsModule } from './metrics/metrics.module';
     PromptAiConfigsModule,
     EvaluationsModule,
     MetricsModule,
+    DeploymentsModule,
+    ApiKeysModule,
+    FailoverConfigsModule,
   ],
   providers: [
     // Apply AuthGuard globally; use @Public() to opt-out on specific routes
