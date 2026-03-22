@@ -1,4 +1,14 @@
-import { IsEnum, IsISO8601, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
+import {
+  IsEnum,
+  IsISO8601,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+} from 'class-validator';
 
 export type ApiKeyScope = 'organization' | 'workspace' | 'readonly';
 

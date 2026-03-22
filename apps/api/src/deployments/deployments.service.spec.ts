@@ -28,10 +28,7 @@ describe('DeploymentsService', () => {
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
-      providers: [
-        DeploymentsService,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+      providers: [DeploymentsService, { provide: PrismaService, useValue: mockPrisma }],
     }).compile();
 
     service = module.get(DeploymentsService);
@@ -81,7 +78,11 @@ describe('DeploymentsService', () => {
       mockPrisma.prompt.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.deploy(PROMPT_ID, { environment: 'dev', promptVersionId: VERSION_ID, providerId: 'p1' }, USER_ID),
+        service.deploy(
+          PROMPT_ID,
+          { environment: 'dev', promptVersionId: VERSION_ID, providerId: 'p1' },
+          USER_ID,
+        ),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -90,7 +91,11 @@ describe('DeploymentsService', () => {
       mockPrisma.promptVersion.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.deploy(PROMPT_ID, { environment: 'dev', promptVersionId: 'wrong-version', providerId: 'p1' }, USER_ID),
+        service.deploy(
+          PROMPT_ID,
+          { environment: 'dev', promptVersionId: 'wrong-version', providerId: 'p1' },
+          USER_ID,
+        ),
       ).rejects.toThrow(NotFoundException);
     });
   });

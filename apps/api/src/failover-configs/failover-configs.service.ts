@@ -37,9 +37,8 @@ export class FailoverConfigsService {
       errorThreshold: dto.errorThreshold ?? 3,
       latencyThresholdMs: dto.maxLatencyMs ?? 5000,
       // Convert ms → seconds for storage
-      recoveryIntervalSec: dto.recoveryCheckIntervalMs != null
-        ? Math.round(dto.recoveryCheckIntervalMs / 1000)
-        : 60,
+      recoveryIntervalSec:
+        dto.recoveryCheckIntervalMs != null ? Math.round(dto.recoveryCheckIntervalMs / 1000) : 60,
     };
 
     return this.prisma.failoverConfig.upsert({

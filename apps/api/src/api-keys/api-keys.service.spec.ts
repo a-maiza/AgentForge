@@ -21,10 +21,7 @@ describe('ApiKeysService', () => {
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
-      providers: [
-        ApiKeysService,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+      providers: [ApiKeysService, { provide: PrismaService, useValue: mockPrisma }],
     }).compile();
 
     service = module.get(ApiKeysService);
@@ -48,7 +45,11 @@ describe('ApiKeysService', () => {
       };
       mockPrisma.apiKey.create.mockResolvedValue(fakeKey);
 
-      const result = await service.create(WORKSPACE_ID, { name: 'Test Key', scope: 'workspace' }, USER_ID);
+      const result = await service.create(
+        WORKSPACE_ID,
+        { name: 'Test Key', scope: 'workspace' },
+        USER_ID,
+      );
 
       expect(result.key).toMatch(/^sk_ws_/);
       expect(result).not.toHaveProperty('keyHash');
@@ -70,7 +71,11 @@ describe('ApiKeysService', () => {
       };
       mockPrisma.apiKey.create.mockResolvedValue(fakeKey);
 
-      const result = await service.create(WORKSPACE_ID, { name: 'Org Key', scope: 'organization' }, USER_ID);
+      const result = await service.create(
+        WORKSPACE_ID,
+        { name: 'Org Key', scope: 'organization' },
+        USER_ID,
+      );
 
       expect(result.key).toMatch(/^sk_org_/);
     });
@@ -91,7 +96,11 @@ describe('ApiKeysService', () => {
       };
       mockPrisma.apiKey.create.mockResolvedValue(fakeKey);
 
-      const result = await service.create(WORKSPACE_ID, { name: 'RO Key', scope: 'readonly' }, USER_ID);
+      const result = await service.create(
+        WORKSPACE_ID,
+        { name: 'RO Key', scope: 'readonly' },
+        USER_ID,
+      );
 
       expect(result.key).toMatch(/^sk_ro_/);
     });
