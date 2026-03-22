@@ -133,3 +133,41 @@ export const metricsApi = {
   suggest: (promptContent: string, topN = 5) =>
     api.post('/api/metrics/suggest', { promptContent, topN }),
 };
+
+// Deployments
+export const deploymentsApi = {
+  list: (promptId: string) => api.get(`/api/prompts/${promptId}/deployments`),
+  history: (promptId: string) => api.get(`/api/prompts/${promptId}/deployments/history`),
+  deploy: (
+    promptId: string,
+    data: { promptVersionId: string; environment: string; notes?: string },
+  ) => api.post(`/api/prompts/${promptId}/deploy`, data),
+  promote: (promptId: string, data: { targetEnvironment: string; notes?: string }) =>
+    api.post(`/api/prompts/${promptId}/promote`, data),
+  rollback: (promptId: string, environment: string) =>
+    api.post(`/api/prompts/${promptId}/rollback/${environment}`),
+  goLive: (promptId: string, environment: string) =>
+    api.post(`/api/prompts/${promptId}/go-live/${environment}`),
+};
+
+// Failover configs
+export const failoverConfigsApi = {
+  get: (promptId: string) => api.get(`/api/prompts/${promptId}/failover-config`),
+  upsert: (promptId: string, data: Record<string, unknown>) =>
+    api.put(`/api/prompts/${promptId}/failover-config`, data),
+  remove: (promptId: string) => api.delete(`/api/prompts/${promptId}/failover-config`),
+};
+
+// API Keys
+export const apiKeysApi = {
+  list: (workspaceId: string, status?: string) =>
+    api.get(`/api/workspaces/${workspaceId}/api-keys`, { params: status ? { status } : undefined }),
+  get: (workspaceId: string, id: string) =>
+    api.get(`/api/workspaces/${workspaceId}/api-keys/${id}`),
+  create: (workspaceId: string, data: Record<string, unknown>) =>
+    api.post(`/api/workspaces/${workspaceId}/api-keys`, data),
+  disable: (workspaceId: string, id: string) =>
+    api.patch(`/api/workspaces/${workspaceId}/api-keys/${id}/disable`),
+  remove: (workspaceId: string, id: string) =>
+    api.delete(`/api/workspaces/${workspaceId}/api-keys/${id}`),
+};

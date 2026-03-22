@@ -286,11 +286,11 @@ Copy `.env.example` to `.env.local`. Variables marked **required** must be set b
 
 ### Frontend URLs
 
-| Variable                  | Default                 |
-| ------------------------- | ----------------------- |
-| `NEXT_PUBLIC_API_URL`     | `http://localhost:3001` |
-| `NEXT_PUBLIC_GATEWAY_URL` | `http://localhost:3002` |
-| `NEXT_PUBLIC_WS_URL`      | `ws://localhost:3001`   |
+| Variable                  | Default                 | Notes                                                                                                     |
+| ------------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_API_URL`     | `http://localhost:3001` | NestJS REST API base URL                                                                                  |
+| `NEXT_PUBLIC_GATEWAY_URL` | `http://localhost:3002` | Fastify gateway base URL — used to construct live endpoint URLs and send test requests from the dashboard |
+| `NEXT_PUBLIC_WS_URL`      | `ws://localhost:3001`   | WebSocket URL for real-time monitoring (Socket.io)                                                        |
 
 ### AI Providers _(optional — can be set per workspace in UI)_
 
@@ -409,6 +409,138 @@ All errors return `Content-Type: application/problem+json`:
 
 ---
 
+## Fastify Gateway — Live API Proxy (`apps/gateway`)
+
+> Implemented in task 3.3. The gateway runs on port **3002** and handles all external live prompt calls.
+
+### Routes
+
+| Method | Path                 | Description                                          |
+| ------ | -------------------- | ---------------------------------------------------- |
+| `POST` | `/api/v1/live/:hash` | Execute a live prompt deployment; returns LLM output |
+| `GET`  | `/health`            | Liveness probe — always 200 if the process is up     |
+| `GET`  | `/ready`             | Readiness probe — checks Redis and PostgreSQL        |
+
+### Request / response shape
+
+```http
+POST /api/v1/live/:hash
+Authorization: Bearer sk_ws_<64-hex-chars>
+Content-Type: application/json
+
+{
+  "variables": { "topic": "async programming" }
+}
+```
+
+```json
+{
+  "output": "...",
+  "latency_ms": 412,
+  "tokens": { "input": 38, "output": 192 },
+  "failover": true
+}
+```
+
+The `failover` field is only present in the response when the secondary provider was used.
+
+### Authentication
+
+1. Extract `Bearer` token from the `Authorization` header.
+2. Compute a SHA-256 fingerprint of the token.
+3. Lookup fingerprint in Redis (TTL 60 s). On cache miss, fetch all active `api_keys` rows for the workspace and bcrypt-compare the token against each stored hash.
+4. Reject with `401` if no match, if the key is disabled, or if the key has expired.
+
+### Prompt config caching
+
+On cache miss for a given `endpoint_hash`, the gateway issues a single SQL query joining `deployments`, `prompt_versions`, `prompt_ai_configs`, `ai_providers`, and `failover_configs`. The result is serialised and stored in Redis under `prompt:<hash>` with a **30 s TTL**.
+
+### Rate limiting
+
+Per-key counters are stored in Redis:
+
+| Limit           | Counter key             | Window   |
+| --------------- | ----------------------- | -------- |
+| 1 000 req/min   | `ratelimit:<keyId>:min` | 60 s     |
+| 100 000 req/day | `ratelimit:<keyId>:day` | 86 400 s |
+
+Exceeded limits return `429` with a `Retry-After` header (seconds until the window resets).
+
+A coarse global IP-level limit (10 000 req/min) is applied by `@fastify/rate-limit` before auth runs.
+
+### Failover logic
+
+The gateway tracks primary provider errors per `endpoint_hash` in Redis (`failover:errors:<hash>`, 1-minute window):
+
+- **Error threshold breach** — if the error counter reaches `FailoverConfig.error_threshold`, subsequent requests are routed to the secondary provider. A `failover.triggered` event is published to Redis Pub/Sub.
+- **Latency threshold breach** — if a successful primary call exceeds `FailoverConfig.latency_threshold_ms`, the error counter is incremented (same mechanism).
+- **Automatic recovery** — a successful, fast primary call resets the error counter via `DEL`.
+- **Both providers fail** — returns `502`.
+
+Failover settings (`timeout_ms`, `error_threshold`, `latency_threshold_ms`, secondary provider) are managed via `PUT /api/prompts/:id/failover-config`.
+
+### ApiCallLog persistence
+
+After each successful response, an `ApiCallLog` row (deployment ID, API key ID, endpoint hash, token counts, latency, cost estimate, `is_failover` flag) is inserted via `setImmediate` (fire-and-forget). Errors in this path are logged but do not affect the caller.
+
+### Supported LLM providers
+
+OpenAI-compatible APIs (openai, together, groq, mistral, ollama, custom base URL) and Anthropic (via native `fetch` against the Anthropic Messages API).
+
+### Load testing
+
+A k6 script is provided at `apps/gateway/k6/load-test.js` targeting `POST /api/v1/live/:hash` at **1 000 req/s** sustained.
+
+```bash
+k6 run apps/gateway/k6/load-test.js
+```
+
+---
+
+## Next.js Frontend — Page & Component Overview (`apps/web`)
+
+> Implemented across tasks 1.4, 2.3, and 3.4. All routes live under `apps/web/src/app/(dashboard)/`.
+
+### Pages
+
+| Route | File | Description |
+| ----- | ---- | ----------- |
+| `/prompts` | `prompts/page.tsx` | Prompt list with search, filter, and create prompt modal |
+| `/prompts/[id]` | `prompts/[id]/page.tsx` | Prompt detail — tabbed editor (Editor, AI Provider, Dataset, Environments, Failover) |
+| `/prompts/[id]/edit` | `prompts/[id]/edit/page.tsx` | Full-screen prompt content editor |
+| `/api-keys` | `api-keys/page.tsx` | API key management — KPI cards (Total / Active / Expired / Disabled), tabbed key list, create-key modal |
+| `/api-gateway` | `api-gateway/page.tsx` | Live Prompt APIs tab (endpoint cards with Test / Docs / Copy URL actions, API Test Modal with variable fields and response viewer); Live Agent APIs tab (phase 5 stub) |
+| `/api-gateway/[hash]/docs` | `api-gateway/[hash]/docs/page.tsx` | Auto-generated per-endpoint docs — URL, auth header format, request/response schema, code examples in cURL / Python / Node.js |
+| `/datasets` | `datasets/page.tsx` | Dataset list and upload |
+| `/evaluations` | `evaluations/page.tsx` | Evaluation job list |
+| `/evaluations/new` | `evaluations/new/page.tsx` | Evaluation wizard (prompt + dataset + metric selection) |
+| `/evaluations/[id]` | `evaluations/[id]/page.tsx` | Evaluation result viewer with metric breakdown |
+| `/ai-providers` | `ai-providers/page.tsx` | AI provider CRUD and encrypted key management |
+| `/live-monitoring` | `live-monitoring/page.tsx` | Real-time monitoring dashboard (Socket.io) |
+| `/api-calls` | `api-calls/page.tsx` | API call log viewer |
+
+### Prompt detail tabs (`apps/web/src/components/prompts/`)
+
+| Component | Tab label | Description |
+| --------- | --------- | ----------- |
+| `PromptEditor.tsx` | Editor | Content editor with `{{variable}}` highlighting and version history |
+| `AiProviderTab.tsx` | AI Provider | Model and parameter configuration per prompt |
+| `DatasetTab.tsx` | Dataset | Link a dataset to the prompt for evaluation |
+| `EnvironmentsTab.tsx` | Environments | Three environment cards (DEV / STAGING / PROD) each showing the live version badge; Go Live, Promote, and Rollback action buttons; animated pipeline connector between stages; deployment history modal |
+| `FailoverTab.tsx` | Failover | Primary and secondary provider selectors; failover settings form (timeout ms, error threshold, max latency ms, recovery interval, auto-recovery toggle) |
+
+### API client (`apps/web/src/lib/api.ts`)
+
+The frontend API client is grouped by domain. The following groups were added in task 3.4:
+
+| Export | Backend endpoints consumed |
+| ------ | -------------------------- |
+| `deploymentsApi` | `GET/POST /api/prompts/:id/deployments`, promote, rollback, go-live, history |
+| `failoverConfigsApi` | `GET/PUT/DELETE /api/prompts/:id/failover-config` |
+| `apiKeysApi` | `GET/POST/PATCH/DELETE /api/workspaces/:workspaceId/api-keys` |
+
+---
+
 ## Project Structure
 
 ```
@@ -428,6 +560,34 @@ AgentForge/
 │   │   └── src/
 │   ├── web/              # Next.js 14 — dashboard frontend (port 3000)
 │   │   └── src/
+│   │       ├── app/
+│   │       │   ├── (dashboard)/
+│   │       │   │   ├── prompts/
+│   │       │   │   │   ├── page.tsx          # Prompt list
+│   │       │   │   │   └── [id]/
+│   │       │   │   │       ├── page.tsx      # Prompt detail + tabbed editor
+│   │       │   │   │       └── edit/page.tsx # Full-screen editor
+│   │       │   │   ├── api-keys/
+│   │       │   │   │   └── page.tsx          # API key management (KPI cards, list, create modal)
+│   │       │   │   ├── api-gateway/
+│   │       │   │   │   ├── page.tsx          # Live Prompt/Agent APIs (test modal, endpoint cards)
+│   │       │   │   │   └── [hash]/
+│   │       │   │   │       └── docs/page.tsx # Auto-generated endpoint docs (cURL/Python/Node.js)
+│   │       │   │   ├── datasets/             # Dataset management + version diff
+│   │       │   │   ├── evaluations/          # Evaluation wizard + result viewer
+│   │       │   │   ├── ai-providers/         # AI provider CRUD + key management
+│   │       │   │   ├── live-monitoring/      # Real-time monitoring dashboard
+│   │       │   │   └── api-calls/            # API call log viewer
+│   │       │   └── layout.tsx
+│   │       ├── components/
+│   │       │   ├── prompts/
+│   │       │   │   ├── EnvironmentsTab.tsx   # DEV/STAGING/PROD cards, Go Live/Promote/Rollback
+│   │       │   │   ├── FailoverTab.tsx       # Primary/secondary provider + failover settings form
+│   │       │   │   ├── AiProviderTab.tsx
+│   │       │   │   └── DatasetTab.tsx
+│   │       │   └── ui/                       # shadcn/ui primitives
+│   │       └── lib/
+│   │           └── api.ts                    # deploymentsApi, failoverConfigsApi, apiKeysApi + prior modules
 │   └── worker/           # FastAPI — eval job processor (port 8000)
 │       ├── main.py
 │       └── tests/
