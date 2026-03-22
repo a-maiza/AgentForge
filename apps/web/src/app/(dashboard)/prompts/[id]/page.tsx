@@ -14,6 +14,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DatasetTab } from '@/components/prompts/DatasetTab';
 import { AiProviderTab } from '@/components/prompts/AiProviderTab';
+import { EnvironmentsTab } from '@/components/prompts/EnvironmentsTab';
+import { FailoverTab } from '@/components/prompts/FailoverTab';
 
 interface Version {
   id: string;
@@ -39,7 +41,7 @@ function promptStatusVariant(status: string): 'success' | 'warning' | 'outline' 
   return 'outline';
 }
 
-export default function PromptDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default function PromptDetailPage({ params }: { readonly params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { activeWorkspace } = useWorkspaceStore();
 
@@ -227,14 +229,20 @@ export default function PromptDetailPage({ params }: { params: Promise<{ id: str
           <AiProviderTab promptId={id} />
         </TabsContent>
 
-        {(['environments', 'failover', 'analytics'] as const).map((tab) => (
-          <TabsContent key={tab} value={tab} className="mt-4">
-            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-20 text-center">
-              <p className="text-lg font-semibold capitalize">{tab.replace('-', ' ')}</p>
-              <p className="mt-1 text-sm text-muted-foreground">Coming in a later phase</p>
-            </div>
-          </TabsContent>
-        ))}
+        <TabsContent value="environments" className="mt-4">
+          <EnvironmentsTab promptId={id} versions={prompt.versions ?? []} />
+        </TabsContent>
+
+        <TabsContent value="failover" className="mt-4">
+          <FailoverTab promptId={id} />
+        </TabsContent>
+
+        <TabsContent value="analytics" className="mt-4">
+          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-20 text-center">
+            <p className="text-lg font-semibold">Analytics</p>
+            <p className="mt-1 text-sm text-muted-foreground">Coming in Phase 4</p>
+          </div>
+        </TabsContent>
       </Tabs>
     </div>
   );

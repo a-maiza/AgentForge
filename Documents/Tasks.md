@@ -157,13 +157,13 @@
 
 ### 3.4 Frontend
 
-- [ ] **P0** Implement Environments Tab inside prompt detail (§11): three environment cards (DEV/STAGING/PROD) with version badge, GO LIVE / Promote / Rollback actions; animated pipeline connector
-- [ ] **P0** Implement deployment history view: audit log table with actor, action, versions, timestamp
-- [ ] **P0** Implement `/api-keys` page: KPI header, tabbed key list (All/Active/Expired/Disabled), create key modal (shows full key once with copy button), revoke/disable actions
-- [ ] **P0** Implement `/proxy` Gateway overview page: Live Prompt APIs tab (endpoint cards with Test/Docs/Copy URL), Live Agent APIs tab (stub)
-- [ ] **P0** Implement API Test Modal (§14.5): dynamic variable fields, API key input, Quick Fill, response JSON viewer
-- [ ] **P1** Implement auto-generated endpoint Docs page (§14.6): endpoint URL, auth header format, request/response schema, curl + Python + Node.js code snippets
-- [ ] **P1** Implement Failover Tab inside prompt detail (§12): primary/secondary provider selector cards, settings form (timeout, threshold, latency, recovery interval)
+- [x] **P0** Implement Environments Tab inside prompt detail (§11): three environment cards (DEV/STAGING/PROD) with version badge, GO LIVE / Promote / Rollback actions; animated pipeline connector
+- [x] **P0** Implement deployment history view: audit log table with actor, action, versions, timestamp
+- [x] **P0** Implement `/api-keys` page: KPI header, tabbed key list (All/Active/Expired/Disabled), create key modal (shows full key once with copy button), revoke/disable actions
+- [x] **P0** Implement `/proxy` Gateway overview page: Live Prompt APIs tab (endpoint cards with Test/Docs/Copy URL), Live Agent APIs tab (stub)
+- [x] **P0** Implement API Test Modal (§14.5): dynamic variable fields, API key input, Quick Fill, response JSON viewer
+- [x] **P1** Implement auto-generated endpoint Docs page (§14.6): endpoint URL, auth header format, request/response schema, curl + Python + Node.js code snippets
+- [x] **P1** Implement Failover Tab inside prompt detail (§12): primary/secondary provider selector cards, settings form (timeout, threshold, latency, recovery interval)
 
 ---
 
