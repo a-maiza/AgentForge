@@ -217,7 +217,7 @@ function ApiTestModal({ open, onClose, deployment, apiKeys }: ApiTestModalProps)
 
 function EndpointCard({ dep, apiKeys }: { dep: LiveDeployment; apiKeys: ApiKey[] }) {
   const [testOpen, setTestOpen] = useState(false);
-  const { copy, copied } = useCopy();
+  const { copy } = useCopy();
   const gatewayUrl = process.env['NEXT_PUBLIC_GATEWAY_URL'] ?? 'http://localhost:3002';
   const endpointUrl = `${gatewayUrl}/api/v1/live/${dep.endpointHash}`;
 
