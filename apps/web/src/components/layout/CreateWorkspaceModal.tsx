@@ -50,7 +50,6 @@ interface CreateWorkspaceModalProps {
   open: boolean;
   onClose: () => void;
   onSuccess?: (workspace: Workspace) => void;
-  /** Explicit org ID — required when no workspace is active yet (e.g. after creating a new org) */
   organizationId?: string | undefined;
 }
 

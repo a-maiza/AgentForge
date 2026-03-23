@@ -17,7 +17,6 @@ async function bootstrap() {
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  // Enable CORS before app.init() so the Fastify plugin is registered in time
   app.enableCors({
     origin: process.env['FRONTEND_URL'] ?? 'http://localhost:3000',
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],

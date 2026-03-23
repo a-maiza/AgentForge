@@ -32,9 +32,8 @@ export class AuthGuard implements CanActivate {
 
     const token = authHeader.slice(7);
 
-    const secretKey = this.config.getOrThrow<string>('CLERK_SECRET_KEY');
-
     try {
+      const secretKey = this.config.getOrThrow<string>('CLERK_SECRET_KEY');
       const payload = await verifyToken(token, { secretKey });
 
       let user = await this.usersService.findByClerkId(payload.sub);
@@ -42,6 +41,7 @@ export class AuthGuard implements CanActivate {
       // Just-in-time provisioning: Clerk webhooks may not reach localhost in dev,
       // so fetch the user from Clerk and create a local record on first login.
       if (!user) {
+        // JIT provisioning: Clerk webhooks may not reach localhost in dev
         const clerk = createClerkClient({ secretKey });
         const clerkUser = await clerk.users.getUser(payload.sub);
         user = await this.usersService.upsertFromClerk({
