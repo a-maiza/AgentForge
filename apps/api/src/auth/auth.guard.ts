@@ -37,6 +37,9 @@ export class AuthGuard implements CanActivate {
       const payload = await verifyToken(token, { secretKey });
 
       let user = await this.usersService.findByClerkId(payload.sub);
+
+      // Just-in-time provisioning: Clerk webhooks may not reach localhost in dev,
+      // so fetch the user from Clerk and create a local record on first login.
       if (!user) {
         // JIT provisioning: Clerk webhooks may not reach localhost in dev
         const clerk = createClerkClient({ secretKey });

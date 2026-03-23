@@ -74,7 +74,8 @@ export function WorkspaceSwitcher({ collapsed }: { collapsed: boolean }) {
 
   const handleOrgCreated = (org: Organization) => {
     void queryClient.invalidateQueries({ queryKey: ['workspaces'] });
-    // After creating an org, open workspace creation so user can set up their first workspace
+    // After creating an org, open workspace creation so user can set up their first workspace.
+    // Pass the new org's ID explicitly — activeWorkspace may still be null at this point.
     const firstWsForOrg = workspaces.find((ws) => ws.organizationId === org.id);
     if (!firstWsForOrg) {
       setWsModalOrgId(org.id);
