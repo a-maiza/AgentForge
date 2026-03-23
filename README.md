@@ -48,6 +48,19 @@ NestJS API → BullMQ (Redis) → FastAPI Worker → LiteLLM + HuggingFace evalu
 Gateway detects timeout / error threshold → switches to secondary provider → emits failover.triggered
 ```
 
+**Real-time monitoring:**
+
+```
+Fastify Gateway → ApiCallLog (PostgreSQL, fire-and-forget)
+                → Redis Pub/Sub  metrics.workspace.<id>
+                                        ↓
+                         NestJS MonitoringGateway (Socket.io /monitoring)
+                                        ↓
+                         Browser: metrics_update event per workspace room
+```
+
+The `MonitoringService` also serves aggregated metrics (summary, timeseries, per-endpoint breakdown, prompt analytics, AI optimization suggestions) via REST, with Redis caching (summary: 5 s TTL; suggestions: 300 s TTL).
+
 ---
 
 ## Prerequisites
@@ -292,6 +305,14 @@ Copy `.env.example` to `.env.local`. Variables marked **required** must be set b
 | `NEXT_PUBLIC_GATEWAY_URL` | `http://localhost:3002` | Fastify gateway base URL — used to construct live endpoint URLs and send test requests from the dashboard |
 | `NEXT_PUBLIC_WS_URL`      | `ws://localhost:3001`   | WebSocket URL for real-time monitoring (Socket.io)                                                        |
 
+### Internal Service URLs
+
+| Variable     | Default              | Notes                                             |
+| ------------ | -------------------- | ------------------------------------------------- |
+| `WORKER_URL` | `http://worker:8000` | FastAPI worker base URL (`/optimize`, `/suggest`) |
+
+Override `WORKER_URL` to `http://localhost:8000` when running the worker outside Docker Compose.
+
 ### AI Providers _(optional — can be set per workspace in UI)_
 
 `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `TOGETHER_API_KEY`, `MISTRAL_API_KEY`, `GROQ_API_KEY`
@@ -333,7 +354,7 @@ Copy `.env.example` to `.env.local`. Variables marked **required** must be set b
 
 ## NestJS API — Module Overview (`apps/api`)
 
-> Modules implemented across tasks 1.3, 2.2, and 3.2. All modules live under `apps/api/src/`.
+> Modules implemented across tasks 1.3, 2.2, 3.2, and 4.1. All modules live under `apps/api/src/`.
 
 ### Authentication & Security
 
@@ -395,6 +416,20 @@ src/
 │                           GET    /api/prompts/:id/failover-config
 │                           PUT    /api/prompts/:id/failover-config
 │                           DELETE /api/prompts/:id/failover-config
+├── monitoring/           MonitoringService + MonitoringController + MonitoringGateway
+│                         REST endpoints (all require auth):
+│                           GET /api/monitoring/workspaces/:workspaceId/summary
+│                               ?window=1m|5m|1h|24h|7d  &environment=dev|staging|prod
+│                           GET /api/monitoring/workspaces/:workspaceId/timeseries
+│                               ?from=<ISO>&to=<ISO>&bucket=1m|5m|15m|1h  [&environment=...]
+│                           GET /api/monitoring/workspaces/:workspaceId/api-calls
+│                               ?environment=dev|staging|prod
+│                           GET /api/monitoring/prompts/:promptId/analytics
+│                           GET /api/monitoring/prompts/:promptId/suggestions?lastN=5
+│                         WebSocket gateway — Socket.io namespace /monitoring:
+│                           emit  join_workspace   { workspaceId }  → joins workspace room
+│                           emit  leave_workspace  { workspaceId }  → leaves room
+│                           on    metrics_update   { workspaceId, metrics, timestamp }
 └── common/
     ├── filters/          HttpExceptionFilter — RFC 7807 application/problem+json errors
     └── pipes/            ZodValidationPipe — Zod-backed body validation
@@ -601,7 +636,8 @@ AgentForge/
 │   │       ├── storage/          # S3/MinIO abstraction
 │   │       ├── deployments/      # Deploy / promote / rollback / go-live
 │   │       ├── api-keys/         # sk_org_ / sk_ws_ / sk_ro_ key lifecycle
-│   │       └── failover-configs/ # Failover settings per prompt
+│   │       ├── failover-configs/ # Failover settings per prompt
+│   │       └── monitoring/       # REST metrics + Socket.io /monitoring gateway
 │   ├── gateway/          # Fastify 4 — live API proxy (port 3002)
 │   │   ├── k6/
 │   │   │   └── load-test.js      # k6 load test (1 000 req/s)
