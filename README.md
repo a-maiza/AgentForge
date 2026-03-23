@@ -608,15 +608,15 @@ The frontend API client is grouped by domain. The following groups were added in
 
 The following group was added in task 4.3:
 
-| Export             | Backend endpoints consumed                                                            |
-| ------------------ | ------------------------------------------------------------------------------------- |
+| Export             | Backend endpoints consumed                                                           |
+| ------------------ | ------------------------------------------------------------------------------------ |
 | `organizationsApi` | `GET /api/organizations`, `POST /api/organizations`, `DELETE /api/organizations/:id` |
 
 The following group was extended in task 4.5:
 
-| Export          | New endpoint added                                                 |
-| --------------- | ------------------------------------------------------------------ |
-| `workspacesApi` | `DELETE /api/organizations/:orgId/workspaces/:workspaceId`         |
+| Export          | New endpoint added                                         |
+| --------------- | ---------------------------------------------------------- |
+| `workspacesApi` | `DELETE /api/organizations/:orgId/workspaces/:workspaceId` |
 
 ### Org switching (task 4.4)
 
