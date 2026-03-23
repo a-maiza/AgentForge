@@ -67,6 +67,12 @@ export const workspacesApi = {
     api.post(`/api/organizations/${orgId}/workspaces`, data),
 };
 
+// Organizations
+export const organizationsApi = {
+  list: () => api.get('/api/organizations'),
+  create: (data: { name: string; slug: string }) => api.post('/api/organizations', data),
+};
+
 // Datasets
 export const datasetsApi = {
   list: (workspaceId: string) => api.get(`/api/workspaces/${workspaceId}/datasets`),

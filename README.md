@@ -565,7 +565,7 @@ k6 run apps/gateway/k6/load-test.js
 
 ## Next.js Frontend — Page & Component Overview (`apps/web`)
 
-> Implemented across tasks 1.4, 2.3, 3.4, and 4.2. All routes live under `apps/web/src/app/(dashboard)/`.
+> Implemented across tasks 1.4, 2.3, 3.4, 4.2, and 4.3. All routes live under `apps/web/src/app/(dashboard)/`.
 
 ### Pages
 
@@ -605,6 +605,12 @@ The frontend API client is grouped by domain. The following groups were added in
 | `deploymentsApi`     | `GET/POST /api/prompts/:id/deployments`, promote, rollback, go-live, history |
 | `failoverConfigsApi` | `GET/PUT/DELETE /api/prompts/:id/failover-config`                            |
 | `apiKeysApi`         | `GET/POST/PATCH/DELETE /api/workspaces/:workspaceId/api-keys`                |
+
+The following group was added in task 4.3:
+
+| Export             | Backend endpoints consumed                          |
+| ------------------ | --------------------------------------------------- |
+| `organizationsApi` | `GET /api/organizations`, `POST /api/organizations` |
 
 ---
 
@@ -677,6 +683,10 @@ AgentForge/
 │   │       │   │   └── api-calls/            # API call log viewer
 │   │       │   └── layout.tsx
 │   │       ├── components/
+│   │       │   ├── layout/
+│   │       │   │   ├── WorkspaceSwitcher.tsx      # Sidebar switcher — groups workspaces by org, active org/workspace display
+│   │       │   │   ├── CreateOrganizationModal.tsx# Create organisation (name + auto-slug)
+│   │       │   │   └── CreateWorkspaceModal.tsx   # Create workspace under active org (name + auto-slug)
 │   │       │   ├── prompts/
 │   │       │   │   ├── EnvironmentsTab.tsx   # DEV/STAGING/PROD cards, Go Live/Promote/Rollback
 │   │       │   │   ├── FailoverTab.tsx       # Primary/secondary provider + failover settings form
@@ -684,7 +694,7 @@ AgentForge/
 │   │       │   │   └── DatasetTab.tsx
 │   │       │   └── ui/                       # shadcn/ui primitives
 │   │       └── lib/
-│   │           └── api.ts                    # deploymentsApi, failoverConfigsApi, apiKeysApi + prior modules
+│   │           └── api.ts                    # deploymentsApi, failoverConfigsApi, apiKeysApi, organizationsApi + prior modules
 │   └── worker/           # FastAPI — eval job processor (port 8000)
 │       ├── app/
 │       │   ├── config.py         # pydantic-settings
