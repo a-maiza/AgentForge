@@ -180,13 +180,13 @@
 
 ### 4.2 Frontend
 
-- [ ] **P0** Implement `/monitoring` page (§16): KPI cards, activity windows (1m/1h/24h), real-time performance chart (Socket.io-client, line chart with metric toggles), recent errors section; time range selector; auto-refresh every 5s
-- [ ] **P0** Wire Socket.io client: connect on mount, join workspace room, handle `metrics_update` → update Recharts data in Zustand store (ring buffer, last 60 data points)
-- [ ] **P0** Implement `/api-calls` page (§17): summary KPIs, env tabs, per-endpoint expandable sections with call log rows
-- [ ] **P0** Implement Analytics Tab inside prompt detail (`/prompts/:id` → Analytics): performance-over-time chart, KPI header, recent evaluations table, optimization suggestions panel (§18.2)
-- [ ] **P1** Implement `/prompt-analytics/:id` standalone analytics page (§18.1): full chart with model filter, interactive tooltip showing eval config details, all-evaluations table with tabs
-- [ ] **P1** Implement Gateway-level Analytics Tab (`/proxy` → Analytics tab): aggregate charts (calls over time, cost per day, latency histogram, top endpoints)
-- [ ] **P2** Implement per-API-key usage analytics modal (`/api-keys`: click key → usage drawer): requests-over-time chart, success/error breakdown, most used endpoints
+- [x] **P0** Implement `/monitoring` page (§16): KPI cards, activity windows (1m/1h/24h), real-time performance chart (Socket.io-client, line chart with metric toggles), recent errors section; time range selector; auto-refresh every 5s
+- [x] **P0** Wire Socket.io client: connect on mount, join workspace room, handle `metrics_update` → update Recharts data in Zustand store (ring buffer, last 60 data points)
+- [x] **P0** Implement `/api-calls` page (§17): summary KPIs, env tabs, per-endpoint expandable sections with call log rows
+- [x] **P0** Implement Analytics Tab inside prompt detail (`/prompts/:id` → Analytics): performance-over-time chart, KPI header, recent evaluations table, optimization suggestions panel (§18.2)
+- [x] **P1** Implement `/prompt-analytics/:id` standalone analytics page (§18.1): full chart with model filter, interactive tooltip showing eval config details, all-evaluations table with tabs
+- [x] **P1** Implement Gateway-level Analytics Tab (`/proxy` → Analytics tab): aggregate charts (calls over time, cost per day, latency histogram, top endpoints)
+- [x] **P2** Implement per-API-key usage analytics modal (`/api-keys`: click key → usage drawer): requests-over-time chart, success/error breakdown, most used endpoints
 
 ---
 
