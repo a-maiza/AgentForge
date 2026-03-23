@@ -34,10 +34,7 @@ describe('MonitoringService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        MonitoringService,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+      providers: [MonitoringService, { provide: PrismaService, useValue: mockPrisma }],
     }).compile();
 
     service = module.get<MonitoringService>(MonitoringService);
@@ -48,8 +45,8 @@ describe('MonitoringService', () => {
     it('returns aggregated summary for a workspace', async () => {
       mockPrisma.apiCallLog.count
         .mockResolvedValueOnce(100) // total
-        .mockResolvedValueOnce(90)  // success
-        .mockResolvedValueOnce(5);  // failover
+        .mockResolvedValueOnce(90) // success
+        .mockResolvedValueOnce(5); // failover
       mockPrisma.apiCallLog.aggregate.mockResolvedValue({
         _avg: { latencyMs: 250 },
         _sum: { inputTokens: 1000, outputTokens: 500, costUsd: 0.05 },

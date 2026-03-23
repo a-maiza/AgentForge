@@ -10,7 +10,6 @@ import { Redis } from 'ioredis';
 import { JoinWorkspaceDto } from './dto/monitoring-query.dto';
 import { MonitoringService } from './monitoring.service';
 
-
 function redisConnection(): { host: string; port: number } {
   const url = process.env['REDIS_URL'] ?? 'redis://localhost:6379';
   const parsed = new URL(url);

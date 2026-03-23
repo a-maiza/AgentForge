@@ -25,30 +25,21 @@ export class MonitoringController {
 
   // GET /api/monitoring/timeseries?from=...&to=...&bucket=5m
   @Get('timeseries')
-  getTimeseries(
-    @Req() req: FastifyRequest & { user: User },
-    @Query() dto: TimeseriesQueryDto,
-  ) {
+  getTimeseries(@Req() req: FastifyRequest & { user: User }, @Query() dto: TimeseriesQueryDto) {
     const workspaceId = (req as unknown as { workspaceId: string }).workspaceId ?? req.user.id;
     return this.monitoring.getTimeseries(workspaceId, dto);
   }
 
   // GET /api/monitoring/api-calls?environment=prod
   @Get('api-calls')
-  getApiCalls(
-    @Req() req: FastifyRequest & { user: User },
-    @Query() dto: ApiCallsQueryDto,
-  ) {
+  getApiCalls(@Req() req: FastifyRequest & { user: User }, @Query() dto: ApiCallsQueryDto) {
     const workspaceId = (req as unknown as { workspaceId: string }).workspaceId ?? req.user.id;
     return this.monitoring.getApiCallsBreakdown(workspaceId, dto);
   }
 
   // GET /api/monitoring/workspaces/:workspaceId/summary
   @Get('workspaces/:workspaceId/summary')
-  getWorkspaceSummary(
-    @Param('workspaceId') workspaceId: string,
-    @Query() dto: SummaryQueryDto,
-  ) {
+  getWorkspaceSummary(@Param('workspaceId') workspaceId: string, @Query() dto: SummaryQueryDto) {
     return this.monitoring.getSummary(workspaceId, dto);
   }
 
@@ -63,10 +54,7 @@ export class MonitoringController {
 
   // GET /api/monitoring/workspaces/:workspaceId/api-calls
   @Get('workspaces/:workspaceId/api-calls')
-  getWorkspaceApiCalls(
-    @Param('workspaceId') workspaceId: string,
-    @Query() dto: ApiCallsQueryDto,
-  ) {
+  getWorkspaceApiCalls(@Param('workspaceId') workspaceId: string, @Query() dto: ApiCallsQueryDto) {
     return this.monitoring.getApiCallsBreakdown(workspaceId, dto);
   }
 
@@ -78,10 +66,7 @@ export class MonitoringController {
 
   // GET /api/monitoring/prompts/:promptId/suggestions?lastN=5
   @Get('prompts/:promptId/suggestions')
-  getSuggestions(
-    @Param('promptId') promptId: string,
-    @Query() dto: SuggestionsQueryDto,
-  ) {
+  getSuggestions(@Param('promptId') promptId: string, @Query() dto: SuggestionsQueryDto) {
     return this.monitoring.getOptimizationSuggestions(promptId, dto.lastN ?? 5);
   }
 }

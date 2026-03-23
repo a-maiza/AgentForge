@@ -176,10 +176,7 @@ export class MonitoringService {
 
   // ─── Timeseries ────────────────────────────────────────────────────────────
 
-  async getTimeseries(
-    workspaceId: string,
-    dto: TimeseriesQueryDto,
-  ): Promise<TimeseriesBucket[]> {
+  async getTimeseries(workspaceId: string, dto: TimeseriesQueryDto): Promise<TimeseriesBucket[]> {
     const to = dto.to ? new Date(dto.to) : new Date();
     const from = dto.from ? new Date(dto.from) : new Date(Date.now() - 24 * 60 * 60_000);
     const pgInterval = bucketToPgInterval(dto.bucket ?? '5m');
@@ -293,9 +290,7 @@ export class MonitoringService {
     const completed = jobs.filter((j) => j.status === 'completed');
     const avgScore = (metricKey: string): number | null => {
       const scores = completed.flatMap((j) =>
-        j.results
-          .filter((r) => r.metricName.toLowerCase().includes(metricKey))
-          .map((r) => r.score),
+        j.results.filter((r) => r.metricName.toLowerCase().includes(metricKey)).map((r) => r.score),
       );
       if (scores.length === 0) return null;
       return Number((scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(4));
