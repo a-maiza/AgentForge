@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import axios from 'axios';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { workspacesApi } from '@/lib/api';
 import { useWorkspaceStore } from '@/stores/workspace.store';
@@ -86,8 +87,12 @@ export function CreateWorkspaceModal({ open, onClose, onSuccess }: CreateWorkspa
       onClose();
       onSuccess?.(ws);
     },
-    onError: () => {
-      toast.error('Failed to create workspace', 'Please try again');
+    onError: (error: unknown) => {
+      const description =
+        axios.isAxiosError(error) && error.response?.data?.message
+          ? String(error.response.data.message)
+          : 'Please try again';
+      toast.error('Failed to create workspace', description);
     },
   });
 

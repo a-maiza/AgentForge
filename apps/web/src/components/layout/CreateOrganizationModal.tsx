@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import axios from 'axios';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { organizationsApi } from '@/lib/api';
 import { useToast } from '@/hooks/useToast';
@@ -82,8 +83,12 @@ export function CreateOrganizationModal({
       onClose();
       onSuccess?.(org);
     },
-    onError: () => {
-      toast.error('Failed to create organization', 'Please try again');
+    onError: (error: unknown) => {
+      const description =
+        axios.isAxiosError(error) && error.response?.data?.message
+          ? String(error.response.data.message)
+          : 'Please try again';
+      toast.error('Failed to create organization', description);
     },
   });
 
