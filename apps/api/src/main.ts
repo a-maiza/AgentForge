@@ -17,6 +17,14 @@ async function bootstrap() {
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
   app.useGlobalFilters(new HttpExceptionFilter());
 
+  // Enable CORS before app.init() so the Fastify plugin is registered in time
+  app.enableCors({
+    origin: process.env['FRONTEND_URL'] ?? 'http://localhost:3000',
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Authorization', 'Content-Type'],
+    credentials: true,
+  });
+
   // Let NestJS register its default parsers first, then replace the JSON parser
   // to capture raw body for webhook signature verification (svix).
   await app.init();
