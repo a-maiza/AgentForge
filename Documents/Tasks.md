@@ -188,6 +188,13 @@
 - [x] **P1** Implement Gateway-level Analytics Tab (`/proxy` → Analytics tab): aggregate charts (calls over time, cost per day, latency histogram, top endpoints)
 - [x] **P2** Implement per-API-key usage analytics modal (`/api-keys`: click key → usage drawer): requests-over-time chart, success/error breakdown, most used endpoints
 
+### 4.3 Organisation & Workspace Management UI
+
+- [x] **P0** Add `organizationsApi` helpers (`list`, `create`) to `apps/web/src/lib/api.ts`
+- [x] **P0** Implement `CreateOrganizationModal` component (name + auto-slug, calls `POST /api/organizations`)
+- [x] **P0** Implement `CreateWorkspaceModal` component (name + auto-slug, calls `POST /api/organizations/:orgId/workspaces`, auto-selects new workspace)
+- [x] **P0** Extend `WorkspaceSwitcher`: show active org name above workspace name, group workspaces by org when user belongs to multiple orgs, wire "New workspace" and "New organization" menu items to the above modals
+
 ---
 
 ## Phase 5 — Advanced Features (Weeks 15–18)
