@@ -68,6 +68,12 @@ export class WorkspacesService {
     });
   }
 
+  activeDeploymentCount(workspaceId: string): Promise<number> {
+    return this.prisma.deployment.count({
+      where: { prompt: { workspaceId }, isLive: true },
+    });
+  }
+
   private async assertMember(workspaceId: string, userId: string): Promise<WorkspaceMember> {
     const member = await this.getMembership(workspaceId, userId);
     if (!member) throw new NotFoundException('Workspace not found');

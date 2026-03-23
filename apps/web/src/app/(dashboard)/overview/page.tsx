@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { MessageSquare, Bot, Database, Rocket, TrendingUp } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
-import { promptsApi } from '@/lib/api';
+import { promptsApi, datasetsApi, workspacesApi } from '@/lib/api';
 import { useWorkspaceStore } from '@/stores/workspace.store';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -62,6 +62,26 @@ export default function OverviewPage() {
     enabled: !!activeWorkspace,
   });
 
+  const { data: datasets = [], isLoading: datasetsLoading } = useQuery({
+    queryKey: ['datasets', activeWorkspace?.id],
+    queryFn: async () => {
+      if (!activeWorkspace) return [];
+      const res = await datasetsApi.list(activeWorkspace.id);
+      return res.data as { id: string }[];
+    },
+    enabled: !!activeWorkspace,
+  });
+
+  const { data: deploymentData, isLoading: deploymentsLoading } = useQuery({
+    queryKey: ['active-deployments-count', activeWorkspace?.id],
+    queryFn: async () => {
+      if (!activeWorkspace) return { count: 0 };
+      const res = await workspacesApi.activeDeploymentCount(activeWorkspace.id);
+      return res.data as { count: number };
+    },
+    enabled: !!activeWorkspace,
+  });
+
   const totalPrompts = prompts.length;
   const activePrompts = prompts.filter((p) => p.status === 'active').length;
 
@@ -95,17 +115,19 @@ export default function OverviewPage() {
         />
         <KpiCard
           title="Datasets"
-          value="—"
-          description="Coming in phase 2"
+          value={datasets.length}
+          description={`${datasets.length} dataset${datasets.length !== 1 ? 's' : ''} in this workspace`}
           icon={Database}
           color="bg-emerald-500"
+          loading={datasetsLoading}
         />
         <KpiCard
           title="Active Deployments"
-          value="—"
-          description="Coming in phase 2"
+          value={deploymentData?.count ?? 0}
+          description="Live prompt deployments"
           icon={Rocket}
           color="bg-amber-500"
+          loading={deploymentsLoading}
         />
       </div>
 

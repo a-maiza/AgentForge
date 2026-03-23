@@ -63,4 +63,13 @@ export class WorkspacesController {
   getMembers(@Param('workspaceId') workspaceId: string) {
     return this.workspacesService.getMembers(workspaceId);
   }
+
+  @Get('workspaces/:workspaceId/deployments/active-count')
+  @UseGuards(WorkspaceGuard)
+  async activeDeploymentCount(
+    @Param('workspaceId') workspaceId: string,
+  ): Promise<{ count: number }> {
+    const count = await this.workspacesService.activeDeploymentCount(workspaceId);
+    return { count };
+  }
 }

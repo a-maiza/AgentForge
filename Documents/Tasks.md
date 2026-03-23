@@ -206,6 +206,13 @@
 - [x] **P1** Implement `DeleteOrganizationModal` — confirmation dialog that deletes the active organization (cascade-deletes all workspaces/contents) and clears the active selection
 - [x] **P1** Wire "Delete workspace" and "Delete organization" destructive menu items (red, with trash icon) into `WorkspaceSwitcher` dropdown, shown only when an active workspace/org exists
 
+### 4.6 Overview KPI Cards — Live Data
+
+- [x] **P1** Add `WorkspacesService.activeDeploymentCount(workspaceId)` — queries `deployment.count` where `isLive = true` for the workspace
+- [x] **P1** Add `GET /api/workspaces/:workspaceId/deployments/active-count` to `WorkspacesController`
+- [x] **P1** Add `workspacesApi.activeDeploymentCount(workspaceId)` helper in `apps/web/src/lib/api.ts`
+- [x] **P1** Update Overview page: fetch datasets list (count client-side) and active deployment count; replace "Coming in phase 2" placeholder cards with live values and loading skeletons
+
 ---
 
 ## Phase 5 — Advanced Features (Weeks 15–18)
