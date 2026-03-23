@@ -50,9 +50,15 @@ interface CreateWorkspaceModalProps {
   open: boolean;
   onClose: () => void;
   onSuccess?: (workspace: Workspace) => void;
+  organizationId?: string | undefined;
 }
 
-export function CreateWorkspaceModal({ open, onClose, onSuccess }: CreateWorkspaceModalProps) {
+export function CreateWorkspaceModal({
+  open,
+  onClose,
+  onSuccess,
+  organizationId,
+}: CreateWorkspaceModalProps) {
   const { activeWorkspace, setActiveWorkspace } = useWorkspaceStore();
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -74,7 +80,7 @@ export function CreateWorkspaceModal({ open, onClose, onSuccess }: CreateWorkspa
 
   const { mutate, isPending } = useMutation({
     mutationFn: (data: FormData) => {
-      const orgId = activeWorkspace?.organizationId;
+      const orgId = organizationId ?? activeWorkspace?.organizationId;
       if (!orgId) throw new Error('No active organization');
       return workspacesApi.create(orgId, data);
     },
