@@ -2,7 +2,7 @@ import type { CanActivate, ExecutionContext } from '@nestjs/common';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
-import { verifyToken } from '@clerk/backend';
+import { verifyToken, createClerkClient } from '@clerk/backend';
 import { IS_PUBLIC_KEY } from './public.decorator';
 import { UsersService } from '../users/users.service';
 import type { FastifyRequest } from 'fastify';
@@ -32,14 +32,29 @@ export class AuthGuard implements CanActivate {
 
     const token = authHeader.slice(7);
 
-    try {
-      const payload = await verifyToken(token, {
-        secretKey: this.config.getOrThrow<string>('CLERK_SECRET_KEY'),
-      });
+    const secretKey = this.config.getOrThrow<string>('CLERK_SECRET_KEY');
 
-      const user = await this.usersService.findByClerkId(payload.sub);
+    try {
+      const payload = await verifyToken(token, { secretKey });
+
+      let user = await this.usersService.findByClerkId(payload.sub);
+
+      // Just-in-time provisioning: Clerk webhooks may not reach localhost in dev,
+      // so fetch the user from Clerk and create a local record on first login.
       if (!user) {
-        throw new UnauthorizedException('User not found in database');
+        const clerk = createClerkClient({ secretKey });
+        const clerkUser = await clerk.users.getUser(payload.sub);
+        user = await this.usersService.upsertFromClerk({
+          id: clerkUser.id,
+          email_addresses: clerkUser.emailAddresses.map((e) => ({
+            email_address: e.emailAddress,
+            id: e.id,
+          })),
+          first_name: clerkUser.firstName,
+          last_name: clerkUser.lastName,
+          image_url: clerkUser.imageUrl,
+          primary_email_address_id: clerkUser.primaryEmailAddressId,
+        });
       }
 
       request.user = user;
