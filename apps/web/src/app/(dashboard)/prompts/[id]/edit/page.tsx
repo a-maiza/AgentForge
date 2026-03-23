@@ -1,6 +1,5 @@
 'use client';
 
-import { use } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
@@ -16,8 +15,8 @@ interface Prompt {
   versions?: { versionNumber: number; content: string }[];
 }
 
-export default function PromptEditPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function PromptEditPage({ params }: { params: { id: string } }) {
+  const { id } = params;
   const { activeWorkspace } = useWorkspaceStore();
 
   const { data: prompt, isLoading } = useQuery<Prompt>({

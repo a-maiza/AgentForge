@@ -1,6 +1,5 @@
 'use client';
 
-import { use } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Copy } from 'lucide-react';
 import Link from 'next/link';
@@ -54,8 +53,8 @@ function CodeBlock({ code, lang }: { code: string; lang: string }) {
   );
 }
 
-export default function EndpointDocsPage({ params }: { params: Promise<{ hash: string }> }) {
-  const { hash } = use(params);
+export default function EndpointDocsPage({ params }: { params: { hash: string } }) {
+  const { hash } = params;
   const { activeWorkspace } = useWorkspaceStore();
 
   const gatewayUrl = process.env['NEXT_PUBLIC_GATEWAY_URL'] ?? 'http://localhost:3002';

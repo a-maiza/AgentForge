@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
@@ -123,12 +123,8 @@ function CustomTooltip({
   );
 }
 
-export default function PromptAnalyticsPage({
-  params,
-}: {
-  readonly params: Promise<{ id: string }>;
-}) {
-  const { id: promptId } = use(params);
+export default function PromptAnalyticsPage({ params }: { readonly params: { id: string } }) {
+  const { id: promptId } = params;
   const [modelFilter, setModelFilter] = useState<string>('all');
 
   const { data: analytics, isLoading } = useQuery<PromptAnalytics>({

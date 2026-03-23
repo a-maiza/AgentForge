@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { ArrowLeft, Upload } from 'lucide-react';
@@ -31,8 +31,8 @@ interface Dataset {
   versions?: DatasetVersion[];
 }
 
-export default function DatasetDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function DatasetDetailPage({ params }: { params: { id: string } }) {
+  const { id } = params;
   const { activeWorkspace } = useWorkspaceStore();
   const [uploadOpen, setUploadOpen] = useState(false);
 
