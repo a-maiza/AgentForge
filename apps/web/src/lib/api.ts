@@ -47,7 +47,7 @@ export const promptsApi = {
   list: (workspaceId: string) => api.get(`/api/workspaces/${workspaceId}/prompts`),
   get: (workspaceId: string, id: string) => api.get(`/api/workspaces/${workspaceId}/prompts/${id}`),
   create: (workspaceId: string, data: { name: string; content: string; description?: string }) =>
-    api.post(`/api/workspaces/${workspaceId}/prompts`, data),
+    api.post(`/api/workspaces/${workspaceId}/prompts`, { ...data, workspaceId }),
   update: (
     workspaceId: string,
     id: string,
