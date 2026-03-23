@@ -166,7 +166,12 @@ export function WorkspaceSwitcher({ collapsed }: { collapsed: boolean }) {
             </>
           )}
 
-          <DropdownMenuItem onSelect={() => setWsModalOpen(true)}>
+          <DropdownMenuItem
+            onSelect={() => {
+              setWsModalOrgId(activeWorkspace?.organizationId ?? organizations[0]?.id);
+              setWsModalOpen(true);
+            }}
+          >
             <FolderOpen className="mr-2 h-4 w-4" />
             New workspace
           </DropdownMenuItem>
