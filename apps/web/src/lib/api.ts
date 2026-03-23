@@ -158,6 +158,21 @@ export const failoverConfigsApi = {
   remove: (promptId: string) => api.delete(`/api/prompts/${promptId}/failover-config`),
 };
 
+// Monitoring
+export const monitoringApi = {
+  summary: (workspaceId: string, params?: { window?: string; environment?: string }) =>
+    api.get(`/api/monitoring/workspaces/${workspaceId}/summary`, { params }),
+  timeseries: (
+    workspaceId: string,
+    params?: { from?: string; to?: string; bucket?: string; environment?: string },
+  ) => api.get(`/api/monitoring/workspaces/${workspaceId}/timeseries`, { params }),
+  apiCalls: (workspaceId: string, params?: { environment?: string }) =>
+    api.get(`/api/monitoring/workspaces/${workspaceId}/api-calls`, { params }),
+  promptAnalytics: (promptId: string) => api.get(`/api/monitoring/prompts/${promptId}/analytics`),
+  suggestions: (promptId: string, lastN?: number) =>
+    api.get(`/api/monitoring/prompts/${promptId}/suggestions`, { params: { lastN } }),
+};
+
 // API Keys
 export const apiKeysApi = {
   list: (workspaceId: string, status?: string) =>

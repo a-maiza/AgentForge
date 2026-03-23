@@ -3,10 +3,21 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { formatDistanceToNow } from 'date-fns';
-import { Copy, ExternalLink, FlaskConical, Globe, Loader2, Zap } from 'lucide-react';
+import { format, formatDistanceToNow } from 'date-fns';
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
+import { BarChart3, Copy, ExternalLink, FlaskConical, Globe, Loader2, Zap } from 'lucide-react';
 import Link from 'next/link';
-import api, { deploymentsApi, apiKeysApi } from '@/lib/api';
+import api, { deploymentsApi, apiKeysApi, monitoringApi } from '@/lib/api';
 import { useWorkspaceStore } from '@/stores/workspace.store';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -333,6 +344,52 @@ export default function ApiGatewayPage() {
     enabled: !!activeWorkspace,
   });
 
+  interface TimeseriesBucket {
+    bucket: string;
+    calls: number;
+    successCalls: number;
+    avgLatencyMs: number;
+    totalTokens: number;
+    totalCostUsd: number;
+  }
+
+  interface ApiCallEndpoint {
+    endpointHash: string;
+    promptName: string | null;
+    environment: string;
+    totalCalls: number;
+    avgLatencyMs: number;
+    totalCostUsd: number;
+  }
+
+  const { data: timeseries = [] } = useQuery<TimeseriesBucket[]>({
+    queryKey: ['gateway-timeseries', activeWorkspace?.id],
+    queryFn: async () => {
+      if (!activeWorkspace) return [];
+      const res = await monitoringApi.timeseries(activeWorkspace.id, { bucket: '1h' });
+      return res.data as TimeseriesBucket[];
+    },
+    enabled: !!activeWorkspace,
+    refetchInterval: 60_000,
+  });
+
+  const { data: topEndpoints = [] } = useQuery<ApiCallEndpoint[]>({
+    queryKey: ['gateway-api-calls', activeWorkspace?.id],
+    queryFn: async () => {
+      if (!activeWorkspace) return [];
+      const res = await monitoringApi.apiCalls(activeWorkspace.id);
+      return (res.data as ApiCallEndpoint[]).slice(0, 10);
+    },
+    enabled: !!activeWorkspace,
+    refetchInterval: 60_000,
+  });
+
+  const chartTimeseries = timeseries.map((b) => ({
+    ...b,
+    time: format(new Date(b.bucket), 'HH:mm'),
+    costUsd: b.totalCostUsd,
+  }));
+
   const isLoading = depsLoading || keysLoading;
 
   return (
@@ -354,6 +411,10 @@ export default function ApiGatewayPage() {
           <TabsTrigger value="agent-apis">
             <Zap className="mr-2 h-4 w-4" />
             Live Agent APIs
+          </TabsTrigger>
+          <TabsTrigger value="analytics">
+            <BarChart3 className="mr-2 h-4 w-4" />
+            Analytics
           </TabsTrigger>
         </TabsList>
 
@@ -380,6 +441,150 @@ export default function ApiGatewayPage() {
               ))}
             </div>
           )}
+        </TabsContent>
+
+        {/* Analytics */}
+        <TabsContent value="analytics" className="mt-4">
+          <div className="space-y-6">
+            {/* Calls over time */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Calls Over Time (1h buckets)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {chartTimeseries.length === 0 ? (
+                  <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
+                    No traffic data yet
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <LineChart
+                      data={chartTimeseries}
+                      margin={{ top: 4, right: 16, left: 0, bottom: 4 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis dataKey="time" tick={{ fontSize: 11 }} />
+                      <YAxis tick={{ fontSize: 11 }} />
+                      <Tooltip />
+                      <Line
+                        type="monotone"
+                        dataKey="calls"
+                        stroke="#3b82f6"
+                        dot={false}
+                        strokeWidth={2}
+                        name="Calls"
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="successCalls"
+                        stroke="#22c55e"
+                        dot={false}
+                        strokeWidth={2}
+                        name="Success"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Cost per bucket */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Cost Per Hour (USD)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {chartTimeseries.length === 0 ? (
+                  <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
+                    No cost data yet
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={180}>
+                    <BarChart
+                      data={chartTimeseries}
+                      margin={{ top: 4, right: 16, left: 0, bottom: 4 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis dataKey="time" tick={{ fontSize: 11 }} />
+                      <YAxis
+                        tick={{ fontSize: 11 }}
+                        tickFormatter={(v: number) => `$${v.toFixed(3)}`}
+                      />
+                      <Tooltip formatter={(v: number) => [`$${v.toFixed(4)}`, 'Cost']} />
+                      <Bar dataKey="costUsd" fill="#f59e0b" radius={[3, 3, 0, 0]} name="Cost" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Latency histogram (avg per bucket) */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Avg Latency (ms)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {chartTimeseries.length === 0 ? (
+                  <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
+                    No latency data yet
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={180}>
+                    <BarChart
+                      data={chartTimeseries}
+                      margin={{ top: 4, right: 16, left: 0, bottom: 4 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis dataKey="time" tick={{ fontSize: 11 }} />
+                      <YAxis tick={{ fontSize: 11 }} tickFormatter={(v: number) => `${v}ms`} />
+                      <Tooltip formatter={(v: number) => [`${v}ms`, 'Avg Latency']} />
+                      <Bar
+                        dataKey="avgLatencyMs"
+                        fill="#a855f7"
+                        radius={[3, 3, 0, 0]}
+                        name="Avg Latency"
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Top endpoints */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Top Endpoints by Call Volume</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {topEndpoints.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-6 text-center">
+                    No endpoint data yet
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {topEndpoints.map((ep) => (
+                      <div
+                        key={`${ep.endpointHash}-${ep.environment}`}
+                        className="flex items-center gap-3 text-sm rounded-md border p-3"
+                      >
+                        <span className="font-mono text-xs text-muted-foreground truncate flex-1">
+                          {ep.promptName ?? ep.endpointHash}
+                        </span>
+                        <Badge variant="outline" className="text-xs shrink-0">
+                          {ep.environment}
+                        </Badge>
+                        <span className="shrink-0 font-medium">{ep.totalCalls} calls</span>
+                        <span className="shrink-0 text-muted-foreground">{ep.avgLatencyMs}ms</span>
+                        <span className="shrink-0 text-muted-foreground">
+                          ${ep.totalCostUsd.toFixed(4)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* Agent APIs — stub for phase 5 */}

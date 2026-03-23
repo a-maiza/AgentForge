@@ -16,6 +16,7 @@ import { DatasetTab } from '@/components/prompts/DatasetTab';
 import { AiProviderTab } from '@/components/prompts/AiProviderTab';
 import { EnvironmentsTab } from '@/components/prompts/EnvironmentsTab';
 import { FailoverTab } from '@/components/prompts/FailoverTab';
+import { AnalyticsTab } from '@/components/prompts/AnalyticsTab';
 
 interface Version {
   id: string;
@@ -238,10 +239,7 @@ export default function PromptDetailPage({ params }: { readonly params: Promise<
         </TabsContent>
 
         <TabsContent value="analytics" className="mt-4">
-          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-20 text-center">
-            <p className="text-lg font-semibold">Analytics</p>
-            <p className="mt-1 text-sm text-muted-foreground">Coming in Phase 4</p>
-          </div>
+          <AnalyticsTab promptId={id} />
         </TabsContent>
       </Tabs>
     </div>
