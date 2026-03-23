@@ -565,7 +565,7 @@ k6 run apps/gateway/k6/load-test.js
 
 ## Next.js Frontend — Page & Component Overview (`apps/web`)
 
-> Implemented across tasks 1.4, 2.3, 3.4, 4.2, and 4.3. All routes live under `apps/web/src/app/(dashboard)/`.
+> Implemented across tasks 1.4, 2.3, 3.4, 4.2, 4.3, and 4.4. All routes live under `apps/web/src/app/(dashboard)/`.
 
 ### Pages
 
@@ -611,6 +611,10 @@ The following group was added in task 4.3:
 | Export             | Backend endpoints consumed                          |
 | ------------------ | --------------------------------------------------- |
 | `organizationsApi` | `GET /api/organizations`, `POST /api/organizations` |
+
+### Org switching (task 4.4)
+
+`WorkspaceSwitcher` in the sidebar now supports switching between organisations. When a user belongs to multiple orgs, the dropdown renders a grouped view with each org name as a clickable header. Clicking an org header auto-selects its first workspace, switching the active org context immediately. If the selected org has no workspaces yet, `CreateWorkspaceModal` opens pre-scoped to that org. A checkmark icon marks the currently active org header.
 
 ---
 
@@ -684,7 +688,7 @@ AgentForge/
 │   │       │   └── layout.tsx
 │   │       ├── components/
 │   │       │   ├── layout/
-│   │       │   │   ├── WorkspaceSwitcher.tsx      # Sidebar switcher — groups workspaces by org, active org/workspace display
+│   │       │   │   ├── WorkspaceSwitcher.tsx      # Sidebar switcher — grouped multi-org dropdown; clicking an org header switches active org context
 │   │       │   │   ├── CreateOrganizationModal.tsx# Create organisation (name + auto-slug)
 │   │       │   │   └── CreateWorkspaceModal.tsx   # Create workspace under active org (name + auto-slug)
 │   │       │   ├── prompts/
