@@ -67,6 +67,8 @@ export const workspacesApi = {
     api.post(`/api/organizations/${orgId}/workspaces`, data),
   delete: (orgId: string, workspaceId: string) =>
     api.delete(`/api/organizations/${orgId}/workspaces/${workspaceId}`),
+  activeDeploymentCount: (workspaceId: string) =>
+    api.get<{ count: number }>(`/api/workspaces/${workspaceId}/deployments/active-count`),
 };
 
 // Organizations
