@@ -52,7 +52,9 @@ export function WorkspaceSwitcher({ collapsed }: { collapsed: boolean }) {
     queryKey: ['organizations'],
     queryFn: async () => {
       const res = await organizationsApi.list();
-      return res.data as Organization[];
+      // API returns OrgMember[] with nested { org: Organization }
+      const members = res.data as { org: Organization }[];
+      return members.map((m) => m.org);
     },
   });
 
