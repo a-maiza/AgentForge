@@ -1,13 +1,12 @@
 'use client';
 
-import { use } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DatasetVersionList } from '@/components/datasets/DatasetVersionList';
 
-export default function DatasetVersionsPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function DatasetVersionsPage({ params }: { params: { id: string } }) {
+  const { id } = params;
 
   return (
     <div className="flex flex-col gap-6 p-6">

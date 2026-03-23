@@ -1,6 +1,5 @@
 'use client';
 
-import { use } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
@@ -73,8 +72,8 @@ function StatCard({ label, value }: { label: string; value: string | number | un
   );
 }
 
-export default function EvaluationDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function EvaluationDetailPage({ params }: { params: { id: string } }) {
+  const { id } = params;
 
   const { data: job, isLoading } = useQuery<EvaluationJob>({
     queryKey: ['evaluation', id],

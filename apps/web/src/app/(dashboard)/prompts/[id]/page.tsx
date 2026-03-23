@@ -1,6 +1,5 @@
 'use client';
 
-import { use } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { ArrowLeft, Edit, Clock } from 'lucide-react';
@@ -42,8 +41,8 @@ function promptStatusVariant(status: string): 'success' | 'warning' | 'outline' 
   return 'outline';
 }
 
-export default function PromptDetailPage({ params }: { readonly params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function PromptDetailPage({ params }: { readonly params: { id: string } }) {
+  const { id } = params;
   const { activeWorkspace } = useWorkspaceStore();
 
   const { data: prompt, isLoading } = useQuery<Prompt>({
