@@ -171,12 +171,12 @@
 
 ### 4.1 Backend — NestJS API
 
-- [ ] **P0** Implement `MonitoringModule` with Socket.io gateway (`@nestjs/websockets`): subscribe to Redis Pub/Sub `metrics.*` channel; broadcast `metrics_update` events to connected clients in workspace room
-- [ ] **P0** Implement metrics aggregation service: aggregate `ApiCallLog` rows for KPIs (total calls, success rate, avg latency, token counts) per time window; cache in Redis with 5s TTL
-- [ ] **P0** Implement `GET /api/monitoring/summary` and `GET /api/monitoring/timeseries` endpoints (time-bucket queries using `date_trunc` in Postgres)
-- [ ] **P1** Implement `GET /api/api-calls`: grouped by endpoint hash, with per-endpoint breakdown (total calls, last call, success rate, avg latency, cost, tokens); supports env filter
-- [ ] **P1** Implement `GET /api/prompts/:id/analytics`: performance-over-time data (one row per completed evaluation job), aggregated KPIs (avg accuracy, reliability, consistency, efficiency)
-- [ ] **P1** Implement AI optimization suggestions endpoint: analyze last N evaluation results for a prompt; call LiteLLM with meta-prompt to generate config + prompt improvement suggestions; cache result
+- [x] **P0** Implement `MonitoringModule` with Socket.io gateway (`@nestjs/websockets`): subscribe to Redis Pub/Sub `metrics.*` channel; broadcast `metrics_update` events to connected clients in workspace room
+- [x] **P0** Implement metrics aggregation service: aggregate `ApiCallLog` rows for KPIs (total calls, success rate, avg latency, token counts) per time window; cache in Redis with 5s TTL
+- [x] **P0** Implement `GET /api/monitoring/summary` and `GET /api/monitoring/timeseries` endpoints (time-bucket queries using `date_trunc` in Postgres)
+- [x] **P1** Implement `GET /api/api-calls`: grouped by endpoint hash, with per-endpoint breakdown (total calls, last call, success rate, avg latency, cost, tokens); supports env filter
+- [x] **P1** Implement `GET /api/prompts/:id/analytics`: performance-over-time data (one row per completed evaluation job), aggregated KPIs (avg accuracy, reliability, consistency, efficiency)
+- [x] **P1** Implement AI optimization suggestions endpoint: analyze last N evaluation results for a prompt; call LiteLLM with meta-prompt to generate config + prompt improvement suggestions; cache result
 
 ### 4.2 Frontend
 
