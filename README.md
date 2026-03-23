@@ -608,9 +608,9 @@ The frontend API client is grouped by domain. The following groups were added in
 
 The following group was added in task 4.3:
 
-| Export            | Backend endpoints consumed                          |
-| ----------------- | --------------------------------------------------- |
-| `organizationsApi`| `GET /api/organizations`, `POST /api/organizations` |
+| Export             | Backend endpoints consumed                          |
+| ------------------ | --------------------------------------------------- |
+| `organizationsApi` | `GET /api/organizations`, `POST /api/organizations` |
 
 ---
 
