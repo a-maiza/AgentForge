@@ -195,6 +195,10 @@
 - [x] **P0** Implement `CreateWorkspaceModal` component (name + auto-slug, calls `POST /api/organizations/:orgId/workspaces`, auto-selects new workspace)
 - [x] **P0** Extend `WorkspaceSwitcher`: show active org name above workspace name, group workspaces by org when user belongs to multiple orgs, wire "New workspace" and "New organization" menu items to the above modals
 
+### 4.4 Org Switcher Enhancement
+
+- [x] **P1** Make org section headers in `WorkspaceSwitcher` clickable: clicking an org switches to its first workspace (auto-selects it), or opens `CreateWorkspaceModal` if the org has no workspaces yet. Show a checkmark on the currently-active org header.
+
 ---
 
 ## Phase 5 — Advanced Features (Weeks 15–18)
