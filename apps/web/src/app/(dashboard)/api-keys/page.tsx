@@ -3,9 +3,20 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { formatDistanceToNow } from 'date-fns';
-import { Copy, Eye, EyeOff, KeyRound, Plus, Trash2, XCircle } from 'lucide-react';
-import { apiKeysApi } from '@/lib/api';
+import { format, formatDistanceToNow } from 'date-fns';
+import { BarChart2, Copy, Eye, EyeOff, KeyRound, Plus, Trash2, XCircle } from 'lucide-react';
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
+import { apiKeysApi, monitoringApi } from '@/lib/api';
 import { useWorkspaceStore } from '@/stores/workspace.store';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -68,14 +79,203 @@ function CopyButton({ value }: { value: string }) {
   );
 }
 
+// ─── Usage analytics modal ────────────────────────────────────────────────────
+
+interface TimeseriesBucket {
+  bucket: string;
+  calls: number;
+  successCalls: number;
+  avgLatencyMs: number;
+  totalTokens: number;
+  totalCostUsd: number;
+}
+
+interface ApiCallEndpoint {
+  endpointHash: string;
+  promptName: string | null;
+  environment: string;
+  totalCalls: number;
+  successCalls: number;
+  successRate: number;
+  avgLatencyMs: number;
+}
+
+function UsageModal({
+  apiKey,
+  workspaceId,
+  onClose,
+}: {
+  readonly apiKey: ApiKey;
+  readonly workspaceId: string;
+  readonly onClose: () => void;
+}) {
+  const { data: timeseries = [] } = useQuery<TimeseriesBucket[]>({
+    queryKey: ['key-usage-timeseries', workspaceId],
+    queryFn: async () => {
+      const res = await monitoringApi.timeseries(workspaceId, { bucket: '1h' });
+      return res.data as TimeseriesBucket[];
+    },
+  });
+
+  const { data: endpoints = [] } = useQuery<ApiCallEndpoint[]>({
+    queryKey: ['key-usage-endpoints', workspaceId],
+    queryFn: async () => {
+      const res = await monitoringApi.apiCalls(workspaceId);
+      return (res.data as ApiCallEndpoint[]).slice(0, 5);
+    },
+  });
+
+  const chartData = timeseries.map((b) => ({
+    time: format(new Date(b.bucket), 'HH:mm'),
+    calls: b.calls,
+    success: b.successCalls,
+    errors: b.calls - b.successCalls,
+  }));
+
+  const totalCalls = timeseries.reduce((s, b) => s + b.calls, 0);
+  const totalSuccess = timeseries.reduce((s, b) => s + b.successCalls, 0);
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <BarChart2 className="h-4 w-4" />
+            Usage — {apiKey.name}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-5">
+          {/* Key meta */}
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <div className="rounded-lg border p-3">
+              <p className="text-xs text-muted-foreground">Total Calls (24h)</p>
+              <p className="text-xl font-bold mt-1">{apiKey.usageCount}</p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-xs text-muted-foreground">Success</p>
+              <p className="text-xl font-bold mt-1 text-green-600">{totalSuccess}</p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-xs text-muted-foreground">Errors</p>
+              <p className="text-xl font-bold mt-1 text-red-500">{totalCalls - totalSuccess}</p>
+            </div>
+          </div>
+
+          {/* Requests over time */}
+          <div>
+            <p className="text-sm font-medium mb-2">Requests Over Time</p>
+            {chartData.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">No traffic data yet</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={180}>
+                <LineChart data={chartData} margin={{ top: 4, right: 12, left: 0, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="time" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip />
+                  <Line
+                    type="monotone"
+                    dataKey="calls"
+                    stroke="#3b82f6"
+                    dot={false}
+                    strokeWidth={2}
+                    name="Total"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="success"
+                    stroke="#22c55e"
+                    dot={false}
+                    strokeWidth={2}
+                    name="Success"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="errors"
+                    stroke="#ef4444"
+                    dot={false}
+                    strokeWidth={2}
+                    name="Errors"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          {/* Success/error breakdown bar */}
+          {chartData.length > 0 && (
+            <div>
+              <p className="text-sm font-medium mb-2">Success vs Error Breakdown</p>
+              <ResponsiveContainer width="100%" height={140}>
+                <BarChart data={chartData} margin={{ top: 4, right: 12, left: 0, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="time" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip />
+                  <Bar dataKey="success" stackId="a" fill="#22c55e" name="Success" />
+                  <Bar
+                    dataKey="errors"
+                    stackId="a"
+                    fill="#ef4444"
+                    radius={[3, 3, 0, 0]}
+                    name="Errors"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Most used endpoints */}
+          {endpoints.length > 0 && (
+            <div>
+              <p className="text-sm font-medium mb-2">Most Used Endpoints</p>
+              <div className="space-y-1">
+                {endpoints.map((ep) => (
+                  <div
+                    key={`${ep.endpointHash}-${ep.environment}`}
+                    className="flex items-center gap-3 rounded-md border px-3 py-2 text-xs"
+                  >
+                    <span className="flex-1 truncate font-medium">
+                      {ep.promptName ?? ep.endpointHash}
+                    </span>
+                    <Badge variant="outline" className="shrink-0">
+                      {ep.environment}
+                    </Badge>
+                    <span className="shrink-0 text-muted-foreground">{ep.totalCalls} calls</span>
+                    <span
+                      className={`shrink-0 ${ep.successRate >= 0.95 ? 'text-green-600' : 'text-red-500'}`}
+                    >
+                      {(ep.successRate * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Last used */}
+          {apiKey.lastUsedAt && (
+            <p className="text-xs text-muted-foreground">
+              Last used {formatDistanceToNow(new Date(apiKey.lastUsedAt), { addSuffix: true })}
+            </p>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function KeyRow({
   apiKey,
   onDisable,
   onDelete,
+  onUsage,
 }: {
   apiKey: ApiKey;
   onDisable: (id: string) => void;
   onDelete: (id: string) => void;
+  onUsage: (id: string) => void;
 }) {
   return (
     <div className="flex items-center gap-3 rounded-lg border p-3 text-sm">
@@ -96,6 +296,15 @@ function KeyRow({
           : 'Never used'}
       </div>
       <div className="flex gap-1 shrink-0">
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-7 w-7 text-muted-foreground"
+          title="View usage"
+          onClick={() => onUsage(apiKey.id)}
+        >
+          <BarChart2 className="h-4 w-4" />
+        </Button>
         {apiKey.status === 'active' && (
           <Button
             size="icon"
@@ -287,6 +496,7 @@ export default function ApiKeysPage() {
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
+  const [usageKeyId, setUsageKeyId] = useState<string | null>(null);
 
   const { data: keys = [], isLoading } = useQuery<ApiKey[]>({
     queryKey: ['api-keys', activeWorkspace?.id],
@@ -406,6 +616,7 @@ export default function ApiKeysPage() {
                     apiKey={key}
                     onDisable={(id) => disableMutation.mutate(id)}
                     onDelete={(id) => deleteMutation.mutate(id)}
+                    onUsage={(id) => setUsageKeyId(id)}
                   />
                 ))}
               </div>
@@ -421,6 +632,19 @@ export default function ApiKeysPage() {
           workspaceId={activeWorkspace.id}
         />
       )}
+
+      {activeWorkspace &&
+        usageKeyId &&
+        (() => {
+          const key = keys.find((k) => k.id === usageKeyId);
+          return key ? (
+            <UsageModal
+              apiKey={key}
+              workspaceId={activeWorkspace.id}
+              onClose={() => setUsageKeyId(null)}
+            />
+          ) : null;
+        })()}
     </div>
   );
 }
