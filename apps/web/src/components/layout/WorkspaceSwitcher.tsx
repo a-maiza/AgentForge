@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronsUpDown, Plus, Building2, FolderOpen } from 'lucide-react';
+import { ChevronsUpDown, Plus, Building2, FolderOpen, Check } from 'lucide-react';
 import { useWorkspaceStore } from '@/stores/workspace.store';
 import { workspacesApi, organizationsApi } from '@/lib/api';
 import {
@@ -101,6 +101,16 @@ export function WorkspaceSwitcher({ collapsed }: { collapsed: boolean }) {
 
   const showGrouped = organizations.length > 1;
 
+  const handleOrgSelect = (org: Organization) => {
+    const firstWs = workspacesByOrg[org.id]?.[0];
+    if (firstWs) {
+      setActiveWorkspace(firstWs);
+    } else {
+      setWsModalOrgId(org.id);
+      setWsModalOpen(true);
+    }
+  };
+
   return (
     <>
       <DropdownMenu>
@@ -127,10 +137,17 @@ export function WorkspaceSwitcher({ collapsed }: { collapsed: boolean }) {
           {showGrouped ? (
             organizations.map((org) => (
               <div key={org.id}>
-                <DropdownMenuLabel className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <DropdownMenuItem
+                  onSelect={() => handleOrgSelect(org)}
+                  className={cn(
+                    'flex items-center gap-1.5 text-xs font-medium text-muted-foreground',
+                    activeOrg?.id === org.id && 'text-foreground',
+                  )}
+                >
                   <Building2 className="h-3 w-3" />
-                  {org.name}
-                </DropdownMenuLabel>
+                  <span className="flex-1 truncate">{org.name}</span>
+                  {activeOrg?.id === org.id && <Check className="ml-auto h-3 w-3" />}
+                </DropdownMenuItem>
                 {(workspacesByOrg[org.id] ?? []).map((ws) => (
                   <DropdownMenuItem
                     key={ws.id}
