@@ -65,12 +65,15 @@ export const workspacesApi = {
     api.get(`/api/organizations/${orgId}/workspaces/${workspaceId}`),
   create: (orgId: string, data: { name: string; slug: string }) =>
     api.post(`/api/organizations/${orgId}/workspaces`, data),
+  delete: (orgId: string, workspaceId: string) =>
+    api.delete(`/api/organizations/${orgId}/workspaces/${workspaceId}`),
 };
 
 // Organizations
 export const organizationsApi = {
   list: () => api.get('/api/organizations'),
   create: (data: { name: string; slug: string }) => api.post('/api/organizations', data),
+  delete: (orgId: string) => api.delete(`/api/organizations/${orgId}`),
 };
 
 // Datasets
