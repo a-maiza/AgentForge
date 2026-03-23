@@ -28,9 +28,19 @@ export function WorkspaceSwitcher({ collapsed }: { collapsed: boolean }) {
     queryKey: ['workspaces'],
     queryFn: async () => {
       const res = await workspacesApi.list();
-      const list = res.data as Workspace[];
-      // Auto-select first workspace if none selected
-      if (list.length > 0 && !activeWorkspace) {
+      // API returns WorkspaceMember[] with nested workspace; Prisma field is orgId not organizationId
+      const members = res.data as {
+        workspace: { id: string; name: string; slug: string; orgId: string };
+      }[];
+      const list: Workspace[] = members.map((m) => ({
+        id: m.workspace.id,
+        name: m.workspace.name,
+        slug: m.workspace.slug,
+        organizationId: m.workspace.orgId,
+      }));
+      // Auto-select if none stored or stored value is stale (wrong shape from old code)
+      const storedIsValid = activeWorkspace && list.some((ws) => ws.id === activeWorkspace.id);
+      if (list.length > 0 && !storedIsValid) {
         setActiveWorkspace(list[0] ?? null);
       }
       return list;
