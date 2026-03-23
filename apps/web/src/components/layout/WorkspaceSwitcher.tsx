@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronsUpDown, Plus, Building2, FolderOpen, Check } from 'lucide-react';
+import { ChevronsUpDown, Plus, Building2, FolderOpen, Check, Trash2 } from 'lucide-react';
 import { useWorkspaceStore } from '@/stores/workspace.store';
 import { workspacesApi, organizationsApi } from '@/lib/api';
 import {
@@ -16,6 +16,8 @@ import {
 import { cn } from '@/lib/utils';
 import { CreateOrganizationModal } from './CreateOrganizationModal';
 import { CreateWorkspaceModal } from './CreateWorkspaceModal';
+import { DeleteWorkspaceModal } from './DeleteWorkspaceModal';
+import { DeleteOrganizationModal } from './DeleteOrganizationModal';
 
 interface Workspace {
   id: string;
@@ -36,6 +38,8 @@ export function WorkspaceSwitcher({ collapsed }: { collapsed: boolean }) {
   const [orgModalOpen, setOrgModalOpen] = useState(false);
   const [wsModalOpen, setWsModalOpen] = useState(false);
   const [wsModalOrgId, setWsModalOrgId] = useState<string | undefined>(undefined);
+  const [deleteWsModalOpen, setDeleteWsModalOpen] = useState(false);
+  const [deleteOrgModalOpen, setDeleteOrgModalOpen] = useState(false);
 
   const { data: workspaces = [] } = useQuery<Workspace[]>({
     queryKey: ['workspaces'],
@@ -196,6 +200,26 @@ export function WorkspaceSwitcher({ collapsed }: { collapsed: boolean }) {
             <Plus className="mr-2 h-4 w-4" />
             New organization
           </DropdownMenuItem>
+
+          {(activeWorkspace ?? activeOrg) && <DropdownMenuSeparator />}
+          {activeWorkspace && (
+            <DropdownMenuItem
+              onSelect={() => setDeleteWsModalOpen(true)}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete workspace
+            </DropdownMenuItem>
+          )}
+          {activeOrg && (
+            <DropdownMenuItem
+              onSelect={() => setDeleteOrgModalOpen(true)}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete organization
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -211,6 +235,18 @@ export function WorkspaceSwitcher({ collapsed }: { collapsed: boolean }) {
           setWsModalOrgId(undefined);
         }}
         organizationId={wsModalOrgId}
+      />
+      <DeleteWorkspaceModal
+        open={deleteWsModalOpen}
+        onClose={() => setDeleteWsModalOpen(false)}
+        workspace={activeWorkspace}
+        onSuccess={() => setActiveWorkspace(null)}
+      />
+      <DeleteOrganizationModal
+        open={deleteOrgModalOpen}
+        onClose={() => setDeleteOrgModalOpen(false)}
+        organization={activeOrg ?? null}
+        onSuccess={() => setActiveWorkspace(null)}
       />
     </>
   );

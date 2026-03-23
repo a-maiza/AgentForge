@@ -199,6 +199,13 @@
 
 - [x] **P1** Make org section headers in `WorkspaceSwitcher` clickable: clicking an org switches to its first workspace (auto-selects it), or opens `CreateWorkspaceModal` if the org has no workspaces yet. Show a checkmark on the currently-active org header.
 
+### 4.5 Delete Organisation & Workspace
+
+- [x] **P1** Add `organizationsApi.delete(orgId)` and `workspacesApi.delete(orgId, workspaceId)` helpers in `apps/web/src/lib/api.ts` (backend `DELETE` endpoints already exist)
+- [x] **P1** Implement `DeleteWorkspaceModal` — confirmation dialog that deletes the active workspace and clears the active selection
+- [x] **P1** Implement `DeleteOrganizationModal` — confirmation dialog that deletes the active organization (cascade-deletes all workspaces/contents) and clears the active selection
+- [x] **P1** Wire "Delete workspace" and "Delete organization" destructive menu items (red, with trash icon) into `WorkspaceSwitcher` dropdown, shown only when an active workspace/org exists
+
 ---
 
 ## Phase 5 — Advanced Features (Weeks 15–18)

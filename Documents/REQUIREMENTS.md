@@ -451,6 +451,8 @@ workspace_members (id, workspace_id, user_id, role)
 - Resources (prompts, datasets, agents) are scoped to a workspace
 - Workspace-level API keys
 - Workspace-level AI provider configurations
+- **Delete workspace**: owners can delete a workspace and all its contents (prompts, datasets, evaluations, deployments) via a confirmation dialog in the sidebar switcher; cascade-deletes enforced by the database
+- **Delete organization**: owners can delete an organization and all its workspaces and their contents via a confirmation dialog; cascade-deletes enforced by the database
 
 ### 6.2 Overview Dashboard
 
