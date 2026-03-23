@@ -40,7 +40,7 @@ export function WorkspaceSwitcher({ collapsed }: { collapsed: boolean }) {
     queryKey: ['workspaces'],
     queryFn: async () => {
       const res = await workspacesApi.list();
-      // API returns WorkspaceMember[] with nested workspace; Prisma field is orgId, not organizationId
+      // API returns WorkspaceMember[] with nested workspace; Prisma field is orgId not organizationId
       const members = res.data as {
         workspace: { id: string; name: string; slug: string; orgId: string };
       }[];
@@ -50,7 +50,7 @@ export function WorkspaceSwitcher({ collapsed }: { collapsed: boolean }) {
         slug: m.workspace.slug,
         organizationId: m.workspace.orgId,
       }));
-      // Auto-select if none stored, or if stored value no longer matches (stale/wrong shape)
+      // Auto-select if none stored or stored value is stale (wrong shape from old code)
       const storedIsValid = activeWorkspace && list.some((ws) => ws.id === activeWorkspace.id);
       if (list.length > 0 && !storedIsValid) {
         setActiveWorkspace(list[0] ?? null);
