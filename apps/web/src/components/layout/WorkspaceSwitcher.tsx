@@ -35,6 +35,7 @@ export function WorkspaceSwitcher({ collapsed }: { collapsed: boolean }) {
   const queryClient = useQueryClient();
   const [orgModalOpen, setOrgModalOpen] = useState(false);
   const [wsModalOpen, setWsModalOpen] = useState(false);
+  const [wsModalOrgId, setWsModalOrgId] = useState<string | undefined>(undefined);
 
   const { data: workspaces = [] } = useQuery<Workspace[]>({
     queryKey: ['workspaces'],
@@ -73,9 +74,11 @@ export function WorkspaceSwitcher({ collapsed }: { collapsed: boolean }) {
 
   const handleOrgCreated = (org: Organization) => {
     void queryClient.invalidateQueries({ queryKey: ['workspaces'] });
-    // After creating an org, open workspace creation so user can set up their first workspace
+    // After creating an org, open workspace creation so user can set up their first workspace.
+    // Pass the new org's ID explicitly — activeWorkspace may still be null at this point.
     const firstWsForOrg = workspaces.find((ws) => ws.organizationId === org.id);
     if (!firstWsForOrg) {
+      setWsModalOrgId(org.id);
       setWsModalOpen(true);
     }
   };
@@ -179,7 +182,14 @@ export function WorkspaceSwitcher({ collapsed }: { collapsed: boolean }) {
         onClose={() => setOrgModalOpen(false)}
         onSuccess={handleOrgCreated}
       />
-      <CreateWorkspaceModal open={wsModalOpen} onClose={() => setWsModalOpen(false)} />
+      <CreateWorkspaceModal
+        open={wsModalOpen}
+        onClose={() => {
+          setWsModalOpen(false);
+          setWsModalOrgId(undefined);
+        }}
+        organizationId={wsModalOrgId}
+      />
     </>
   );
 }
