@@ -6,14 +6,20 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-interface Column {
-  name: string;
-  type: string;
-}
-
 interface PreviewData {
   rows: Record<string, unknown>[];
-  columns: Column[];
+  columns: string[];
+}
+
+function inferType(value: unknown): string {
+  if (value === null || value === undefined) return 'string';
+  if (typeof value === 'boolean') return 'boolean';
+  if (
+    typeof value === 'number' ||
+    (typeof value === 'string' && !isNaN(Number(value)) && value !== '')
+  )
+    return 'number';
+  return 'string';
 }
 
 interface Props {
@@ -58,6 +64,7 @@ export function DatasetPreview({ datasetId, versionNumber }: Props) {
   }
 
   const { rows, columns } = data;
+  const firstRow = rows[0] ?? {};
 
   return (
     <div className="flex gap-4">
@@ -67,8 +74,8 @@ export function DatasetPreview({ datasetId, versionNumber }: Props) {
           <thead className="sticky top-0 bg-muted/80 backdrop-blur">
             <tr>
               {columns.map((col) => (
-                <th key={col.name} className="p-2 text-left font-medium whitespace-nowrap">
-                  {col.name}
+                <th key={col} className="p-2 text-left font-medium whitespace-nowrap">
+                  {col}
                 </th>
               ))}
             </tr>
@@ -77,9 +84,9 @@ export function DatasetPreview({ datasetId, versionNumber }: Props) {
             {rows.slice(0, 50).map((row, ri) => (
               <tr key={ri} className="border-t hover:bg-muted/30">
                 {columns.map((col) => (
-                  <td key={col.name} className="p-2 whitespace-nowrap max-w-[200px] truncate">
-                    {row[col.name] !== null && row[col.name] !== undefined ? (
-                      String(row[col.name])
+                  <td key={col} className="p-2 whitespace-nowrap max-w-[200px] truncate">
+                    {row[col] !== null && row[col] !== undefined ? (
+                      String(row[col])
                     ) : (
                       <span className="text-muted-foreground italic">null</span>
                     )}
@@ -97,17 +104,17 @@ export function DatasetPreview({ datasetId, versionNumber }: Props) {
           Schema
         </p>
         <div className="space-y-1">
-          {columns.map((col) => (
-            <div key={col.name} className="flex items-center justify-between gap-1 text-xs">
-              <span className="truncate font-mono">{col.name}</span>
-              <Badge
-                variant={typeColor[col.type] ?? 'outline'}
-                className="shrink-0 text-[10px] px-1"
-              >
-                {col.type}
-              </Badge>
-            </div>
-          ))}
+          {columns.map((col) => {
+            const type = inferType(firstRow[col]);
+            return (
+              <div key={col} className="flex items-center justify-between gap-1 text-xs">
+                <span className="truncate font-mono">{col}</span>
+                <Badge variant={typeColor[type] ?? 'outline'} className="shrink-0 text-[10px] px-1">
+                  {type}
+                </Badge>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
