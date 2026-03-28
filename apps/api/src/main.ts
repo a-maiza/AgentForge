@@ -24,6 +24,9 @@ async function bootstrap() {
     credentials: true,
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  await app.register(require('@fastify/multipart'), { limits: { fileSize: 50 * 1024 * 1024 } });
+
   // Let NestJS register its default parsers first, then replace the JSON parser
   // to capture raw body for webhook signature verification (svix).
   await app.init();
