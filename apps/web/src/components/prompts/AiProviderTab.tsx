@@ -58,12 +58,13 @@ export function AiProviderTab({ promptId }: Props) {
   const [topP, setTopP] = useState(1);
   const [maxTokens, setMaxTokens] = useState(1024);
 
-  const { data: config, isLoading: configLoading } = useQuery<AiConfig>({
+  const { data: config, isLoading: configLoading } = useQuery<AiConfig | null>({
     queryKey: ['prompt-ai-config', promptId],
     queryFn: async () => {
-      if (!activeWorkspace) return {};
+      if (!activeWorkspace) return null;
       const res = await promptAiConfigsApi.get(activeWorkspace.id, promptId);
-      return res.data as AiConfig;
+      const list = res.data as AiConfig[];
+      return list[0] ?? null;
     },
     enabled: !!activeWorkspace,
   });
