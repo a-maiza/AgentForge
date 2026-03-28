@@ -116,8 +116,9 @@ services:
       target: runner
     env_file: .env.local
     environment:
-      DATABASE_URL: postgresql+asyncpg://agentforge:agentforge@pgbouncer:6432/agentforge
+      DATABASE_URL: postgresql+asyncpg://agentforge:agentforge@postgres:5432/agentforge
       REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://minio:9000
     depends_on:
       postgres:
         condition: service_healthy
