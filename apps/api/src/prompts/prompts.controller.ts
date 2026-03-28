@@ -78,6 +78,11 @@ export class PromptsController {
     return this.promptsService.getVersion(id, version, workspaceId);
   }
 
+  @Get(':id/dataset-config')
+  getDatasetConfig(@Param('workspaceId') workspaceId: string, @Param('id') id: string) {
+    return this.promptsService.getDatasetConfig(id, workspaceId);
+  }
+
   @Put(':id/dataset-config')
   saveDatasetConfig(
     @Param('workspaceId') workspaceId: string,

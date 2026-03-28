@@ -163,6 +163,18 @@ export class PromptsService {
     return version;
   }
 
+  async getDatasetConfig(promptId: string, workspaceId: string): Promise<unknown> {
+    const prompt = await this.prisma.prompt.findFirst({ where: { id: promptId, workspaceId } });
+    if (!prompt) throw new NotFoundException('Prompt not found');
+    return this.prisma.promptDatasetConfig.findFirst({
+      where: { promptId },
+      include: {
+        dataset: { select: { id: true, name: true } },
+        datasetVersion: { select: { id: true, versionNumber: true } },
+      },
+    });
+  }
+
   async saveDatasetConfig(
     promptId: string,
     workspaceId: string,

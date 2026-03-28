@@ -18,11 +18,9 @@ import {
 } from '@/components/ui/select';
 
 interface DatasetConfig {
-  datasetId?: string;
-  datasetName?: string;
-  variableMapping?: Record<string, string>;
-  preview?: Record<string, unknown>[];
-  columns?: { name: string }[];
+  datasetId: string;
+  datasetName: string;
+  variableMapping: Record<string, string>;
 }
 
 interface Dataset {
@@ -45,12 +43,22 @@ export function DatasetTab({ promptId, variables = [] }: Props) {
   const [selectedDatasetId, setSelectedDatasetId] = useState('');
   const [mapping, setMapping] = useState<Record<string, string>>({});
 
-  const { data: config, isLoading: configLoading } = useQuery<DatasetConfig>({
+  const { data: config, isLoading: configLoading } = useQuery<DatasetConfig | null>({
     queryKey: ['prompt-dataset-config', promptId],
     queryFn: async () => {
-      if (!activeWorkspace) return {};
+      if (!activeWorkspace) return null;
       const res = await promptDatasetConfigsApi.get(activeWorkspace.id, promptId);
-      return res.data as DatasetConfig;
+      const raw = res.data as {
+        dataset?: { id: string; name: string };
+        datasetId?: string;
+        variableMapping?: Record<string, string>;
+      } | null;
+      if (!raw) return null;
+      return {
+        datasetId: raw.dataset?.id ?? raw.datasetId ?? '',
+        datasetName: raw.dataset?.name ?? '',
+        variableMapping: raw.variableMapping ?? {},
+      };
     },
     enabled: !!activeWorkspace,
   });
@@ -88,8 +96,8 @@ export function DatasetTab({ promptId, variables = [] }: Props) {
   }
 
   const activeDatasetId = selectedDatasetId || config?.datasetId;
-  const columns = config?.columns ?? [];
-  const preview = config?.preview ?? [];
+  const columns: { name: string }[] = [];
+  const preview: Record<string, unknown>[] = [];
 
   return (
     <div className="space-y-4">
