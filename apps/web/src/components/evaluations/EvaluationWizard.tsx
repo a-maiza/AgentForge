@@ -29,8 +29,8 @@ interface Props {
   promptName: string;
   promptContent: string;
   promptVersionId: string;
-  datasetName?: string;
-  providerName?: string;
+  datasetName?: string | undefined;
+  providerName?: string | undefined;
   open: boolean;
   onClose: () => void;
   onSuccess?: (evalId: string) => void;
@@ -105,7 +105,7 @@ export function EvaluationWizard({
     onClose();
   };
 
-  const isReady = selectedMetrics.length > 0 && !!datasetName && !!providerName;
+  const isReady = selectedMetrics.length > 0;
   const selectedNames = metrics.filter((m) => selectedMetrics.includes(m.id)).map((m) => m.name);
 
   return (
