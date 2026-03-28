@@ -168,7 +168,7 @@ export class PromptsService {
     workspaceId: string,
     data: {
       datasetId: string;
-      datasetVersionId: string;
+      datasetVersionId?: string;
       variableMapping: Record<string, string>;
       isActive?: boolean;
     },
@@ -180,11 +180,22 @@ export class PromptsService {
       where: { promptId, datasetId: data.datasetId },
     });
 
+    // Resolve the dataset version — use provided ID or fall back to latest
+    const versionId =
+      data.datasetVersionId ??
+      (
+        await this.prisma.datasetVersion.findFirst({
+          where: { datasetId: data.datasetId, status: 'latest' },
+          orderBy: { versionNumber: 'desc' },
+        })
+      )?.id;
+    if (!versionId) throw new NotFoundException('No dataset version found');
+
     if (existing) {
       return this.prisma.promptDatasetConfig.update({
         where: { id: existing.id },
         data: {
-          datasetVersionId: data.datasetVersionId,
+          datasetVersion: { connect: { id: versionId } },
           variableMapping: data.variableMapping,
           ...(data.isActive !== undefined && { isActive: data.isActive }),
         },
@@ -193,9 +204,9 @@ export class PromptsService {
 
     return this.prisma.promptDatasetConfig.create({
       data: {
-        promptId,
-        datasetId: data.datasetId,
-        datasetVersionId: data.datasetVersionId,
+        prompt: { connect: { id: promptId } },
+        dataset: { connect: { id: data.datasetId } },
+        datasetVersion: { connect: { id: versionId } },
         variableMapping: data.variableMapping,
         ...(data.isActive !== undefined && { isActive: data.isActive }),
       },
