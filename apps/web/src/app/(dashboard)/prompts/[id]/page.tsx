@@ -59,7 +59,7 @@ export default function PromptDetailPage({ params }: { readonly params: { id: st
   });
 
   const { data: datasetName } = useQuery<string | undefined>({
-    queryKey: ['prompt-dataset-config', id],
+    queryKey: ['prompt-dataset-name', id],
     queryFn: async () => {
       if (!activeWorkspace) return undefined;
       const res = await promptDatasetConfigsApi.get(activeWorkspace.id, id);
@@ -70,7 +70,7 @@ export default function PromptDetailPage({ params }: { readonly params: { id: st
   });
 
   const { data: providerName } = useQuery<string | undefined>({
-    queryKey: ['prompt-ai-config', id],
+    queryKey: ['prompt-ai-config-name', id],
     queryFn: async () => {
       if (!activeWorkspace) return undefined;
       const res = await promptAiConfigsApi.get(activeWorkspace.id, id);

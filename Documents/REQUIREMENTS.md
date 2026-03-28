@@ -1974,11 +1974,11 @@ Every controller must apply `WorkspaceGuard` (which validates that the authentic
 
 When services communicate inside Docker Compose, use the **service name** as the hostname, not `localhost`. `localhost` resolves to the container itself.
 
-| Variable | Inside Docker | Outside Docker (local dev) |
-| --- | --- | --- |
+| Variable       | Inside Docker                        | Outside Docker (local dev)            |
+| -------------- | ------------------------------------ | ------------------------------------- |
 | `DATABASE_URL` | `postgresql://...@postgres:5432/...` | `postgresql://...@localhost:5432/...` |
-| `REDIS_URL` | `redis://redis:6379` | `redis://localhost:6379` |
-| `S3_ENDPOINT` | `http://minio:9000` | `http://localhost:9000` |
+| `REDIS_URL`    | `redis://redis:6379`                 | `redis://localhost:6379`              |
+| `S3_ENDPOINT`  | `http://minio:9000`                  | `http://localhost:9000`               |
 
 ### D.4 Prisma BigInt Serialization
 
