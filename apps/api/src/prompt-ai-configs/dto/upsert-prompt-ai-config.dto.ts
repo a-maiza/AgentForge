@@ -10,11 +10,13 @@ import {
 } from 'class-validator';
 
 export class UpsertPromptAiConfigDto {
+  @IsOptional()
   @IsUUID()
-  providerId!: string;
+  providerId?: string;
 
+  @IsOptional()
   @IsString()
-  modelName!: string;
+  modelName?: string;
 
   @IsOptional()
   @IsNumber()

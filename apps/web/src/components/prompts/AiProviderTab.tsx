@@ -32,7 +32,7 @@ const MODELS: Record<ProviderType, string[]> = {
 
 interface AiConfig {
   providerId?: string;
-  model?: string;
+  modelName?: string;
   temperature?: number;
   topP?: number;
   maxTokens?: number;
@@ -53,7 +53,7 @@ export function AiProviderTab({ promptId }: Props) {
   const { activeWorkspace } = useWorkspaceStore();
 
   const [providerId, setProviderId] = useState('');
-  const [model, setModel] = useState('');
+  const [modelName, setModelName] = useState('');
   const [temperature, setTemperature] = useState(0.7);
   const [topP, setTopP] = useState(1);
   const [maxTokens, setMaxTokens] = useState(1024);
@@ -81,7 +81,7 @@ export function AiProviderTab({ promptId }: Props) {
   useEffect(() => {
     if (config) {
       setProviderId(config.providerId ?? '');
-      setModel(config.model ?? '');
+      setModelName(config.modelName ?? '');
       if (config.temperature !== undefined) setTemperature(config.temperature);
       if (config.topP !== undefined) setTopP(config.topP);
       if (config.maxTokens !== undefined) setMaxTokens(config.maxTokens);
@@ -96,7 +96,7 @@ export function AiProviderTab({ promptId }: Props) {
     mutationFn: () =>
       promptAiConfigsApi.upsert(activeWorkspace!.id, promptId, {
         providerId,
-        model,
+        modelName,
         temperature,
         topP,
         maxTokens,
@@ -134,7 +134,7 @@ export function AiProviderTab({ promptId }: Props) {
               value={providerId}
               onValueChange={(v) => {
                 setProviderId(v);
-                setModel('');
+                setModelName('');
               }}
             >
               <SelectTrigger>
@@ -155,7 +155,7 @@ export function AiProviderTab({ promptId }: Props) {
         <div className="space-y-1">
           <Label>Model</Label>
           {modelList.length > 0 ? (
-            <Select value={model} onValueChange={setModel}>
+            <Select value={modelName} onValueChange={setModelName}>
               <SelectTrigger>
                 <SelectValue placeholder="Select model…" />
               </SelectTrigger>
@@ -169,8 +169,8 @@ export function AiProviderTab({ promptId }: Props) {
             </Select>
           ) : (
             <Input
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
+              value={modelName}
+              onChange={(e) => setModelName(e.target.value)}
               placeholder="e.g. my-custom-model"
             />
           )}

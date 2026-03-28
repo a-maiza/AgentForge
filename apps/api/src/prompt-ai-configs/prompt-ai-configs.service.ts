@@ -27,11 +27,11 @@ export class PromptAiConfigsService {
     if (!prompt) throw new NotFoundException('Prompt not found');
 
     const existing = await this.prisma.promptAiConfig.findFirst({
-      where: { promptId, providerId: dto.providerId },
+      where: { promptId, ...(dto.providerId ? { providerId: dto.providerId } : {}) },
     });
 
     const data = {
-      modelName: dto.modelName,
+      ...(dto.modelName !== undefined && { modelName: dto.modelName }),
       ...(dto.temperature !== undefined && { temperature: dto.temperature }),
       ...(dto.topP !== undefined && { topP: dto.topP }),
       ...(dto.topK !== undefined && { topK: dto.topK }),
@@ -40,11 +40,22 @@ export class PromptAiConfigsService {
     };
 
     if (existing) {
-      return this.prisma.promptAiConfig.update({ where: { id: existing.id }, data });
+      return this.prisma.promptAiConfig.update({
+        where: { id: existing.id },
+        data: {
+          ...data,
+          ...(dto.providerId ? { providerId: dto.providerId } : {}),
+        },
+      });
     }
 
     return this.prisma.promptAiConfig.create({
-      data: { promptId, providerId: dto.providerId, ...data },
+      data: {
+        promptId,
+        providerId: dto.providerId ?? '',
+        modelName: dto.modelName ?? '',
+        ...data,
+      },
     });
   }
 
