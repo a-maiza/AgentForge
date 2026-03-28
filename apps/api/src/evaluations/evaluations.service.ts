@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Queue } from 'bullmq';
 import type { EvaluationJob } from '@prisma/client';
@@ -27,15 +27,51 @@ export class EvaluationsService {
     const prompt = await this.prisma.prompt.findUnique({ where: { id: dto.promptId } });
     if (!prompt) throw new NotFoundException('Prompt not found');
 
+    // Resolve dataset from prompt config if not provided
+    let datasetId = dto.datasetId;
+    let datasetVersionId = dto.datasetVersionId;
+    if (!datasetId) {
+      const datasetConfig = await this.prisma.promptDatasetConfig.findFirst({
+        where: { promptId: dto.promptId },
+      });
+      if (!datasetConfig)
+        throw new BadRequestException(
+          'No dataset connected to this prompt. Go to the Dataset tab and connect a dataset first.',
+        );
+      datasetId = datasetConfig.datasetId;
+      datasetVersionId = datasetConfig.datasetVersionId;
+    }
+
+    // Resolve AI provider from prompt config if not provided
+    let providerId = dto.providerId;
+    let modelName = dto.modelName;
+    let modelConfig: Record<string, unknown> = dto.modelConfig ?? {};
+    if (!providerId) {
+      const aiConfig = await this.prisma.promptAiConfig.findFirst({
+        where: { promptId: dto.promptId },
+      });
+      if (!aiConfig)
+        throw new BadRequestException(
+          'No AI provider configured for this prompt. Go to the AI Provider tab and configure a provider first.',
+        );
+      providerId = aiConfig.providerId;
+      modelName = aiConfig.modelName;
+      modelConfig = {
+        temperature: aiConfig.temperature,
+        topP: aiConfig.topP,
+        maxTokens: aiConfig.maxTokens,
+      };
+    }
+
     const job = await this.prisma.evaluationJob.create({
       data: {
         promptId: dto.promptId,
         promptVersionId: dto.promptVersionId,
-        datasetId: dto.datasetId,
-        datasetVersionId: dto.datasetVersionId,
-        providerId: dto.providerId,
-        modelName: dto.modelName,
-        modelConfig: (dto.modelConfig ?? {}) as object,
+        datasetId: datasetId!,
+        datasetVersionId: datasetVersionId!,
+        providerId: providerId!,
+        modelName: modelName ?? '',
+        modelConfig: modelConfig as object,
         metrics: dto.metrics,
         status: 'pending',
         progress: 0,

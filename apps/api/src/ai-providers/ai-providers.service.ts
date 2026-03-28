@@ -28,11 +28,11 @@ export class AiProvidersService {
     return this.sanitize(provider);
   }
 
-  async create(dto: CreateAiProviderDto): Promise<AiProviderSafe> {
+  async create(workspaceId: string, dto: CreateAiProviderDto): Promise<AiProviderSafe> {
     const apiKeyEncrypted = this.encryption.encrypt(dto.apiKey);
     const provider = await this.prisma.aiProvider.create({
       data: {
-        workspaceId: dto.workspaceId,
+        workspaceId,
         name: dto.name,
         providerType: dto.providerType,
         apiKeyEncrypted,

@@ -11,8 +11,9 @@ const PROVIDER_TYPES = [
 ] as const;
 
 export class CreateAiProviderDto {
+  @IsOptional()
   @IsUUID()
-  workspaceId!: string;
+  workspaceId?: string;
 
   @IsString()
   name!: string;
