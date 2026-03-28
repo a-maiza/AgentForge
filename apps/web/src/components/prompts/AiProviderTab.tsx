@@ -61,9 +61,11 @@ export function AiProviderTab({ promptId }: Props) {
   const { data: config, isLoading: configLoading } = useQuery<AiConfig>({
     queryKey: ['prompt-ai-config', promptId],
     queryFn: async () => {
-      const res = await promptAiConfigsApi.get(promptId);
+      if (!activeWorkspace) return {};
+      const res = await promptAiConfigsApi.get(activeWorkspace.id, promptId);
       return res.data as AiConfig;
     },
+    enabled: !!activeWorkspace,
   });
 
   const { data: providers = [], isLoading: providersLoading } = useQuery<Provider[]>({
@@ -92,7 +94,7 @@ export function AiProviderTab({ promptId }: Props) {
 
   const saveMutation = useMutation({
     mutationFn: () =>
-      promptAiConfigsApi.upsert(promptId, {
+      promptAiConfigsApi.upsert(activeWorkspace!.id, promptId, {
         providerId,
         model,
         temperature,

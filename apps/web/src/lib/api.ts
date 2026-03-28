@@ -117,16 +117,18 @@ export const aiProvidersApi = {
 
 // Prompt AI Configs
 export const promptAiConfigsApi = {
-  get: (promptId: string) => api.get(`/api/prompts/${promptId}/ai-config`),
-  upsert: (promptId: string, data: Record<string, unknown>) =>
-    api.put(`/api/prompts/${promptId}/ai-config`, data),
+  get: (workspaceId: string, promptId: string) =>
+    api.get(`/api/workspaces/${workspaceId}/prompts/${promptId}/ai-configs`),
+  upsert: (workspaceId: string, promptId: string, data: Record<string, unknown>) =>
+    api.put(`/api/workspaces/${workspaceId}/prompts/${promptId}/ai-configs`, data),
 };
 
 // Prompt Dataset Configs
 export const promptDatasetConfigsApi = {
-  get: (promptId: string) => api.get(`/api/prompts/${promptId}/dataset-config`),
-  upsert: (promptId: string, data: Record<string, unknown>) =>
-    api.put(`/api/prompts/${promptId}/dataset-config`, data),
+  get: (workspaceId: string, promptId: string) =>
+    api.get(`/api/workspaces/${workspaceId}/prompts/${promptId}/dataset-config`),
+  upsert: (workspaceId: string, promptId: string, data: Record<string, unknown>) =>
+    api.put(`/api/workspaces/${workspaceId}/prompts/${promptId}/dataset-config`, data),
 };
 
 // Evaluations

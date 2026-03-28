@@ -48,9 +48,11 @@ export function DatasetTab({ promptId, variables = [] }: Props) {
   const { data: config, isLoading: configLoading } = useQuery<DatasetConfig>({
     queryKey: ['prompt-dataset-config', promptId],
     queryFn: async () => {
-      const res = await promptDatasetConfigsApi.get(promptId);
+      if (!activeWorkspace) return {};
+      const res = await promptDatasetConfigsApi.get(activeWorkspace.id, promptId);
       return res.data as DatasetConfig;
     },
+    enabled: !!activeWorkspace,
   });
 
   const { data: datasets = [], isLoading: datasetsLoading } = useQuery<Dataset[]>({
@@ -65,7 +67,7 @@ export function DatasetTab({ promptId, variables = [] }: Props) {
 
   const saveMutation = useMutation({
     mutationFn: () =>
-      promptDatasetConfigsApi.upsert(promptId, {
+      promptDatasetConfigsApi.upsert(activeWorkspace!.id, promptId, {
         datasetId: selectedDatasetId || config?.datasetId,
         variableMapping: mapping,
       }),
