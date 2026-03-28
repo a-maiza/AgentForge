@@ -6,9 +6,21 @@ import type { Dataset, DatasetVersion } from '@prisma/client';
 import type { CreateDatasetDto } from './dto/create-dataset.dto';
 import type { UpdateDatasetDto } from './dto/update-dataset.dto';
 
+// fileSizeBytes is a Prisma BigInt — convert to string for JSON serialisation
+type SerializedVersion = Omit<DatasetVersion, 'fileSizeBytes'> & { fileSizeBytes: string };
+type SerializedDataset = Dataset & { versions: SerializedVersion[] };
+
+function serializeVersion(v: DatasetVersion): SerializedVersion {
+  return { ...v, fileSizeBytes: v.fileSizeBytes.toString() };
+}
+
+function serializeDataset(d: Dataset & { versions: DatasetVersion[] }): SerializedDataset {
+  return { ...d, versions: d.versions.map(serializeVersion) };
+}
+
 export interface UploadResult {
   dataset: Dataset;
-  version: DatasetVersion;
+  version: SerializedVersion;
 }
 
 interface ParsedFile {
@@ -34,24 +46,22 @@ export class DatasetsService {
     private readonly storage: StorageService,
   ) {}
 
-  findAll(workspaceId: string): Promise<(Dataset & { versions: DatasetVersion[] })[]> {
-    return this.prisma.dataset.findMany({
+  async findAll(workspaceId: string): Promise<SerializedDataset[]> {
+    const rows = await this.prisma.dataset.findMany({
       where: { workspaceId },
       include: { versions: { orderBy: { versionNumber: 'desc' }, take: 1 } },
       orderBy: { updatedAt: 'desc' },
     });
+    return rows.map(serializeDataset);
   }
 
-  async findOne(
-    id: string,
-    workspaceId: string,
-  ): Promise<Dataset & { versions: DatasetVersion[] }> {
+  async findOne(id: string, workspaceId: string): Promise<SerializedDataset> {
     const dataset = await this.prisma.dataset.findFirst({
       where: { id, workspaceId },
       include: { versions: { orderBy: { versionNumber: 'desc' } } },
     });
     if (!dataset) throw new NotFoundException('Dataset not found');
-    return dataset;
+    return serializeDataset(dataset);
   }
 
   async create(dto: CreateDatasetDto, userId: string): Promise<Dataset> {
@@ -128,16 +138,17 @@ export class DatasetsService {
       },
     });
 
-    return { dataset, version };
+    return { dataset, version: serializeVersion(version) };
   }
 
-  async getVersions(datasetId: string, workspaceId: string): Promise<DatasetVersion[]> {
+  async getVersions(datasetId: string, workspaceId: string): Promise<SerializedVersion[]> {
     const dataset = await this.prisma.dataset.findFirst({ where: { id: datasetId, workspaceId } });
     if (!dataset) throw new NotFoundException('Dataset not found');
-    return this.prisma.datasetVersion.findMany({
+    const versions = await this.prisma.datasetVersion.findMany({
       where: { datasetId },
       orderBy: { versionNumber: 'desc' },
     });
+    return versions.map(serializeVersion);
   }
 
   async preview(
