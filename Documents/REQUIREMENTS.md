@@ -1565,30 +1565,38 @@ GET    /auth/me
 
 ### 22.2 Prompts
 
+All prompt routes are workspace-scoped under `/api/workspaces/:workspaceId/prompts`.
+
 ```
-GET    /api/prompts                          → list
-POST   /api/prompts                          → create
-GET    /api/prompts/:id                      → get detail
-PUT    /api/prompts/:id                      → update
-DELETE /api/prompts/:id                      → delete
-GET    /api/prompts/:id/versions             → list versions
-GET    /api/prompts/:id/versions/:v          → get version
-POST   /api/prompts/:id/versions/compare     → diff two versions
-GET    /api/prompts/:id/analytics            → analytics data
+GET    /api/workspaces/:workspaceId/prompts                          → list
+POST   /api/workspaces/:workspaceId/prompts                          → create
+GET    /api/workspaces/:workspaceId/prompts/:id                      → get detail
+PUT    /api/workspaces/:workspaceId/prompts/:id                      → update
+DELETE /api/workspaces/:workspaceId/prompts/:id                      → delete
+GET    /api/workspaces/:workspaceId/prompts/:id/versions             → list versions
+GET    /api/workspaces/:workspaceId/prompts/:id/versions/:v          → get version
+POST   /api/workspaces/:workspaceId/prompts/:id/versions/compare     → diff two versions
+GET    /api/workspaces/:workspaceId/prompts/:id/analytics            → analytics data
+GET    /api/workspaces/:workspaceId/prompts/:id/dataset-config       → get connected dataset config
+PUT    /api/workspaces/:workspaceId/prompts/:id/dataset-config       → save variable mapping
+GET    /api/workspaces/:workspaceId/prompts/:id/ai-configs           → list AI configurations (returns array, use [0])
+PUT    /api/workspaces/:workspaceId/prompts/:id/ai-configs           → upsert AI configuration
 ```
 
 ### 22.3 Datasets
 
+Dataset CRUD routes are workspace-scoped; upload/preview/compare are dataset-scoped only.
+
 ```
-GET    /api/datasets
-POST   /api/datasets
-GET    /api/datasets/:id
-PUT    /api/datasets/:id
-DELETE /api/datasets/:id
-POST   /api/datasets/:id/upload              → upload new version (multipart)
+GET    /api/workspaces/:workspaceId/datasets                         → list
+POST   /api/workspaces/:workspaceId/datasets                         → create
+GET    /api/workspaces/:workspaceId/datasets/:id                     → get detail
+PUT    /api/workspaces/:workspaceId/datasets/:id                     → update
+DELETE /api/workspaces/:workspaceId/datasets/:id                     → delete
+POST   /api/datasets/:id/upload                                      → upload new version (multipart/form-data)
 GET    /api/datasets/:id/versions
-POST   /api/datasets/:id/versions/compare   → diff two versions
-GET    /api/datasets/:id/versions/:v/preview → get rows preview
+POST   /api/datasets/:id/versions/compare                            → diff two versions
+GET    /api/datasets/:id/versions/:v/preview                         → get rows preview
 ```
 
 ### 22.4 Evaluations
@@ -1865,6 +1873,9 @@ S3_BUCKET=llmops-datasets
 S3_REGION=us-east-1
 AWS_ACCESS_KEY_ID=xxx
 AWS_SECRET_ACCESS_KEY=xxx
+# When running inside Docker Compose, set this to the service name — NOT localhost.
+# Example: S3_ENDPOINT=http://minio:9000
+S3_ENDPOINT=
 
 # Encryption (for AI provider keys)
 ENCRYPTION_KEY=your-32-byte-aes-key-hex
@@ -1931,6 +1942,65 @@ The following table summarizes the final technology choices for the entire platf
 | **Métriques infra**         | Prometheus + Grafana             | Latest  |
 | **Logs**                    | Pino + Loki                      | Latest  |
 | **Tracing**                 | OpenTelemetry + Jaeger           | Latest  |
+
+---
+
+---
+
+## Appendix D — Implementation Notes & Constraints
+
+Operational decisions made during implementation that are not obvious from the feature requirements.
+
+### D.1 NestJS / Fastify Bootstrap Order
+
+The NestJS API uses the Fastify HTTP adapter. Two registrations **must** happen before `app.init()`:
+
+1. **CORS** — `app.enableCors(...)` must be called before `app.init()`. Calling it after silently has no effect and all browser preflight (`OPTIONS`) requests will return 404.
+2. **Multipart** — `@fastify/multipart` must be registered via `app.register(require('@fastify/multipart'), { limits: { fileSize: 50 * 1024 * 1024 } })` before `app.init()`. Without this, file upload endpoints return `415 Unsupported Media Type`.
+
+**Version constraint:** Use `@fastify/multipart@8.x`. Version 9+ requires Fastify 5; this project uses Fastify 4.
+
+### D.2 Workspace-Scoped Routing Convention
+
+All resource modules (prompts, datasets, AI providers, API keys, evaluations) must follow the workspace-scoped URL pattern:
+
+```text
+/api/workspaces/:workspaceId/<resource>
+```
+
+Every controller must apply `WorkspaceGuard` (which validates that the authenticated user is a member of the requested workspace). The `WorkspacesModule` must be imported by any module whose controller uses `WorkspaceGuard`.
+
+### D.3 Docker Compose — Inter-Service URLs
+
+When services communicate inside Docker Compose, use the **service name** as the hostname, not `localhost`. `localhost` resolves to the container itself.
+
+| Variable | Inside Docker | Outside Docker (local dev) |
+| --- | --- | --- |
+| `DATABASE_URL` | `postgresql://...@postgres:5432/...` | `postgresql://...@localhost:5432/...` |
+| `REDIS_URL` | `redis://redis:6379` | `redis://localhost:6379` |
+| `S3_ENDPOINT` | `http://minio:9000` | `http://localhost:9000` |
+
+### D.4 Prisma BigInt Serialization
+
+PostgreSQL `BIGINT` columns (e.g. `DatasetVersion.fileSizeBytes`) are mapped by Prisma to JavaScript `BigInt`. `JSON.stringify` cannot serialize `BigInt` and will throw `TypeError: Do not know how to serialize a BigInt`.
+
+**Pattern:** convert to `string` at the service layer before returning from the controller:
+
+```ts
+function serializeVersion(v: DatasetVersion) {
+  return { ...v, fileSizeBytes: v.fileSizeBytes.toString() };
+}
+```
+
+Never rely on the framework to serialize BigInt transparently.
+
+### D.5 AI Config Response Shape
+
+`GET /api/workspaces/:workspaceId/prompts/:id/ai-configs` returns `PromptAiConfig[]` (an array). The frontend must read `response.data[0]` to obtain the single active config. The field containing the model name is `modelName` (not `model`) in both the DTO and the database column.
+
+### D.6 Clerk JIT User Provisioning
+
+In local development, Clerk webhooks (`user.created`) cannot reach `localhost`. This means users authenticated via Clerk never get inserted into the local `users` table via the webhook flow. The `AuthGuard` must implement Just-In-Time (JIT) provisioning: on the first authenticated request, if the user does not exist in the database, fetch user details from the Clerk API and upsert the `User` row.
 
 ---
 

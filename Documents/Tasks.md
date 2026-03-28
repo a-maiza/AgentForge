@@ -213,6 +213,18 @@
 - [x] **P1** Add `workspacesApi.activeDeploymentCount(workspaceId)` helper in `apps/web/src/lib/api.ts`
 - [x] **P1** Update Overview page: fetch datasets list (count client-side) and active deployment count; replace "Coming in phase 2" placeholder cards with live values and loading skeletons
 
+### 4.7 Bug Fixes & Infrastructure Corrections
+
+- [x] **P0** Fix CORS: call `app.enableCors()` before `app.init()` in NestJS Fastify bootstrap (`apps/api/src/main.ts`); without this all cross-origin preflight requests return 404
+- [x] **P0** Fix `DatasetsController` route mismatch: change controller base from `@Controller('api/datasets')` to workspace-scoped routes `GET|POST /api/workspaces/:workspaceId/datasets`; update `DatasetsModule` to import `WorkspacesModule` so `WorkspaceGuard` can resolve `WorkspacesService`
+- [x] **P0** Register `@fastify/multipart` (v8.x — compatible with Fastify 4) in `main.ts` before `app.init()` to enable `multipart/form-data` parsing for dataset file uploads; v9 requires Fastify 5 and must not be used
+- [x] **P0** Fix Docker service networking: set `S3_ENDPOINT: http://minio:9000` in the `api` service environment block in `docker-compose.yml`; `localhost` inside a container resolves to the container itself, not the MinIO service
+- [x] **P0** Fix Prisma `BigInt` serialization: `DatasetVersion.fileSizeBytes` (PostgreSQL `BIGINT`) maps to JS `BigInt`, which `JSON.stringify` cannot serialize; add `serializeVersion` / `serializeDataset` helpers in `DatasetsService` to convert to `string` before returning from the controller
+- [x] **P0** Add missing `GET /api/workspaces/:workspaceId/prompts/:id/dataset-config` route to `PromptsController` and `getDatasetConfig()` method to `PromptsService`; without this the Dataset Tab could save config but never re-load it on refresh
+- [x] **P1** Fix `promptAiConfigsApi` and `promptDatasetConfigsApi` URL helpers in `apps/web/src/lib/api.ts`: add workspace-scoped prefix and correct path (`ai-config` → `ai-configs` to match the controller)
+- [x] **P1** Fix AI config save 400 Bad Request: rename frontend payload field `model` → `modelName` to match `UpsertPromptAiConfigDto`; add `@IsOptional()` to both `providerId` and `modelName` in the DTO so partial updates (e.g. temperature-only) are accepted
+- [x] **P1** Fix config selections disappearing on page refresh: `GET .../ai-configs` returns `PromptAiConfig[]` (array) — read `res.data[0]` in `AiProviderTab`; map nested `{ dataset: { id, name }, variableMapping }` response shape to flat `DatasetConfig` in `DatasetTab`
+
 ---
 
 ## Phase 5 — Advanced Features (Weeks 15–18)

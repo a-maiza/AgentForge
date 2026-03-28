@@ -36,7 +36,7 @@ export class AiProvidersController {
     @Body() dto: CreateAiProviderDto,
     @Req() _req: FastifyRequest & { user: User },
   ) {
-    return this.aiProviders.create({ ...dto, workspaceId });
+    return this.aiProviders.create(workspaceId, dto);
   }
 
   @Put(':id')

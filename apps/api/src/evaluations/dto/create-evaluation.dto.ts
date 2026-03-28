@@ -7,17 +7,21 @@ export class CreateEvaluationDto {
   @IsUUID()
   promptVersionId!: string;
 
+  @IsOptional()
   @IsUUID()
-  datasetId!: string;
+  datasetId?: string;
 
+  @IsOptional()
   @IsUUID()
-  datasetVersionId!: string;
+  datasetVersionId?: string;
 
+  @IsOptional()
   @IsUUID()
-  providerId!: string;
+  providerId?: string;
 
+  @IsOptional()
   @IsString()
-  modelName!: string;
+  modelName?: string;
 
   @IsOptional()
   @IsObject()
