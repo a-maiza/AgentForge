@@ -9,95 +9,84 @@ import {
   ParseIntPipe,
   HttpCode,
   HttpStatus,
+  UseGuards,
   Req,
 } from '@nestjs/common';
 import { DatasetsService } from './datasets.service';
-import { CreateDatasetDto } from './dto/create-dataset.dto';
 import { UpdateDatasetDto } from './dto/update-dataset.dto';
+import { WorkspaceGuard } from '../workspaces/guards/workspace.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
 import type { FastifyRequest } from 'fastify';
 import type { User } from '@prisma/client';
 
-@Controller('api/datasets')
+@Controller('api')
 export class DatasetsController {
   constructor(private readonly datasets: DatasetsService) {}
 
-  @Get()
-  findAll(@Req() req: FastifyRequest & { user: User }) {
-    // workspaceId from query — simplified: use first workspace. Real impl: @Query('workspaceId')
-    const workspaceId = (req.query as Record<string, string>)['workspaceId'] ?? '';
+  @Get('workspaces/:workspaceId/datasets')
+  @UseGuards(WorkspaceGuard)
+  findAll(@Param('workspaceId') workspaceId: string) {
     return this.datasets.findAll(workspaceId);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string, @Req() req: FastifyRequest & { user: User }) {
-    const workspaceId = (req.query as Record<string, string>)['workspaceId'] ?? '';
+  @Get('workspaces/:workspaceId/datasets/:id')
+  @UseGuards(WorkspaceGuard)
+  findOne(@Param('workspaceId') workspaceId: string, @Param('id') id: string) {
     return this.datasets.findOne(id, workspaceId);
   }
 
-  @Post()
-  create(@Body() dto: CreateDatasetDto, @Req() req: FastifyRequest & { user: User }) {
-    return this.datasets.create(dto, req.user.id);
+  @Post('workspaces/:workspaceId/datasets')
+  @UseGuards(WorkspaceGuard)
+  create(
+    @Param('workspaceId') workspaceId: string,
+    @Body() body: { name: string; description?: string },
+    @CurrentUser() user: User,
+  ) {
+    return this.datasets.create({ workspaceId, ...body }, user.id);
   }
 
-  @Put(':id')
+  @Put('workspaces/:workspaceId/datasets/:id')
+  @UseGuards(WorkspaceGuard)
   update(
+    @Param('workspaceId') workspaceId: string,
     @Param('id') id: string,
     @Body() dto: UpdateDatasetDto,
-    @Req() req: FastifyRequest & { user: User },
   ) {
-    const workspaceId = (req.query as Record<string, string>)['workspaceId'] ?? '';
     return this.datasets.update(id, workspaceId, dto);
   }
 
-  @Delete(':id')
+  @Delete('workspaces/:workspaceId/datasets/:id')
+  @UseGuards(WorkspaceGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
-  async delete(@Param('id') id: string, @Req() req: FastifyRequest & { user: User }) {
-    const workspaceId = (req.query as Record<string, string>)['workspaceId'] ?? '';
+  async delete(@Param('workspaceId') workspaceId: string, @Param('id') id: string) {
     await this.datasets.delete(id, workspaceId);
   }
 
-  @Post(':id/upload')
+  @Get('workspaces/:workspaceId/datasets/:id/versions')
+  @UseGuards(WorkspaceGuard)
+  getVersions(@Param('workspaceId') workspaceId: string, @Param('id') id: string) {
+    return this.datasets.getVersions(id, workspaceId);
+  }
+
+  // These routes are not workspace-prefixed on the frontend — keep paths unchanged
+  @Post('datasets/:id/upload')
   async upload(@Param('id') id: string, @Req() req: FastifyRequest & { user: User }) {
-    // @fastify/multipart — consume via req.file()
     const data = await (
       req as unknown as {
         file(): Promise<{ filename: string; mimetype: string; toBuffer(): Promise<Buffer> }>;
       }
     ).file();
     const buffer = await data.toBuffer();
-    return this.datasets.upload(
-      id,
-      (req.query as Record<string, string>)['workspaceId'] ?? '',
-      buffer,
-      data.filename,
-      data.mimetype,
-      req.user.id,
-    );
+    return this.datasets.upload(id, buffer, data.filename, data.mimetype);
   }
 
-  @Get(':id/versions')
-  getVersions(@Param('id') id: string, @Req() req: FastifyRequest & { user: User }) {
-    const workspaceId = (req.query as Record<string, string>)['workspaceId'] ?? '';
-    return this.datasets.getVersions(id, workspaceId);
+  @Get('datasets/:id/versions/:v/preview')
+  preview(@Param('id') id: string, @Param('v', ParseIntPipe) v: number) {
+    return this.datasets.preview(id, v);
   }
 
-  @Get(':id/versions/:v/preview')
-  preview(
-    @Param('id') id: string,
-    @Param('v', ParseIntPipe) v: number,
-    @Req() req: FastifyRequest & { user: User },
-  ) {
-    const workspaceId = (req.query as Record<string, string>)['workspaceId'] ?? '';
-    return this.datasets.preview(id, v, workspaceId);
-  }
-
-  @Post(':id/versions/compare')
-  compare(
-    @Param('id') id: string,
-    @Body() body: { versionA: number; versionB: number },
-    @Req() req: FastifyRequest & { user: User },
-  ) {
-    const workspaceId = (req.query as Record<string, string>)['workspaceId'] ?? '';
-    return this.datasets.compare(id, body.versionA, body.versionB, workspaceId);
+  @Post('datasets/:id/versions/compare')
+  compare(@Param('id') id: string, @Body() body: { versionA: number; versionB: number }) {
+    return this.datasets.compare(id, body.versionA, body.versionB);
   }
 }

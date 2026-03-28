@@ -86,13 +86,11 @@ export class DatasetsService {
 
   async upload(
     datasetId: string,
-    workspaceId: string,
     fileBuffer: Buffer,
     filename: string,
     mimetype: string,
-    userId: string,
   ): Promise<UploadResult> {
-    const dataset = await this.prisma.dataset.findFirst({ where: { id: datasetId, workspaceId } });
+    const dataset = await this.prisma.dataset.findUnique({ where: { id: datasetId } });
     if (!dataset) throw new NotFoundException('Dataset not found');
 
     const parsed = this.parseFile(fileBuffer, mimetype, filename);
@@ -109,7 +107,12 @@ export class DatasetsService {
       data: { status: 'archived' },
     });
 
-    const storagePath = this.storage.buildKey(workspaceId, datasetId, nextVersion, filename);
+    const storagePath = this.storage.buildKey(
+      dataset.workspaceId,
+      datasetId,
+      nextVersion,
+      filename,
+    );
     await this.storage.upload(storagePath, fileBuffer, mimetype);
 
     const version = await this.prisma.datasetVersion.create({
@@ -124,9 +127,6 @@ export class DatasetsService {
         status: 'latest',
       },
     });
-
-    // Suppress unused variable warning
-    void userId;
 
     return { dataset, version };
   }
@@ -143,10 +143,9 @@ export class DatasetsService {
   async preview(
     datasetId: string,
     versionNumber: number,
-    workspaceId: string,
     limit = 50,
   ): Promise<{ columns: string[]; rows: Record<string, unknown>[] }> {
-    const dataset = await this.prisma.dataset.findFirst({ where: { id: datasetId, workspaceId } });
+    const dataset = await this.prisma.dataset.findUnique({ where: { id: datasetId } });
     if (!dataset) throw new NotFoundException('Dataset not found');
 
     const version = await this.prisma.datasetVersion.findUnique({
@@ -163,13 +162,8 @@ export class DatasetsService {
     };
   }
 
-  async compare(
-    datasetId: string,
-    versionA: number,
-    versionB: number,
-    workspaceId: string,
-  ): Promise<CompareResult> {
-    const dataset = await this.prisma.dataset.findFirst({ where: { id: datasetId, workspaceId } });
+  async compare(datasetId: string, versionA: number, versionB: number): Promise<CompareResult> {
+    const dataset = await this.prisma.dataset.findUnique({ where: { id: datasetId } });
     if (!dataset) throw new NotFoundException('Dataset not found');
 
     const [va, vb] = await Promise.all([
