@@ -25,7 +25,6 @@ export class ApiKeysService {
   constructor(private readonly prisma: PrismaService) {}
 
   private sanitize(key: ApiKey): ApiKeySafe {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { keyHash: _kh, ...safe } = key;
     return safe;
   }
