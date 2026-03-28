@@ -1,10 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { ArrowLeft, Edit, Clock } from 'lucide-react';
+import { ArrowLeft, Edit, Clock, Play } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { promptsApi } from '@/lib/api';
+import { promptsApi, promptDatasetConfigsApi, promptAiConfigsApi } from '@/lib/api';
 import { useWorkspaceStore } from '@/stores/workspace.store';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +17,7 @@ import { AiProviderTab } from '@/components/prompts/AiProviderTab';
 import { EnvironmentsTab } from '@/components/prompts/EnvironmentsTab';
 import { FailoverTab } from '@/components/prompts/FailoverTab';
 import { AnalyticsTab } from '@/components/prompts/AnalyticsTab';
+import { EvaluationWizard } from '@/components/evaluations/EvaluationWizard';
 
 interface Version {
   id: string;
@@ -44,6 +46,7 @@ function promptStatusVariant(status: string): 'success' | 'warning' | 'outline' 
 export default function PromptDetailPage({ params }: { readonly params: { id: string } }) {
   const { id } = params;
   const { activeWorkspace } = useWorkspaceStore();
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   const { data: prompt, isLoading } = useQuery<Prompt>({
     queryKey: ['prompt', id],
@@ -51,6 +54,29 @@ export default function PromptDetailPage({ params }: { readonly params: { id: st
       if (!activeWorkspace) throw new Error('No workspace');
       const res = await promptsApi.get(activeWorkspace.id, id);
       return res.data as Prompt;
+    },
+    enabled: !!activeWorkspace,
+  });
+
+  const { data: datasetName } = useQuery<string | undefined>({
+    queryKey: ['prompt-dataset-config', id],
+    queryFn: async () => {
+      if (!activeWorkspace) return undefined;
+      const res = await promptDatasetConfigsApi.get(activeWorkspace.id, id);
+      const raw = res.data as { dataset?: { name: string } } | null;
+      return raw?.dataset?.name;
+    },
+    enabled: !!activeWorkspace,
+  });
+
+  const { data: providerName } = useQuery<string | undefined>({
+    queryKey: ['prompt-ai-config', id],
+    queryFn: async () => {
+      if (!activeWorkspace) return undefined;
+      const res = await promptAiConfigsApi.get(activeWorkspace.id, id);
+      const list = res.data as { modelName?: string; provider?: { name: string } }[];
+      const cfg = list[0];
+      return cfg?.provider?.name ?? cfg?.modelName;
     },
     enabled: !!activeWorkspace,
   });
@@ -101,6 +127,10 @@ export default function PromptDetailPage({ params }: { readonly params: { id: st
             Updated {formatDistanceToNow(new Date(prompt.updatedAt), { addSuffix: true })}
           </p>
         </div>
+        <Button variant="outline" onClick={() => setWizardOpen(true)}>
+          <Play className="h-4 w-4" />
+          Run Evaluation
+        </Button>
         <Link href={`/prompts/${id}/edit`}>
           <Button>
             <Edit className="h-4 w-4" />
@@ -108,6 +138,17 @@ export default function PromptDetailPage({ params }: { readonly params: { id: st
           </Button>
         </Link>
       </div>
+
+      <EvaluationWizard
+        open={wizardOpen}
+        onClose={() => setWizardOpen(false)}
+        promptId={id}
+        promptName={prompt.name}
+        promptContent={prompt.versions?.[0]?.content ?? ''}
+        promptVersionId={prompt.versions?.[0]?.id ?? ''}
+        datasetName={datasetName}
+        providerName={providerName}
+      />
 
       {/* Purple gradient banner */}
       <div className="rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 p-4 text-white">
