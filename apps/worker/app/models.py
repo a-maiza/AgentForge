@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import Boolean, Float, Integer, String, Text, func
+from sqlalchemy import Boolean, Enum, Float, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, TIMESTAMP, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -23,7 +23,11 @@ class EvaluationJob(Base):
     model_name: Mapped[str] = mapped_column(Text, nullable=False)
     model_config: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     metrics: Mapped[list[str] | None] = mapped_column(ARRAY(Text), nullable=True)
-    status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending")
+    status: Mapped[str] = mapped_column(
+        Enum("pending", "running", "completed", "failed", "cancelled", name="eval_job_status", create_type=False),
+        nullable=False,
+        default="pending",
+    )
     progress: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     grade: Mapped[str | None] = mapped_column(String(10), nullable=True)
     started_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True), nullable=True)
@@ -104,12 +108,7 @@ class PromptDatasetConfig(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
     prompt_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
-    dataset_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
-    dataset_version_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    dataset_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    dataset_version_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     variable_mapping: Mapped[dict[str, str] | None] = mapped_column(JSONB, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
-    )
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
