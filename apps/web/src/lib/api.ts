@@ -97,8 +97,8 @@ export const datasetsApi = {
       onUploadProgress: (e) => onProgress?.(Math.round((e.loaded * 100) / (e.total ?? 1))),
     });
   },
-  preview: (id: string, versionId: string) =>
-    api.get(`/api/datasets/${id}/versions/${versionId}/preview`),
+  preview: (id: string, versionNumber: number) =>
+    api.get(`/api/datasets/${id}/versions/${versionNumber}/preview`),
   compare: (id: string, v1: string, v2: string) =>
     api.post(`/api/datasets/${id}/versions/compare`, { versionId1: v1, versionId2: v2 }),
   versions: (workspaceId: string, id: string) =>

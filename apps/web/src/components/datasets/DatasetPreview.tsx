@@ -18,7 +18,7 @@ interface PreviewData {
 
 interface Props {
   datasetId: string;
-  versionId: string;
+  versionNumber: number;
 }
 
 const typeColor: Record<string, 'default' | 'secondary' | 'outline'> = {
@@ -28,14 +28,14 @@ const typeColor: Record<string, 'default' | 'secondary' | 'outline'> = {
   integer: 'default',
 };
 
-export function DatasetPreview({ datasetId, versionId }: Props) {
+export function DatasetPreview({ datasetId, versionNumber }: Props) {
   const { data, isLoading } = useQuery<PreviewData>({
-    queryKey: ['dataset-preview', datasetId, versionId],
+    queryKey: ['dataset-preview', datasetId, versionNumber],
     queryFn: async () => {
-      const res = await datasetsApi.preview(datasetId, versionId);
+      const res = await datasetsApi.preview(datasetId, versionNumber);
       return res.data as PreviewData;
     },
-    enabled: !!datasetId && !!versionId,
+    enabled: !!datasetId && !!versionNumber,
   });
 
   if (isLoading) {

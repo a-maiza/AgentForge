@@ -113,7 +113,7 @@ export default function DatasetDetailPage({ params }: { params: { id: string } }
             </CardHeader>
             <CardContent>
               {latestVersion ? (
-                <DatasetPreview datasetId={id} versionId={latestVersion.id} />
+                <DatasetPreview datasetId={id} versionNumber={latestVersion.versionNumber} />
               ) : (
                 <p className="text-sm text-muted-foreground">No versions available yet.</p>
               )}
