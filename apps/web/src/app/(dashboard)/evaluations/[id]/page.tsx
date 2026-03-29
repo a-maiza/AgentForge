@@ -260,9 +260,7 @@ export default function EvaluationDetailPage({ params }: { params: { id: string 
                     )}
                   </div>
                   {r.grade === 'N/A' ? (
-                    <p className="text-xs text-amber-600 italic">
-                      {naReason(r.details?.reason)}
-                    </p>
+                    <p className="text-xs text-amber-600 italic">{naReason(r.details?.reason)}</p>
                   ) : (
                     <>
                       <Progress value={r.score * 100} />

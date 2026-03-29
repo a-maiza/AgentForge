@@ -64,7 +64,9 @@ export function EvaluationWizard({
   });
 
   // Auto-suggest metrics when wizard opens
-  const { data: autoSuggestions, isLoading: isSuggesting } = useQuery<{ suggestions: Suggestion[] }>({
+  const { data: autoSuggestions, isLoading: isSuggesting } = useQuery<{
+    suggestions: Suggestion[];
+  }>({
     queryKey: ['metric-suggestions', promptVersionId],
     queryFn: async () => {
       const res = await metricsApi.suggest(promptContent, 5);
