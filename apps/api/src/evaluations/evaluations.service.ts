@@ -157,4 +157,13 @@ export class EvaluationsService {
       data: { status: 'cancelled' },
     });
   }
+
+  async remove(id: string): Promise<void> {
+    const job = await this.prisma.evaluationJob.findUnique({ where: { id } });
+    if (!job) throw new NotFoundException('Evaluation job not found');
+    // Remove from queue if still pending/running
+    const bullJob = await this.queue.getJob(id);
+    if (bullJob) await bullJob.remove();
+    await this.prisma.evaluationJob.delete({ where: { id } });
+  }
 }

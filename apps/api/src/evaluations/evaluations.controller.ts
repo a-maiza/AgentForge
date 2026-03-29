@@ -37,9 +37,15 @@ export class EvaluationsController {
     return this.evaluations.create(dto, req.user.id);
   }
 
-  @Delete(':id')
+  @Post(':id/cancel')
   @HttpCode(HttpStatus.OK)
   cancel(@Param('id') id: string) {
     return this.evaluations.cancel(id);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(@Param('id') id: string) {
+    return this.evaluations.remove(id);
   }
 }
