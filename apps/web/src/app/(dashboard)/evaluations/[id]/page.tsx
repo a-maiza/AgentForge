@@ -44,14 +44,6 @@ interface EvaluationJob {
   datasetName?: string;
   createdAt: string;
   duration?: number;
-  accuracy?: number;
-  processingSpeed?: number;
-  latencyP50?: number;
-  consistency?: number;
-  costPer1k?: number;
-  totalTokens?: number;
-  carbonFootprint?: number;
-  powerConsumption?: number;
   results?: EvaluationResult[];
 }
 
@@ -73,17 +65,6 @@ const GRADE_CLASSES: Record<string, string> = {
   D: 'bg-orange-100 text-orange-800 border-orange-200',
   F: 'bg-red-100 text-red-800 border-red-200',
 };
-
-function StatCard({ label, value }: { label: string; value: string | number | undefined }) {
-  return (
-    <Card>
-      <CardContent className="pt-4 pb-3">
-        <p className="text-xl font-bold">{value ?? '—'}</p>
-        <p className="text-xs text-muted-foreground">{label}</p>
-      </CardContent>
-    </Card>
-  );
-}
 
 export default function EvaluationDetailPage({ params }: { params: { id: string } }) {
   const { id } = params;
@@ -243,25 +224,8 @@ export default function EvaluationDetailPage({ params }: { params: { id: string 
         </CardContent>
       </Card>
 
-      {/* Performance Metrics */}
-      <div>
-        <h2 className="text-base font-semibold mb-3">Performance Metrics</h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatCard
-            label="Accuracy"
-            value={job.accuracy !== undefined ? `${job.accuracy}%` : undefined}
-          />
-          <StatCard label="Processing Speed (tok/s)" value={job.processingSpeed} />
-          <StatCard label="Latency p50 (ms)" value={job.latencyP50} />
-          <StatCard
-            label="Consistency"
-            value={job.consistency !== undefined ? `${job.consistency}%` : undefined}
-          />
-        </div>
-      </div>
-
-      {/* Evaluation Metrics Results */}
-      {job.results && job.results.length > 0 && (
+      {/* Evaluation Metrics — dynamic, one card per selected metric */}
+      {job.results && job.results.length > 0 ? (
         <div>
           <h2 className="text-base font-semibold mb-3">Evaluation Metrics</h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -269,7 +233,9 @@ export default function EvaluationDetailPage({ params }: { params: { id: string 
               <Card key={r.id}>
                 <CardContent className="pt-4 space-y-2">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium">{r.metricName}</p>
+                    <p className="text-sm font-medium capitalize">
+                      {r.metricName.replace(/_/g, ' ')}
+                    </p>
                     {r.grade && (
                       <span
                         className={cn(
@@ -290,21 +256,11 @@ export default function EvaluationDetailPage({ params }: { params: { id: string 
             ))}
           </div>
         </div>
-      )}
-
-      {/* Cost & Carbon */}
-      <div>
-        <h2 className="text-base font-semibold mb-3">Cost &amp; Carbon</h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatCard
-            label="Cost per 1k outputs"
-            value={job.costPer1k !== undefined ? `$${job.costPer1k.toFixed(4)}` : undefined}
-          />
-          <StatCard label="Total tokens" value={job.totalTokens?.toLocaleString()} />
-          <StatCard label="Carbon footprint (gCO₂)" value={job.carbonFootprint} />
-          <StatCard label="Power consumption (Wh)" value={job.powerConsumption} />
+      ) : job.status === 'completed' ? (
+        <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
+          No metric results recorded for this evaluation.
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }
