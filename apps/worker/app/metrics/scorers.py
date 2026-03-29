@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from app.metrics.carbon import estimate_carbon, estimate_power
+from app.metrics.cost import cost_per_1m_tokens
 from app.metrics.grade import compute_grade
 
 
@@ -76,6 +78,36 @@ def compute_f1(predictions: list[str], references: list[str]) -> MetricResult:
         score=avg_f1,
         grade=compute_grade(avg_f1),
         details={"f1": avg_f1, "precision": avg_prec, "recall": avg_rec, "n": len(predictions)},
+    )
+
+
+def compute_precision(predictions: list[str], references: list[str]) -> MetricResult:
+    """Compute token-level precision averaged across all pairs."""
+    precision_scores = []
+    for pred, ref in zip(predictions, references, strict=False):
+        _, prec, _ = _token_f1_precision_recall(pred, ref)
+        precision_scores.append(prec)
+    score = float(np.mean(precision_scores)) if precision_scores else 0.0
+    return MetricResult(
+        name="precision",
+        score=score,
+        grade=compute_grade(score),
+        details={"precision": score, "n": len(predictions)},
+    )
+
+
+def compute_recall(predictions: list[str], references: list[str]) -> MetricResult:
+    """Compute token-level recall averaged across all pairs."""
+    recall_scores = []
+    for pred, ref in zip(predictions, references, strict=False):
+        _, _, rec = _token_f1_precision_recall(pred, ref)
+        recall_scores.append(rec)
+    score = float(np.mean(recall_scores)) if recall_scores else 0.0
+    return MetricResult(
+        name="recall",
+        score=score,
+        grade=compute_grade(score),
+        details={"recall": score, "n": len(predictions)},
     )
 
 
@@ -165,6 +197,58 @@ def compute_accuracy(predictions: list[str], references: list[str]) -> MetricRes
     )
 
 
+def compute_fluency(predictions: list[str]) -> MetricResult:
+    """Approximate fluency as avg normalised word count per sentence.
+
+    Heuristic: longer, well-formed sentences → higher fluency proxy.
+    Score = min(1.0, avg_words / 20) — a 20-word response is considered fully fluent.
+    """
+    if not predictions:
+        return MetricResult(name="fluency_score", score=0.0, grade="F", details={"n": 0})
+    word_counts = [len(_tokenize(p)) for p in predictions]
+    avg_words = float(np.mean(word_counts))
+    score = min(1.0, avg_words / 20.0)
+    return MetricResult(
+        name="fluency_score",
+        score=score,
+        grade=compute_grade(score),
+        details={"avg_words": avg_words, "n": len(predictions)},
+    )
+
+
+def compute_grammar(predictions: list[str]) -> MetricResult:
+    """Approximate grammar score as ratio of non-empty, punctuated responses.
+
+    Heuristic: response ends with sentence-ending punctuation → syntactically complete.
+    """
+    if not predictions:
+        return MetricResult(name="grammar_score", score=0.0, grade="F", details={"n": 0})
+    punctuated = sum(1 for p in predictions if p.strip() and p.strip()[-1] in ".!?")
+    score = punctuated / len(predictions)
+    return MetricResult(
+        name="grammar_score",
+        score=score,
+        grade=compute_grade(score),
+        details={"punctuated": punctuated, "total": len(predictions)},
+    )
+
+
+def compute_response_variance(predictions: list[str]) -> MetricResult:
+    """Compute response length variance, normalised to 0-1 (lower variance = higher score)."""
+    if not predictions:
+        return MetricResult(name="response_variance", score=0.0, grade="F", details={"n": 0})
+    lengths = [len(_tokenize(p)) for p in predictions]
+    std = float(np.std(lengths)) if len(lengths) > 1 else 0.0
+    # Normalize: std=0 → score=1.0 (perfectly consistent), std>=20 → score=0.0
+    score = max(0.0, 1.0 - std / 20.0)
+    return MetricResult(
+        name="response_variance",
+        score=score,
+        grade=compute_grade(score),
+        details={"std_words": std, "mean_words": float(np.mean(lengths)), "n": len(predictions)},
+    )
+
+
 def compute_perplexity(scores: list[float]) -> MetricResult:
     """Compute perplexity from avg log-probs per token.
 
@@ -232,8 +316,16 @@ def compute_processing_speed(total_tokens: int, total_seconds: float) -> float:
 # Aggregate compute_metrics
 # ---------------------------------------------------------------------------
 
-_QUALITY_METRICS = {"exact_match", "f1", "bleu", "rouge", "bertscore", "accuracy"}
-_METRIC_NEEDS_REFS = {"exact_match", "f1", "bleu", "rouge", "bertscore", "accuracy"}
+_METRIC_NEEDS_REFS = {
+    "exact_match",
+    "f1",
+    "precision",
+    "recall",
+    "bleu",
+    "rouge",
+    "bertscore",
+    "accuracy",
+}
 
 
 def compute_metrics(
@@ -245,6 +337,9 @@ def compute_metrics(
     latencies_s: list[float],
     total_tokens: int,
     total_seconds: float,
+    total_input_tokens: int = 0,
+    total_output_tokens: int = 0,
+    model_name: str = "",
 ) -> list[MetricResult]:
     """Compute all requested metrics and return results."""
     results: list[MetricResult] = []
@@ -252,6 +347,7 @@ def compute_metrics(
     for metric in metric_names:
         name = metric.lower()
 
+        # --- Reference-based quality metrics ---
         if name in _METRIC_NEEDS_REFS:
             if references is None or len(references) == 0:
                 continue
@@ -259,6 +355,10 @@ def compute_metrics(
                 results.append(compute_exact_match(predictions, references))
             elif name == "f1":
                 results.append(compute_f1(predictions, references))
+            elif name == "precision":
+                results.append(compute_precision(predictions, references))
+            elif name == "recall":
+                results.append(compute_recall(predictions, references))
             elif name == "bleu":
                 results.append(compute_bleu(predictions, references))
             elif name == "rouge":
@@ -268,18 +368,28 @@ def compute_metrics(
             elif name == "accuracy":
                 results.append(compute_accuracy(predictions, references))
 
+        # --- Coherence / style (no refs needed) ---
+        elif name == "fluency_score":
+            results.append(compute_fluency(predictions))
+
+        elif name == "grammar_score":
+            results.append(compute_grammar(predictions))
+
         elif name == "perplexity":
             if log_probs is not None:
                 results.append(compute_perplexity(log_probs))
 
+        # --- Consistency ---
         elif name == "consistency_score":
             if consistency_similarities is not None:
                 results.append(compute_consistency(consistency_similarities))
 
+        elif name == "response_variance":
+            results.append(compute_response_variance(predictions))
+
+        # --- Speed ---
         elif name == "latency":
             percentiles = compute_latency_percentiles(latencies_s)
-            # Normalize: use a reference of 5s for p90 → score 0.5; lower is better
-            # Score = max(0, 1 - p90 / 10) so p90=0 → 1.0, p90=10 → 0.0
             p90 = percentiles["p90"]
             score = max(0.0, 1.0 - p90 / 10.0)
             results.append(
@@ -293,7 +403,6 @@ def compute_metrics(
 
         elif name == "throughput":
             speed = compute_processing_speed(total_tokens, total_seconds)
-            # Normalize to 0-1: reference = 1000 tok/s → score 1.0
             score = min(1.0, speed / 1000.0)
             results.append(
                 MetricResult(
@@ -301,6 +410,129 @@ def compute_metrics(
                     score=score,
                     grade=compute_grade(score),
                     details={"tokens_per_second": speed},
+                )
+            )
+
+        # --- Performance / token counts ---
+        elif name == "eval_duration":
+            score = max(0.0, 1.0 - total_seconds / 300.0)  # 300s reference
+            results.append(
+                MetricResult(
+                    name="eval_duration",
+                    score=score,
+                    grade=compute_grade(score),
+                    details={"duration_seconds": total_seconds},
+                )
+            )
+
+        elif name == "input_tokens":
+            avg = total_input_tokens / len(predictions) if predictions else 0.0
+            score = max(0.0, 1.0 - avg / 4096.0)  # 4096 token reference
+            results.append(
+                MetricResult(
+                    name="input_tokens",
+                    score=score,
+                    grade=compute_grade(score),
+                    details={"total_input_tokens": total_input_tokens, "avg_per_row": avg},
+                )
+            )
+
+        elif name == "output_tokens":
+            avg = total_output_tokens / len(predictions) if predictions else 0.0
+            score = min(1.0, avg / 256.0)  # 256 tokens = full response
+            results.append(
+                MetricResult(
+                    name="output_tokens",
+                    score=score,
+                    grade=compute_grade(score),
+                    details={"total_output_tokens": total_output_tokens, "avg_per_row": avg},
+                )
+            )
+
+        # --- Cost ---
+        elif name == "cost_estimate":
+            input_price, output_price = cost_per_1m_tokens(model_name)
+            cost = (
+                total_input_tokens * input_price + total_output_tokens * output_price
+            ) / 1_000_000
+            # Normalize: $0.01 per eval = score 1.0, $1.00 = score 0.0
+            score = max(0.0, 1.0 - cost / 1.0)
+            results.append(
+                MetricResult(
+                    name="cost_estimate",
+                    score=score,
+                    grade=compute_grade(score),
+                    details={
+                        "cost_usd": cost,
+                        "input_tokens": total_input_tokens,
+                        "output_tokens": total_output_tokens,
+                    },
+                )
+            )
+
+        elif name == "cost_per_request":
+            input_price, output_price = cost_per_1m_tokens(model_name)
+            total_cost = (
+                total_input_tokens * input_price + total_output_tokens * output_price
+            ) / 1_000_000
+            n = len(predictions) if predictions else 1
+            cost_per_req = total_cost / n
+            score = max(0.0, 1.0 - cost_per_req / 0.01)  # $0.01/request = score 0.0
+            results.append(
+                MetricResult(
+                    name="cost_per_request",
+                    score=score,
+                    grade=compute_grade(score),
+                    details={"cost_per_request_usd": cost_per_req, "n_requests": n},
+                )
+            )
+
+        # --- Composite ---
+        elif name == "overall_efficiency":
+            input_price, output_price = cost_per_1m_tokens(model_name)
+            cost = (
+                total_input_tokens * input_price + total_output_tokens * output_price
+            ) / 1_000_000
+            speed = compute_processing_speed(total_tokens, total_seconds)
+            # quality proxy: average of ref-based scores already computed
+            quality_scores = [r.score for r in results if r.name in _METRIC_NEEDS_REFS]
+            quality = float(np.mean(quality_scores)) if quality_scores else 0.5
+            cost_norm = max(0.0, 1.0 - cost / 1.0)
+            speed_norm = min(1.0, speed / 1000.0)
+            score = (quality + cost_norm + speed_norm) / 3.0
+            results.append(
+                MetricResult(
+                    name="overall_efficiency",
+                    score=score,
+                    grade=compute_grade(score),
+                    details={"quality": quality, "cost_norm": cost_norm, "speed_norm": speed_norm},
+                )
+            )
+
+        # --- Sustainability ---
+        elif name == "carbon_footprint":
+            carbon = estimate_carbon(total_tokens)
+            # Normalize: 1 gCO2 = score 0.0, 0 gCO2 = score 1.0; reference 1g
+            score = max(0.0, 1.0 - carbon / 1.0)
+            results.append(
+                MetricResult(
+                    name="carbon_footprint",
+                    score=score,
+                    grade=compute_grade(score),
+                    details={"carbon_g_co2": carbon, "total_tokens": total_tokens},
+                )
+            )
+
+        elif name == "power_consumption":
+            power = estimate_power(total_tokens)
+            # Normalize: 0.35 mWh/1k tokens; reference 1 mWh = score 0.0
+            score = max(0.0, 1.0 - power / 1.0)
+            results.append(
+                MetricResult(
+                    name="power_consumption",
+                    score=score,
+                    grade=compute_grade(score),
+                    details={"power_mwh": power, "total_tokens": total_tokens},
                 )
             )
 
