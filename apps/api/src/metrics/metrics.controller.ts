@@ -18,31 +18,49 @@ interface SuggestBody {
   topN?: number;
 }
 
-// IDs must match the metric names recognised by apps/worker/app/metrics/scorers.py
+// Note: IDs for worker-computed metrics must match names in apps/worker/app/metrics/scorers.py
 const METRICS_CATALOGUE: Metric[] = [
+  {
+    id: 'accuracy',
+    name: 'Accuracy',
+    category: 'Quality',
+    description: 'Overall correct response rate',
+  },
   {
     id: 'exact_match',
     name: 'Exact Match (EM)',
     category: 'Quality',
-    description: '% of exactly correct responses (requires reference column in dataset)',
+    description: '% of exactly correct responses',
   },
   {
     id: 'f1',
     name: 'F1-Score',
     category: 'Quality',
-    description: 'Token-level F1 between prediction and reference',
+    description: 'Balance between precision and recall',
+  },
+  {
+    id: 'precision',
+    name: 'Precision',
+    category: 'Quality',
+    description: 'Correct positive predictions ratio',
+  },
+  {
+    id: 'recall',
+    name: 'Recall',
+    category: 'Quality',
+    description: 'Ability to find all positive instances',
   },
   {
     id: 'bleu',
     name: 'BLEU',
     category: 'Quality',
-    description: 'N-gram overlap score (requires reference column)',
+    description: 'N-gram overlap score',
   },
   {
     id: 'rouge',
     name: 'ROUGE',
     category: 'Quality',
-    description: 'Recall-oriented overlap score (requires reference column)',
+    description: 'Recall-oriented overlap score',
   },
   {
     id: 'bertscore',
@@ -51,34 +69,94 @@ const METRICS_CATALOGUE: Metric[] = [
     description: 'Semantic similarity using sentence embeddings',
   },
   {
-    id: 'accuracy',
-    name: 'Accuracy',
-    category: 'Quality',
-    description: 'Overall correct response rate',
+    id: 'fluency_score',
+    name: 'Fluency Score',
+    category: 'Coherence',
+    description: 'Grammar and readability',
+  },
+  {
+    id: 'grammar_score',
+    name: 'Grammar Score',
+    category: 'Coherence',
+    description: 'Syntactic correctness',
   },
   {
     id: 'perplexity',
     name: 'Perplexity',
     category: 'Coherence',
-    description: 'Model confidence measure (requires log-prob support)',
+    description: 'Model confidence measure',
   },
   {
     id: 'consistency_score',
     name: 'Consistency Score',
     category: 'Consistency',
-    description: 'Output stability across repeated runs (slower — adds extra LLM calls)',
+    description: 'Output stability across runs',
+  },
+  {
+    id: 'response_variance',
+    name: 'Response Variance',
+    category: 'Consistency',
+    description: 'Standard deviation of outputs',
+  },
+  {
+    id: 'cost_estimate',
+    name: 'Cost Estimate',
+    category: 'Cost',
+    description: 'Estimated cost per evaluation',
+  },
+  {
+    id: 'cost_per_request',
+    name: 'Cost per Request',
+    category: 'Performance',
+    description: 'Average cost per API call',
+  },
+  {
+    id: 'eval_duration',
+    name: 'Eval Duration',
+    category: 'Performance',
+    description: 'Total evaluation time',
+  },
+  {
+    id: 'input_tokens',
+    name: 'Input Tokens',
+    category: 'Performance',
+    description: 'Average input token count',
+  },
+  {
+    id: 'output_tokens',
+    name: 'Output Tokens',
+    category: 'Performance',
+    description: 'Average output token count',
+  },
+  {
+    id: 'overall_efficiency',
+    name: 'Overall Efficiency Score',
+    category: 'Composite',
+    description: 'Quality/cost ratio',
   },
   {
     id: 'latency',
     name: 'Latency (p50/p90/p99)',
     category: 'Speed',
-    description: 'Response time percentiles in milliseconds',
+    description: 'Response time percentiles',
   },
   {
     id: 'throughput',
     name: 'Processing Speed',
     category: 'Speed',
-    description: 'Tokens per second across all rows',
+    description: 'Tokens per second',
+  },
+  {
+    id: 'carbon_footprint',
+    name: 'Carbon Footprint',
+    category: 'Sustainability',
+    description: 'gCO2 per 1000 tokens',
+  },
+  {
+    id: 'power_consumption',
+    name: 'Power Consumption',
+    category: 'Sustainability',
+    description: 'mWh per 1000 tokens',
   },
 ];
 
