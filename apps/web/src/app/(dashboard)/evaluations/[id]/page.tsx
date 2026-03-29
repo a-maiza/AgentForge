@@ -1,10 +1,23 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import Link from 'next/link';
-import { ArrowLeft, AlertCircle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, AlertCircle, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { toast } from 'sonner';
 import { evaluationsApi } from '@/lib/api';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -74,6 +87,17 @@ function StatCard({ label, value }: { label: string; value: string | number | un
 
 export default function EvaluationDetailPage({ params }: { params: { id: string } }) {
   const { id } = params;
+  const router = useRouter();
+  const [deleteOpen, setDeleteOpen] = useState(false);
+
+  const deleteMutation = useMutation({
+    mutationFn: () => evaluationsApi.remove(id),
+    onSuccess: () => {
+      toast.success('Evaluation deleted');
+      router.push('/evaluations');
+    },
+    onError: () => toast.error('Failed to delete evaluation'),
+  });
 
   const { data: job, isLoading } = useQuery<EvaluationJob>({
     queryKey: ['evaluation', id],
@@ -138,7 +162,38 @@ export default function EvaluationDetailPage({ params }: { params: { id: string 
             Created {formatDistanceToNow(new Date(job.createdAt), { addSuffix: true })}
           </p>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+          onClick={() => setDeleteOpen(true)}
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete
+        </Button>
       </div>
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete evaluation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this evaluation and all its results. This action cannot
+              be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deleteMutation.mutate()}
+              disabled={deleteMutation.isPending}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Progress bar (if running) */}
       {job.status === 'running' && (
