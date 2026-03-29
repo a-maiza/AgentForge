@@ -29,7 +29,8 @@ interface EvaluationResult {
   id: string;
   metricName: string;
   score: number;
-  grade: string;
+  grade: string | null;
+  details?: { reason?: string };
 }
 
 interface EvaluationJob {
@@ -56,6 +57,15 @@ const STATUS_VARIANTS: Record<
   completed: 'success',
   failed: 'destructive',
 };
+
+function naReason(reason: string | undefined): string {
+  if (reason === 'no_reference_column')
+    return 'Requires a reference column in your dataset (expected, answer, label…)';
+  if (reason === 'no_log_probs') return 'Model did not return log-probabilities';
+  if (reason === 'consistency_not_requested')
+    return 'Select Consistency Score to enable multi-run comparison';
+  return 'Not computed for this run';
+}
 
 const GRADE_CLASSES: Record<string, string> = {
   'A+': 'bg-emerald-100 text-emerald-800 border-emerald-200',
@@ -240,17 +250,27 @@ export default function EvaluationDetailPage({ params }: { params: { id: string 
                       <span
                         className={cn(
                           'inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-bold',
-                          GRADE_CLASSES[r.grade] ?? 'bg-muted',
+                          r.grade === 'N/A'
+                            ? 'bg-muted text-muted-foreground border-muted-foreground/30'
+                            : (GRADE_CLASSES[r.grade] ?? 'bg-muted'),
                         )}
                       >
                         {r.grade}
                       </span>
                     )}
                   </div>
-                  <Progress value={r.score * 100} />
-                  <p className="text-xs text-muted-foreground text-right">
-                    {(r.score * 100).toFixed(1)}%
-                  </p>
+                  {r.grade === 'N/A' ? (
+                    <p className="text-xs text-amber-600 italic">
+                      {naReason(r.details?.reason)}
+                    </p>
+                  ) : (
+                    <>
+                      <Progress value={r.score * 100} />
+                      <p className="text-xs text-muted-foreground text-right">
+                        {(r.score * 100).toFixed(1)}%
+                      </p>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             ))}
