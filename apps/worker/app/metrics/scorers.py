@@ -350,6 +350,14 @@ def compute_metrics(
         # --- Reference-based quality metrics ---
         if name in _METRIC_NEEDS_REFS:
             if references is None or len(references) == 0:
+                results.append(
+                    MetricResult(
+                        name=name,
+                        score=0.0,
+                        grade="N/A",
+                        details={"reason": "no_reference_column"},
+                    )
+                )
                 continue
             if name == "exact_match":
                 results.append(compute_exact_match(predictions, references))
@@ -378,11 +386,29 @@ def compute_metrics(
         elif name == "perplexity":
             if log_probs is not None:
                 results.append(compute_perplexity(log_probs))
+            else:
+                results.append(
+                    MetricResult(
+                        name="perplexity",
+                        score=0.0,
+                        grade="N/A",
+                        details={"reason": "no_log_probs"},
+                    )
+                )
 
         # --- Consistency ---
         elif name == "consistency_score":
             if consistency_similarities is not None:
                 results.append(compute_consistency(consistency_similarities))
+            else:
+                results.append(
+                    MetricResult(
+                        name="consistency_score",
+                        score=0.0,
+                        grade="N/A",
+                        details={"reason": "consistency_not_requested"},
+                    )
+                )
 
         elif name == "response_variance":
             results.append(compute_response_variance(predictions))

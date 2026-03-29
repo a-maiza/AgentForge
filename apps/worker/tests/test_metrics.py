@@ -368,7 +368,12 @@ class TestComputeMetrics:
             total_tokens=50,
             total_seconds=0.5,
         )
-        assert results == []
+        # Metrics without references now return N/A results instead of being skipped
+        assert len(results) == 4
+        for r in results:
+            assert r.grade == "N/A"
+            assert r.score == 0.0
+            assert r.details == {"reason": "no_reference_column"}
 
     def test_latency_metric(self) -> None:
         results = compute_metrics(

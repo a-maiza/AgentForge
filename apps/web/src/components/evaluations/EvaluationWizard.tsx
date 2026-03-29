@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { Sparkles, CheckCircle2, AlertTriangle, ChevronRight, ChevronLeft } from 'lucide-react';
@@ -62,6 +62,26 @@ export function EvaluationWizard({
       return res.data as { id: string; name: string }[];
     },
   });
+
+  // Auto-suggest metrics when wizard opens
+  const { data: autoSuggestions, isLoading: isSuggesting } = useQuery<{
+    suggestions: Suggestion[];
+  }>({
+    queryKey: ['metric-suggestions', promptVersionId],
+    queryFn: async () => {
+      const res = await metricsApi.suggest(promptContent, 5);
+      return res.data as { suggestions: Suggestion[] };
+    },
+    enabled: open && !!promptContent,
+    staleTime: Infinity,
+  });
+
+  useEffect(() => {
+    if (autoSuggestions?.suggestions && selectedMetrics.length === 0) {
+      setSuggestions(autoSuggestions.suggestions);
+      setSelectedMetrics(autoSuggestions.suggestions.map((s) => s.metric));
+    }
+  }, [autoSuggestions]); // eslint-disable-line
 
   const toggleMetric = (id: string) => {
     setSelectedMetrics((prev) =>
@@ -140,13 +160,20 @@ export function EvaluationWizard({
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                {selectedMetrics.length} metric(s) selected
+                {isSuggesting ? (
+                  <span className="flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5 animate-pulse text-primary" />
+                    AI is selecting metrics…
+                  </span>
+                ) : (
+                  `${selectedMetrics.length} metric(s) selected`
+                )}
               </p>
               <Button
                 size="sm"
                 variant="outline"
                 onClick={handleGetSuggestions}
-                disabled={loadingSuggestions}
+                disabled={loadingSuggestions || isSuggesting}
               >
                 {loadingSuggestions ? (
                   <Skeleton className="h-4 w-24" />
