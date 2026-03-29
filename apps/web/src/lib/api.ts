@@ -137,7 +137,8 @@ export const evaluationsApi = {
     api.get('/api/evaluations', { params }),
   get: (id: string) => api.get(`/api/evaluations/${id}`),
   create: (data: Record<string, unknown>) => api.post('/api/evaluations', data),
-  cancel: (id: string) => api.delete(`/api/evaluations/${id}`),
+  cancel: (id: string) => api.post(`/api/evaluations/${id}/cancel`),
+  remove: (id: string) => api.delete(`/api/evaluations/${id}`),
 };
 
 // Metrics

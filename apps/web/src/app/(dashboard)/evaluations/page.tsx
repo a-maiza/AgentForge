@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { Search, RefreshCw } from 'lucide-react';
+import { Search, RefreshCw, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { toast } from 'sonner';
 import { evaluationsApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +20,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 
 interface EvaluationJob {
@@ -70,9 +81,21 @@ function StatCard({ label, value }: { label: string; value: number }) {
 
 export default function EvaluationsPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => evaluationsApi.remove(id),
+    onSuccess: () => {
+      toast.success('Evaluation deleted');
+      void queryClient.invalidateQueries({ queryKey: ['evaluations'] });
+      setDeleteId(null);
+    },
+    onError: () => toast.error('Failed to delete evaluation'),
+  });
 
   const { data: response, isLoading } = useQuery<EvaluationList>({
     queryKey: ['evaluations', statusFilter],
@@ -180,6 +203,7 @@ export default function EvaluationsPage() {
                 <th className="p-3 text-left font-medium w-32">Progress</th>
                 <th className="p-3 text-left font-medium">Grade</th>
                 <th className="p-3 text-left font-medium">Created</th>
+                <th className="p-3 w-10" />
               </tr>
             </thead>
             <tbody>
@@ -224,12 +248,47 @@ export default function EvaluationsPage() {
                   <td className="p-3 text-xs text-muted-foreground whitespace-nowrap">
                     {formatDistanceToNow(new Date(job.createdAt), { addSuffix: true })}
                   </td>
+                  <td className="p-3">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteId(job.id);
+                      }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
+
+      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete evaluation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the evaluation and all its results. This action cannot be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deleteId && deleteMutation.mutate(deleteId)}
+              disabled={deleteMutation.isPending}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
