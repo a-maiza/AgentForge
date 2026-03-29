@@ -118,7 +118,10 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://agentforge:agentforge@postgres:5432/agentforge
       REDIS_URL: redis://redis:6379
-      S3_ENDPOINT: http://minio:9000
+      AWS_ENDPOINT_URL: http://minio:9000
+      USE_MINIO: 'true'
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
     depends_on:
       postgres:
         condition: service_healthy
