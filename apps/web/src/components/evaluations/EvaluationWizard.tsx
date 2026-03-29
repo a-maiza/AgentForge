@@ -79,7 +79,7 @@ export function EvaluationWizard({
       setSuggestions(autoSuggestions.suggestions);
       setSelectedMetrics(autoSuggestions.suggestions.map((s) => s.metric));
     }
-  }, [autoSuggestions]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [autoSuggestions]); // eslint-disable-line
 
   const toggleMetric = (id: string) => {
     setSelectedMetrics((prev) =>
