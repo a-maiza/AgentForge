@@ -216,6 +216,11 @@ async def _run_job(
         final_log_probs: list[float] | None = log_probs if log_probs else None
         final_references: list[str] | None = references if has_references else None
 
+        total_input_tokens = sum(r.input_tokens for r in row_results)
+        total_output_tokens = sum(r.output_tokens for r in row_results)
+        estimated_cost = estimate_cost(job.model_name, total_input_tokens, total_output_tokens)
+        logger.info("Job %s estimated cost: $%.6f", job_id, estimated_cost)
+
         metric_results: list[MetricResult] = compute_metrics(
             metric_names=requested_metrics,
             predictions=predictions,
@@ -225,13 +230,10 @@ async def _run_job(
             latencies_s=latencies_s,
             total_tokens=total_tokens,
             total_seconds=total_seconds,
+            total_input_tokens=total_input_tokens,
+            total_output_tokens=total_output_tokens,
+            model_name=job.model_name,
         )
-
-        # Compute cost/carbon as extra details (not stored as separate metrics by default)
-        total_input_tokens = sum(r.input_tokens for r in row_results)
-        total_output_tokens = sum(r.output_tokens for r in row_results)
-        estimated_cost = estimate_cost(job.model_name, total_input_tokens, total_output_tokens)
-        logger.info("Job %s estimated cost: $%.6f", job_id, estimated_cost)
 
         # 9. Insert EvaluationResult rows
         for mr in metric_results:
