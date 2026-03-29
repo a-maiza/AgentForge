@@ -103,18 +103,6 @@ export class EvaluationsService {
       duration = Math.round((job.completedAt.getTime() - job.startedAt.getTime()) / 1000);
     }
 
-    // Extract display metrics from stored EvaluationResult rows
-    type ResultRow = { metricName: string; score: number; details: unknown };
-    const results = job.results as ResultRow[];
-    const getScore = (name: string) => results.find((r) => r.metricName === name)?.score;
-    const getDetails = (name: string) =>
-      results.find((r) => r.metricName === name)?.details as Record<string, number> | undefined;
-
-    const accuracyScore = getScore('accuracy') ?? getScore('exact_match');
-    const consistencyScore = getScore('consistency_score');
-    const latencyDetails = getDetails('latency');
-    const throughputDetails = getDetails('throughput');
-
     return {
       ...job,
       promptName: job.prompt?.name,
@@ -122,15 +110,6 @@ export class EvaluationsService {
       providerName: job.provider?.name,
       datasetName: job.dataset?.name,
       duration,
-      accuracy: accuracyScore !== undefined ? Math.round(accuracyScore * 100) : undefined,
-      processingSpeed:
-        throughputDetails?.tokens_per_second !== undefined
-          ? Math.round(throughputDetails.tokens_per_second)
-          : undefined,
-      latencyP50:
-        latencyDetails?.p50 !== undefined ? Math.round(latencyDetails.p50 * 1000) : undefined,
-      consistency:
-        consistencyScore !== undefined ? Math.round(consistencyScore * 100) : undefined,
     };
   }
 
