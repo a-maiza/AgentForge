@@ -73,7 +73,8 @@ export class AgentsController {
   saveWorkflow(
     @Param('workspaceId') workspaceId: string,
     @Param('id') id: string,
-    @Body(new ZodValidationPipe(WorkflowDefinitionSchema)) body: WorkflowDefinitionInput & Record<string, unknown>,
+    @Body(new ZodValidationPipe(WorkflowDefinitionSchema))
+    body: WorkflowDefinitionInput & Record<string, unknown>,
     @CurrentUser() user: User,
   ) {
     return this.agentsService.saveWorkflow(id, workspaceId, body, user.id);
