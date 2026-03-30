@@ -17,7 +17,7 @@ import {
 } from 'recharts';
 import { BarChart3, Copy, ExternalLink, FlaskConical, Globe, Loader2, Zap } from 'lucide-react';
 import Link from 'next/link';
-import api, { deploymentsApi, apiKeysApi, monitoringApi } from '@/lib/api';
+import api, { deploymentsApi, apiKeysApi, monitoringApi, agentsApi } from '@/lib/api';
 import { useWorkspaceStore } from '@/stores/workspace.store';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -292,6 +292,124 @@ function EndpointCard({ dep, apiKeys }: { dep: LiveDeployment; apiKeys: ApiKey[]
         apiKeys={apiKeys}
       />
     </>
+  );
+}
+
+// ─── Live Agent APIs Tab ──────────────────────────────────────────────────────
+
+interface Agent {
+  id: string;
+  name: string;
+  description?: string;
+  status: string;
+  currentVersion: number;
+}
+
+function LiveAgentApisTab({ workspaceId }: { workspaceId: string }) {
+  const [testAgentId, setTestAgentId] = useState<string | null>(null);
+  const [testInputs, setTestInputs] = useState('{}');
+  const [testResult, setTestResult] = useState<string | null>(null);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['agents-live', workspaceId],
+    queryFn: async () => {
+      const res = await agentsApi.list(workspaceId);
+      return (res.data as Agent[]).filter((a) => a.status === 'live');
+    },
+    enabled: !!workspaceId,
+  });
+
+  const agents = data ?? [];
+
+  const runTest = async () => {
+    if (!testAgentId) return;
+    try {
+      const inputs = JSON.parse(testInputs) as Record<string, unknown>;
+      const res = await agentsApi.testRun(workspaceId, testAgentId, inputs);
+      setTestResult(JSON.stringify(res.data, null, 2));
+    } catch {
+      toast.error('Test run failed — check your JSON inputs');
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} className="h-20 w-full" />
+        ))}
+      </div>
+    );
+  }
+
+  if (agents.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-20 text-center">
+        <Zap className="h-10 w-10 text-muted-foreground" />
+        <p className="mt-3 text-lg font-semibold">No live agents</p>
+        <p className="mt-1 text-sm text-muted-foreground">Deploy an agent to see it here</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {agents.map((agent) => (
+        <Card key={agent.id}>
+          <CardContent className="flex items-center justify-between p-4">
+            <div>
+              <p className="font-medium">{agent.name}</p>
+              {agent.description && (
+                <p className="text-xs text-muted-foreground mt-0.5">{agent.description}</p>
+              )}
+              <p className="text-xs text-muted-foreground mt-1">v{agent.currentVersion}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="default">live</Badge>
+              <Button size="sm" variant="outline" onClick={() => setTestAgentId(agent.id)}>
+                <FlaskConical className="mr-1.5 h-3.5 w-3.5" />
+                Test
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+
+      {/* Test modal */}
+      <Dialog
+        open={!!testAgentId}
+        onOpenChange={(o) => {
+          if (!o) {
+            setTestAgentId(null);
+            setTestResult(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Test Agent</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Inputs (JSON)</Label>
+              <textarea
+                className="mt-1 w-full rounded-md border bg-background px-3 py-2 font-mono text-xs h-32 resize-none focus:outline-none focus:ring-1 focus:ring-ring"
+                value={testInputs}
+                onChange={(e) => setTestInputs(e.target.value)}
+              />
+            </div>
+            <Button onClick={() => void runTest()} className="w-full">
+              Run
+            </Button>
+            {testResult && (
+              <pre className="rounded-md bg-muted p-3 text-xs whitespace-pre-wrap overflow-auto max-h-48">
+                {testResult}
+              </pre>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
 
@@ -587,15 +705,9 @@ export default function ApiGatewayPage() {
           </div>
         </TabsContent>
 
-        {/* Agent APIs — stub for phase 5 */}
+        {/* Agent APIs */}
         <TabsContent value="agent-apis" className="mt-4">
-          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-20 text-center">
-            <Zap className="h-10 w-10 text-muted-foreground" />
-            <p className="mt-3 text-lg font-semibold">Live Agent APIs</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Agent deployment support is coming in Phase 5
-            </p>
-          </div>
+          <LiveAgentApisTab workspaceId={activeWorkspace?.id ?? ''} />
         </TabsContent>
       </Tabs>
     </div>

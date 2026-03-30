@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { ArrowLeft, Edit, Clock, Play } from 'lucide-react';
+import { ArrowLeft, Clock, Edit, GitCompareArrows, Play } from 'lucide-react';
+
 import { formatDistanceToNow } from 'date-fns';
 import { promptsApi, promptDatasetConfigsApi, promptAiConfigsApi } from '@/lib/api';
 import { useWorkspaceStore } from '@/stores/workspace.store';
@@ -18,6 +19,7 @@ import { EnvironmentsTab } from '@/components/prompts/EnvironmentsTab';
 import { FailoverTab } from '@/components/prompts/FailoverTab';
 import { AnalyticsTab } from '@/components/prompts/AnalyticsTab';
 import { EvaluationWizard } from '@/components/evaluations/EvaluationWizard';
+import { VersionCompareModal } from '@/components/prompts/VersionCompareModal';
 
 interface Version {
   id: string;
@@ -47,6 +49,7 @@ export default function PromptDetailPage({ params }: { readonly params: { id: st
   const { id } = params;
   const { activeWorkspace } = useWorkspaceStore();
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
 
   const { data: prompt, isLoading } = useQuery<Prompt>({
     queryKey: ['prompt', id],
@@ -127,6 +130,12 @@ export default function PromptDetailPage({ params }: { readonly params: { id: st
             Updated {formatDistanceToNow(new Date(prompt.updatedAt), { addSuffix: true })}
           </p>
         </div>
+        {(prompt.versions?.length ?? 0) >= 2 && (
+          <Button variant="outline" onClick={() => setCompareOpen(true)}>
+            <GitCompareArrows className="h-4 w-4" />
+            Compare Versions
+          </Button>
+        )}
         <Button variant="outline" onClick={() => setWizardOpen(true)}>
           <Play className="h-4 w-4" />
           Run Evaluation
@@ -149,6 +158,15 @@ export default function PromptDetailPage({ params }: { readonly params: { id: st
         datasetName={datasetName}
         providerName={providerName}
       />
+
+      {activeWorkspace && (
+        <VersionCompareModal
+          workspaceId={activeWorkspace.id}
+          promptId={id}
+          open={compareOpen}
+          onClose={() => setCompareOpen(false)}
+        />
+      )}
 
       {/* Purple gradient banner */}
       <div className="rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 p-4 text-white">
