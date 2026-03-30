@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { Search, Grid3X3, List, Table2, Plus, Database } from 'lucide-react';
+import { Search, Grid3X3, List, Table2, Plus, Database, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { datasetsApi } from '@/lib/api';
 import { useWorkspaceStore } from '@/stores/workspace.store';
@@ -13,6 +13,17 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 
 type ViewMode = 'grid' | 'table' | 'list';
 
@@ -65,8 +76,20 @@ function DatasetSkeleton({ view }: { view: ViewMode }) {
 export function DatasetList({ onCreateClick }: { onCreateClick: () => void }) {
   const [view, setView] = useState<ViewMode>('grid');
   const [search, setSearch] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<Dataset | null>(null);
   const { activeWorkspace } = useWorkspaceStore();
   const router = useRouter();
+  const queryClient = useQueryClient();
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => datasetsApi.delete(activeWorkspace!.id, id),
+    onSuccess: () => {
+      toast.success('Dataset deleted');
+      void queryClient.invalidateQueries({ queryKey: ['datasets', activeWorkspace?.id] });
+      setDeleteTarget(null);
+    },
+    onError: () => toast.error('Failed to delete dataset'),
+  });
 
   const { data: datasets = [], isLoading } = useQuery<Dataset[]>({
     queryKey: ['datasets', activeWorkspace?.id],
@@ -169,9 +192,22 @@ export function DatasetList({ onCreateClick }: { onCreateClick: () => void }) {
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between gap-2">
                   <CardTitle className="text-base">{dataset.name}</CardTitle>
-                  <Badge variant={statusVariant[dataset.status] ?? 'outline'}>
-                    {dataset.status}
-                  </Badge>
+                  <div className="flex items-center gap-1">
+                    <Badge variant={statusVariant[dataset.status] ?? 'outline'}>
+                      {dataset.status}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteTarget(dataset);
+                      }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
                 {dataset.description && (
                   <CardDescription className="line-clamp-2">{dataset.description}</CardDescription>
@@ -214,10 +250,41 @@ export function DatasetList({ onCreateClick }: { onCreateClick: () => void }) {
               <span className="shrink-0 text-xs text-muted-foreground">
                 {formatDistanceToNow(new Date(dataset.updatedAt), { addSuffix: true })}
               </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDeleteTarget(dataset);
+                }}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
             </div>
           ))}
         </div>
       )}
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete dataset?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete &ldquo;{deleteTarget?.name}&rdquo; and all its versions.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
