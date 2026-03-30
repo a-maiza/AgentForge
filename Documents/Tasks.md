@@ -213,6 +213,19 @@
 - [x] **P1** Add `workspacesApi.activeDeploymentCount(workspaceId)` helper in `apps/web/src/lib/api.ts`
 - [x] **P1** Update Overview page: fetch datasets list (count client-side) and active deployment count; replace "Coming in phase 2" placeholder cards with live values and loading skeletons
 
+### 4.8 Evaluation System — Bug Fixes & UX Improvements
+
+- [x] **P1** Fix MinIO S3 credentials error in worker container: set `AWS_ENDPOINT_URL: http://minio:9000` and `USE_MINIO: 'true'` in worker environment block of `docker-compose.yml`
+- [x] **P1** Fix evaluation detail page showing all "—": `findOne` in `EvaluationsService` now includes `prompt`, `provider`, `dataset` relations and maps `promptName`, `providerName`, `datasetName`, `model`, `duration` fields
+- [x] **P1** Fix metric catalogue ID mismatches between API and worker: rename `f1_score` → `f1`, `latency_percentiles` → `latency`, `processing_speed` → `throughput` in `MetricsController`
+- [x] **P1** Implement full 23-metric catalogue in worker `scorers.py`: Accuracy, Exact Match, F1, Precision, Recall, BLEU, ROUGE, BERTScore, Semantic Similarity, Fluency, Grammar, Perplexity, Consistency Score, Response Variance, Cost Estimate, Cost per Request, Eval Duration, Input/Output Tokens, Efficiency Score, Latency, Throughput, Carbon Footprint, Power Consumption
+- [x] **P1** Fix silent metric skipping: worker now stores `MetricResult(score=0.0, grade="N/A", details={"reason": "..."})` instead of `continue` when preconditions are not met (no reference column, no log-probs, consistency not requested)
+- [x] **P1** Remove hardcoded "Performance Metrics" and "Cost & Carbon" sections from evaluation detail page; render all results dynamically — one card per `EvaluationResult` row returned by the API
+- [x] **P1** Add N/A card rendering in evaluation detail page: show explanatory message instead of progress bar when `grade === "N/A"`
+- [x] **P1** Add delete evaluation: `DELETE /api/evaluations/:id` endpoint + trash button on evaluation list page and detail page (AlertDialog confirmation)
+- [x] **P2** Fix "Get AI Suggestions" button in evaluation wizard: suggestions are applied only on explicit button click (not auto-selected on open); pre-selects the returned metric IDs and replaces current selection
+- [x] **P2** Fix `match_pct` display in MetricGrid: multiply by 100 before rendering so `0.95` displays as `"95%"` instead of `"0.95%"`
+
 ### 4.7 Bug Fixes & Infrastructure Corrections
 
 - [x] **P0** Fix CORS: call `app.enableCors()` before `app.init()` in NestJS Fastify bootstrap (`apps/api/src/main.ts`); without this all cross-origin preflight requests return 404
