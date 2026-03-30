@@ -187,6 +187,31 @@ export const monitoringApi = {
     api.get(`/api/monitoring/prompts/${promptId}/suggestions`, { params: { lastN } }),
 };
 
+// Agents
+export const agentsApi = {
+  list: (workspaceId: string) => api.get(`/api/workspaces/${workspaceId}/agents`),
+  get: (workspaceId: string, id: string) =>
+    api.get(`/api/workspaces/${workspaceId}/agents/${id}`),
+  create: (workspaceId: string, data: { name: string; description?: string }) =>
+    api.post(`/api/workspaces/${workspaceId}/agents`, data),
+  update: (
+    workspaceId: string,
+    id: string,
+    data: { name?: string; description?: string; status?: string },
+  ) => api.put(`/api/workspaces/${workspaceId}/agents/${id}`, data),
+  remove: (workspaceId: string, id: string) =>
+    api.delete(`/api/workspaces/${workspaceId}/agents/${id}`),
+  versions: (workspaceId: string, id: string) =>
+    api.get(`/api/workspaces/${workspaceId}/agents/${id}/versions`),
+  saveWorkflow: (
+    workspaceId: string,
+    id: string,
+    data: { nodes: unknown[]; edges: unknown[] },
+  ) => api.put(`/api/workspaces/${workspaceId}/agents/${id}/workflow`, data),
+  testRun: (workspaceId: string, id: string, inputs: Record<string, unknown>) =>
+    api.post(`/api/workspaces/${workspaceId}/agents/${id}/test-run`, inputs),
+};
+
 // API Keys
 export const apiKeysApi = {
   list: (workspaceId: string, status?: string) =>

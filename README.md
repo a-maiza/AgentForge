@@ -565,7 +565,7 @@ k6 run apps/gateway/k6/load-test.js
 
 ## Next.js Frontend — Page & Component Overview (`apps/web`)
 
-> Implemented across tasks 1.4, 2.3, 3.4, 4.2, 4.3, 4.4, and 4.5. All routes live under `apps/web/src/app/(dashboard)/`.
+> Implemented across tasks 1.4, 2.3, 3.4, 4.2, 4.3, 4.4, 4.5, and 5.3. All routes live under `apps/web/src/app/(dashboard)/`.
 
 ### Pages
 
@@ -585,6 +585,24 @@ k6 run apps/gateway/k6/load-test.js
 | `/live-monitoring`         | `live-monitoring/page.tsx`         | Real-time KPI dashboard — 6 KPI cards (total calls, success rate, avg latency, tokens, cost, failovers), time-window selector (1m/5m/1h/24h/7d), environment filter, live Socket.io connection badge, Recharts line chart with metric toggles, 5 s REST auto-refresh, recent-errors section |
 | `/api-calls`               | `api-calls/page.tsx`               | Per-endpoint call breakdown — summary KPI cards, environment tabs (all/dev/staging/prod), expandable endpoint rows with full metrics                                                                                                                                                        |
 | `/prompt-analytics/[id]`   | `prompt-analytics/[id]/page.tsx`   | Standalone prompt analytics — eval-scores chart with model filter, interactive tooltip, all-evaluations table with tabs (all/completed/failed), AI optimization suggestions panel                                                                                                           |
+| `/agents`                  | `agents/page.tsx`                  | Agent list — cards with name, status badge, current version, last-updated; empty state with create CTA                                                                                                                                                                                     |
+| `/agents/[id]`             | `agents/[id]/page.tsx`             | Agent detail — tabs: Workflow (read-only ReactFlow canvas), Test Run (variable inputs + execution trace + final output), Versions (history list with current badge)                                                                                                                         |
+| `/agents/[id]/edit`        | `agents/[id]/edit/page.tsx`        | Workflow Studio — full-screen ReactFlow editor with node palette sidebar, drag-and-drop canvas, save-to-version toolbar button                                                                                                                                                              |
+
+### Agent components (`apps/web/src/components/agents/`)
+
+| Component             | Description                                                                                                          |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `CreateAgentModal`    | Dialog for creating a new agent (name + description)                                                                 |
+| `WorkflowCanvas`      | ReactFlow canvas wrapping all 6 node types; read-only and edit modes; Background, Controls, MiniMap                 |
+| `TestRunPanel`        | Dynamic key/value variable form; runs test-run endpoint; renders per-node execution trace and final output           |
+| `nodes/BaseNode`      | Shared node shell — colored header strip, source/target handles, selection ring                                      |
+| `nodes/StartNode`     | Green — entry point; prompt name, environment badge, variable count                                                  |
+| `nodes/PromptNode`    | Blue — LLM call step; prompt name, environment badge, output key                                                     |
+| `nodes/ConditionNode` | Orange — branching step; label and expression                                                                        |
+| `nodes/LoopNode`      | Purple — iteration step; iterable key and max iterations                                                             |
+| `nodes/ParallelNode`  | Dark green — fan-out step; branch count                                                                              |
+| `nodes/OutputNode`    | Pink — terminal node (no source handle); output key                                                                  |
 
 ### Prompt detail tabs (`apps/web/src/components/prompts/`)
 
