@@ -231,8 +231,8 @@
 
 ### 5.1 Database & Schema
 
-- [ ] **P0** Add Prisma model: `Agent`, `AgentVersion` (stores `workflow_definition` as JSONB)
-- [ ] **P0** Migration `0004_agents`
+- [x] **P0** Add Prisma model: `Agent`, `AgentVersion` (stores `workflow_definition` as JSONB)
+- [x] **P0** Migration `0004_agents`
 - [ ] **P2** Add `pgvector` extension and `prompt_embeddings` table for semantic prompt search (future)
 
 ### 5.2 Backend — NestJS API
