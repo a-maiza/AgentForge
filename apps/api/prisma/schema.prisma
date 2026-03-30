@@ -79,6 +79,12 @@ enum api_key_status {
   expired
 }
 
+enum agent_status {
+  draft
+  live
+  archived
+}
+
 model User {
   id        String   @id @default(uuid()) @db.Uuid
   clerkId   String   @unique @map("clerk_id")
@@ -95,6 +101,8 @@ model User {
   evaluationJobs   EvaluationJob[]
   deployments      Deployment[]
   apiKeys          ApiKey[]
+  agents           Agent[]
+  agentVersions    AgentVersion[]
 
   @@map("users")
 }
@@ -139,6 +147,7 @@ model Workspace {
   datasets    Dataset[]
   aiProviders AiProvider[]
   apiKeys     ApiKey[]
+  agents      Agent[]
 
   @@unique([orgId, slug])
   @@map("workspaces")
@@ -445,4 +454,41 @@ model ApiCallLog {
   @@index([endpointHash])
   @@index([apiKeyId, createdAt])
   @@map("api_call_logs")
+}
+
+// ─── Phase 5: Agents ─────────────────────────────────────────────────────────
+
+model Agent {
+  id             String       @id @default(uuid()) @db.Uuid
+  workspaceId    String       @map("workspace_id") @db.Uuid
+  name           String
+  description    String?
+  status         agent_status @default(draft)
+  currentVersion String?      @map("current_version")
+  createdBy      String       @map("created_by") @db.Uuid
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  workspace Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  creator   User           @relation(fields: [createdBy], references: [id])
+  versions  AgentVersion[]
+
+  @@index([workspaceId, status])
+  @@map("agents")
+}
+
+model AgentVersion {
+  id                 String   @id @default(uuid()) @db.Uuid
+  agentId            String   @map("agent_id") @db.Uuid
+  versionNumber      Int      @map("version_number")
+  /// React Flow graph JSON: { nodes: [...], edges: [...] }
+  workflowDefinition Json     @map("workflow_definition")
+  createdBy          String   @map("created_by") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  agent   Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  creator User  @relation(fields: [createdBy], references: [id])
+
+  @@unique([agentId, versionNumber])
+  @@map("agent_versions")
 }

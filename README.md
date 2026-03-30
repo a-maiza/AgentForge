@@ -158,7 +158,7 @@ pnpm --filter @agentforge/api db:generate
 | `0001_foundation`          | 1.2   | users, organizations, org_members, workspaces, workspace_members, prompts, prompt_versions, prompt_variables             |
 | `0002_datasets_evals`      | 2.1   | datasets, dataset_versions, prompt_dataset_configs, ai_providers, prompt_ai_configs, evaluation_jobs, evaluation_results |
 | `0003_deployments_gateway` | 3.1   | deployments, failover_configs, api_keys, api_call_logs                                                                   |
-| future                     | 4+    | agents                                                                                                                   |
+| `0004_agents`              | 5.1   | agents, agent_versions (enum: agent_status)                                                                              |
 
 ---
 
@@ -638,7 +638,8 @@ AgentForge/
 │   │   │   ├── migrations/
 │   │   │   │   ├── 20260312000000_foundation/
 │   │   │   │   ├── 20260314193244_0002_datasets_evals/
-│   │   │   │   └── 20260316000000_0003_deployments_gateway/
+│   │   │   │   ├── 20260316000000_0003_deployments_gateway/
+│   │   │   │   └── 20260330102751_0004_agents/
 │   │   │   ├── schema.prisma
 │   │   │   └── seed.ts
 │   │   └── src/
