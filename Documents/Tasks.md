@@ -258,11 +258,11 @@
 
 ### 5.3 Frontend
 
-- [ ] **P0** Implement `/agents` list page: agent cards with status/version/node count, filter by workspace/status
-- [ ] **P0** Implement agent detail page with tabs: Overview (KPIs), Workflow Builder, Environments (stub → reuse deployment component), Execution, Analytics
-- [ ] **P0** Implement Workflow Studio editor (`/agents/:id/edit`): React Flow canvas (dark dot-grid theme), node palette sidebar (6 node types per §13.4 with correct colors), bezier connections, node configuration sidepanels, toolbar (Import/Export/Clear/Test Run/Reset/Versions/Save)
-- [ ] **P0** Implement node configuration panels: Start Node (prompt selector, env selector, variable table), Prompt Node (prompt selector, env, output key), Condition Node (expression builder), Output Node (output key + format)
-- [ ] **P0** Implement Test Run panel: input variable form, execution trace (node-by-node status), final output display
+- [x] **P0** Implement `/agents` list page: agent cards with status/version/node count, filter by workspace/status
+- [x] **P0** Implement agent detail page with tabs: Overview (KPIs), Workflow Builder, Environments (stub → reuse deployment component), Execution, Analytics
+- [x] **P0** Implement Workflow Studio editor (`/agents/:id/edit`): React Flow canvas (dark dot-grid theme), node palette sidebar (6 node types per §13.4 with correct colors), bezier connections, node configuration sidepanels, toolbar (Import/Export/Clear/Test Run/Reset/Versions/Save)
+- [x] **P0** Implement node configuration panels: Start Node (prompt selector, env selector, variable table), Prompt Node (prompt selector, env, output key), Condition Node (expression builder), Output Node (output key + format)
+- [x] **P0** Implement Test Run panel: input variable form, execution trace (node-by-node status), final output display
 - [ ] **P1** Implement version comparison UI for prompts: select two versions from dropdown → side-by-side diff viewer (highlight added/removed text)
 - [ ] **P1** Implement Quality Detection badge on prompt list: background job that compares latest two versions' eval scores; surface as degradation warning icon
 - [ ] **P1** Implement AI metric suggestions in evaluation wizard Step 1: call `POST /api/metrics/suggest`; render recommended metrics with match % chips above the full grid
