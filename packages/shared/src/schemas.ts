@@ -226,6 +226,20 @@ export const SaveWorkflowSchema = z.object({
 });
 export type SaveWorkflowInput = z.infer<typeof SaveWorkflowSchema>;
 
+export const UpdateAgentSchema = z.object({
+  name: z.string().min(1).max(255).optional(),
+  description: z.string().max(1000).optional(),
+  status: z.enum(['draft', 'live', 'archived']).optional(),
+});
+export type UpdateAgentInput = z.infer<typeof UpdateAgentSchema>;
+
+// Looser schema for workflow JSONB storage (accepts arbitrary React Flow node/edge shapes)
+export const WorkflowDefinitionSchema = z.object({
+  nodes: z.array(z.record(z.string(), z.unknown())),
+  edges: z.array(z.record(z.string(), z.unknown())),
+});
+export type WorkflowDefinitionInput = z.infer<typeof WorkflowDefinitionSchema>;
+
 // ─── Proxy / Live endpoint ────────────────────────────────────────────────────
 
 export const LiveEndpointRequestSchema = z.object({}).catchall(z.unknown());
