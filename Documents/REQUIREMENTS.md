@@ -700,7 +700,7 @@ The evaluation system runs batch jobs that send each dataset row through the pro
 - Grid of available metrics with category filters
 - Categories: Quality, Coherence, Consistency, Cost, Performance, Relevance, Reliability, Similarity, Speed, Sustainability, Technical
 - Each metric card shows: name, category, description, "Learn more" toggle, selection checkbox
-- **AI-Powered Metric Suggestions**: analyze the prompt and auto-recommend top metrics with match % and AI insight explanation
+- **AI-Powered Metric Suggestions**: clicking **"Get AI Suggestions"** calls the worker `/suggest` endpoint, which uses an LLM to recommend the most relevant metrics for the prompt; each suggested metric is pre-selected and shows a badge `AI · XX%` where XX is the match confidence (0–100)
 
 **Step 2 — Review:**
 
@@ -760,25 +760,20 @@ Sections:
 
 **Overview:**
 
-- Progress bar (0-100%)
-- Prompt name, Model, Provider, Created date
-- Model config parameters
+- Progress bar (0-100%, shown only while `running`)
+- Prompt name, Model, Provider, Dataset, Duration
 - Status badge + Grade badge (A+, A, B, C, D, F)
+- **Delete** button — permanently removes the evaluation job and all its results
 
-**Performance Metrics:**
+**Evaluation Metrics (dynamic):**
 
-- Accuracy %, Processing Speed (tok/s), Latency p50 (s), Reliability %, Consistency %
-- Each with color-coded progress bar and grade badge
-
-**Cost & Performance Analysis:**
-
-- Cost Metrics: Cost/1k Correct Outputs ($), Cost/1M Tokens ($), Cost Efficiency %
-- Performance Metrics: Cost per Second ($), Power Consumption (mWh), Carbon Footprint (gCO₂)
-- Focus tags: Cost, Power, Speed, Accuracy
-
-**Evaluation Metrics Detail (5 selected):**
-
-- Card per metric: score %, threshold %, trend indicator (↑↓), grade badge, description, "Suggestion d'amélioration" link
+- One card per metric that was selected when the evaluation was started — no hardcoded sections
+- Card shows: metric name (human-readable), grade badge, score progress bar and percentage
+- If a metric could not be computed (missing reference column, no log-probs, consistency not requested), the card shows an **N/A badge** and an explanatory message instead of a progress bar:
+  - `no_reference_column` → "Requires a reference column in your dataset (expected, answer, label…)"
+  - `no_log_probs` → "Model did not return log-probabilities"
+  - `consistency_not_requested` → "Select Consistency Score to enable multi-run comparison"
+- If the job completed but no results exist, a placeholder message is shown
 
 **Grading Scale:**
 

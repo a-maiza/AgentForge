@@ -117,7 +117,7 @@ export function MetricGrid({ selectedMetrics, onToggle, suggestions = [] }: Prop
                     {suggestion && (
                       <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-600 font-medium">
                         <Sparkles className="h-2.5 w-2.5" />
-                        AI · {suggestion.match_pct}%
+                        AI · {(suggestion.match_pct * 100).toFixed(0)}%
                       </span>
                     )}
                   </div>

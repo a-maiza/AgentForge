@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { Sparkles, CheckCircle2, AlertTriangle, ChevronRight, ChevronLeft } from 'lucide-react';
@@ -63,26 +63,6 @@ export function EvaluationWizard({
     },
   });
 
-  // Auto-suggest metrics when wizard opens
-  const { data: autoSuggestions, isLoading: isSuggesting } = useQuery<{
-    suggestions: Suggestion[];
-  }>({
-    queryKey: ['metric-suggestions', promptVersionId],
-    queryFn: async () => {
-      const res = await metricsApi.suggest(promptContent, 5);
-      return res.data as { suggestions: Suggestion[] };
-    },
-    enabled: open && !!promptContent,
-    staleTime: Infinity,
-  });
-
-  useEffect(() => {
-    if (autoSuggestions?.suggestions && selectedMetrics.length === 0) {
-      setSuggestions(autoSuggestions.suggestions);
-      setSelectedMetrics(autoSuggestions.suggestions.map((s) => s.metric));
-    }
-  }, [autoSuggestions]); // eslint-disable-line
-
   const toggleMetric = (id: string) => {
     setSelectedMetrics((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
@@ -92,8 +72,11 @@ export function EvaluationWizard({
   const handleGetSuggestions = async () => {
     setLoadingSuggestions(true);
     try {
-      const res = await metricsApi.suggest(promptContent);
-      setSuggestions(res.data as Suggestion[]);
+      const res = await metricsApi.suggest(promptContent, 5);
+      const data = res.data as { suggestions: Suggestion[] };
+      const list = data.suggestions ?? [];
+      setSuggestions(list);
+      setSelectedMetrics(list.map((s) => s.metric));
     } catch {
       toast.error('Failed to get AI suggestions');
     } finally {
@@ -160,7 +143,7 @@ export function EvaluationWizard({
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                {isSuggesting ? (
+                {loadingSuggestions ? (
                   <span className="flex items-center gap-1.5">
                     <Sparkles className="h-3.5 w-3.5 animate-pulse text-primary" />
                     AI is selecting metrics…
@@ -173,7 +156,7 @@ export function EvaluationWizard({
                 size="sm"
                 variant="outline"
                 onClick={handleGetSuggestions}
-                disabled={loadingSuggestions || isSuggesting}
+                disabled={loadingSuggestions}
               >
                 {loadingSuggestions ? (
                   <Skeleton className="h-4 w-24" />
