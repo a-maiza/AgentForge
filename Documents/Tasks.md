@@ -237,8 +237,8 @@
 
 ### 5.2 Backend — NestJS API
 
-- [ ] **P0** Implement `AgentsModule`: CRUD for agents; `PUT /api/agents/:id/workflow` validates and stores React Flow graph JSON; `POST /api/agents/:id/test-run` executes workflow in-process (walk node graph, call deployed prompt endpoints sequentially/in-parallel per node type)
-- [ ] **P0** Implement agent version history: save snapshot of `workflow_definition` on each `PUT /api/agents/:id/workflow` call
+- [x] **P0** Implement `AgentsModule`: CRUD for agents; `PUT /api/agents/:id/workflow` validates and stores React Flow graph JSON; `POST /api/agents/:id/test-run` executes workflow in-process (walk node graph, call deployed prompt endpoints sequentially/in-parallel per node type)
+- [x] **P0** Implement agent version history: save snapshot of `workflow_definition` on each `PUT /api/agents/:id/workflow` call
 - [ ] **P1** Implement `POST /api/prompts/:id/versions/compare`: compute character-level or line-level text diff between two `PromptVersion.content` values; return structured diff for frontend renderer
 - [ ] **P1** Implement regression testing endpoint: `POST /api/prompts/:id/regression-test` — run latest prompt version against historical evaluation dataset and compare metric scores vs. baseline
 - [ ] **P1** Extend `EvaluationsModule`: `POST /api/metrics/suggest` — call LiteLLM to analyse prompt content and return top-5 recommended metrics with match percentage and explanation
