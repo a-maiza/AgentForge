@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Download, Save, Upload } from 'lucide-react';
 import { agentsApi } from '@/lib/api';
 import { useWorkspaceStore } from '@/stores/workspace.store';
 import { Button } from '@/components/ui/button';
@@ -80,6 +80,43 @@ export default function AgentEditPage({ params }: { readonly params: { id: strin
     setEdges(e);
   }, []);
 
+  const handleExport = useCallback(() => {
+    const json = JSON.stringify({ nodes, edges }, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${agent?.name ?? 'workflow'}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [nodes, edges, agent?.name]);
+
+  const handleImport = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const parsed = JSON.parse(ev.target?.result as string) as {
+          nodes: Node[];
+          edges: Edge[];
+        };
+        if (Array.isArray(parsed.nodes) && Array.isArray(parsed.edges)) {
+          setNodes(parsed.nodes);
+          setEdges(parsed.edges);
+          toast.success('Workflow imported');
+        } else {
+          toast.error('Invalid workflow file');
+        }
+      } catch {
+        toast.error('Failed to parse workflow file');
+      }
+    };
+    reader.readAsText(file);
+    // Reset input so the same file can be re-imported
+    e.target.value = '';
+  }, []);
+
   if (loadingAgent || !initialized) {
     return (
       <div className="flex flex-col gap-6 p-6">
@@ -102,6 +139,21 @@ export default function AgentEditPage({ params }: { readonly params: { id: strin
           <p className="font-semibold truncate">{agent?.name ?? 'Agent'}</p>
           <p className="text-xs text-muted-foreground">Workflow Studio</p>
         </div>
+        {/* Import */}
+        <label>
+          <input type="file" accept=".json" className="sr-only" onChange={handleImport} />
+          <Button variant="outline" size="sm" asChild>
+            <span className="cursor-pointer">
+              <Upload className="mr-2 h-4 w-4" />
+              Import
+            </span>
+          </Button>
+        </label>
+        {/* Export */}
+        <Button variant="outline" size="sm" onClick={handleExport}>
+          <Download className="mr-2 h-4 w-4" />
+          Export
+        </Button>
         <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
           <Save className="mr-2 h-4 w-4" />
           {saveMutation.isPending ? 'Saving…' : 'Save'}

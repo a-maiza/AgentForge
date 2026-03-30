@@ -252,8 +252,8 @@
 
 - [x] **P0** Implement `AgentsModule`: CRUD for agents; `PUT /api/agents/:id/workflow` validates and stores React Flow graph JSON; `POST /api/agents/:id/test-run` executes workflow in-process (walk node graph, call deployed prompt endpoints sequentially/in-parallel per node type)
 - [x] **P0** Implement agent version history: save snapshot of `workflow_definition` on each `PUT /api/agents/:id/workflow` call
-- [ ] **P1** Implement `POST /api/prompts/:id/versions/compare`: compute character-level or line-level text diff between two `PromptVersion.content` values; return structured diff for frontend renderer
-- [ ] **P1** Implement regression testing endpoint: `POST /api/prompts/:id/regression-test` — run latest prompt version against historical evaluation dataset and compare metric scores vs. baseline
+- [x] **P1** Implement `POST /api/prompts/:id/versions/compare`: compute character-level or line-level text diff between two `PromptVersion.content` values; return structured diff for frontend renderer
+- [x] **P1** Implement regression testing endpoint: `POST /api/prompts/:id/regression-test` — run latest prompt version against historical evaluation dataset and compare metric scores vs. baseline
 - [x] **P1** Extend `EvaluationsModule`: `POST /api/metrics/suggest` — call LiteLLM to analyse prompt content and return top-5 recommended metrics with match percentage and explanation
 
 ### 5.3 Frontend
@@ -263,12 +263,12 @@
 - [x] **P0** Implement Workflow Studio editor (`/agents/:id/edit`): React Flow canvas (dark dot-grid theme), node palette sidebar (6 node types per §13.4 with correct colors), bezier connections, node configuration sidepanels, toolbar (Import/Export/Clear/Test Run/Reset/Versions/Save)
 - [x] **P0** Implement node configuration panels: Start Node (prompt selector, env selector, variable table), Prompt Node (prompt selector, env, output key), Condition Node (expression builder), Output Node (output key + format)
 - [x] **P0** Implement Test Run panel: input variable form, execution trace (node-by-node status), final output display
-- [ ] **P1** Implement version comparison UI for prompts: select two versions from dropdown → side-by-side diff viewer (highlight added/removed text)
-- [ ] **P1** Implement Quality Detection badge on prompt list: background job that compares latest two versions' eval scores; surface as degradation warning icon
-- [ ] **P1** Implement AI metric suggestions in evaluation wizard Step 1: call `POST /api/metrics/suggest`; render recommended metrics with match % chips above the full grid
-- [ ] **P1** Implement Optimization Suggestions panel in prompt inline analytics: display config warnings and AI-generated improved prompt version with apply button
-- [ ] **P2** Implement Import/Export for agents (JSON round-trip of React Flow graph)
-- [ ] **P2** Implement Live Agent API tab in `/proxy` gateway: agent endpoint cards, test modal wired to `POST /api/agents/:id/test-run`
+- [x] **P1** Implement version comparison UI for prompts: select two versions from dropdown → side-by-side diff viewer (highlight added/removed text)
+- [x] **P1** Implement Quality Detection badge on prompt list: background job that compares latest two versions' eval scores; surface as degradation warning icon
+- [x] **P1** Implement AI metric suggestions in evaluation wizard Step 1: call `POST /api/metrics/suggest`; render recommended metrics with match % chips above the full grid
+- [x] **P1** Implement Optimization Suggestions panel in prompt inline analytics: display config warnings and AI-generated improved prompt version with apply button
+- [x] **P2** Implement Import/Export for agents (JSON round-trip of React Flow graph)
+- [x] **P2** Implement Live Agent API tab in `/proxy` gateway: agent endpoint cards, test modal wired to `POST /api/agents/:id/test-run`
 
 ---
 

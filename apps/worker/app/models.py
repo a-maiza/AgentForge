@@ -24,7 +24,10 @@ class EvaluationJob(Base):
     model_config: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     metrics: Mapped[list[str] | None] = mapped_column(ARRAY(Text), nullable=True)
     status: Mapped[str] = mapped_column(
-        Enum("pending", "running", "completed", "failed", "cancelled", name="eval_job_status", create_type=False),
+        Enum(
+            "pending", "running", "completed", "failed", "cancelled",
+            name="eval_job_status", create_type=False,
+        ),
         nullable=False,
         default="pending",
     )

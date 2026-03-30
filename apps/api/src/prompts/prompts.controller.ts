@@ -78,6 +78,24 @@ export class PromptsController {
     return this.promptsService.getVersion(id, version, workspaceId);
   }
 
+  @Post(':id/versions/compare')
+  compareVersions(
+    @Param('workspaceId') workspaceId: string,
+    @Param('id') id: string,
+    @Body() body: { versionA: number; versionB: number },
+  ) {
+    return this.promptsService.compareVersions(id, workspaceId, body.versionA, body.versionB);
+  }
+
+  @Post(':id/regression-test')
+  regressionTest(
+    @Param('workspaceId') workspaceId: string,
+    @Param('id') id: string,
+    @Body() body: { baselineVersionNumber?: number },
+  ) {
+    return this.promptsService.regressionTest(id, workspaceId, body.baselineVersionNumber);
+  }
+
   @Get(':id/dataset-config')
   getDatasetConfig(@Param('workspaceId') workspaceId: string, @Param('id') id: string) {
     return this.promptsService.getDatasetConfig(id, workspaceId);

@@ -39,7 +39,7 @@ export class AgentsService {
     id: string,
     workspaceId: string,
     data: UpdateAgentInput,
-    userId: string,
+    _userId: string,
   ): Promise<Agent> {
     const agent = await this.prisma.agent.findFirst({ where: { id, workspaceId } });
     if (!agent) throw new NotFoundException('Agent not found');
@@ -89,7 +89,9 @@ export class AgentsService {
         data: {
           agentId: id,
           versionNumber: nextVersion,
-          workflowDefinition: workflow as Parameters<typeof tx.agentVersion.create>[0]['data']['workflowDefinition'],
+          workflowDefinition: workflow as Parameters<
+            typeof tx.agentVersion.create
+          >[0]['data']['workflowDefinition'],
           createdBy: userId,
         },
       });
@@ -165,7 +167,7 @@ export class AgentsService {
 
     const outputNode = workflow.nodes.find((n) => n.type === 'output');
     const finalOutput = outputNode
-      ? nodeOutputs[(outputNode.data?.outputKey as string) ?? 'output'] ?? null
+      ? (nodeOutputs[(outputNode.data?.outputKey as string) ?? 'output'] ?? null)
       : nodeOutputs;
 
     return { trace, output: finalOutput };
