@@ -14,12 +14,19 @@ interface PreviewData {
 function inferType(value: unknown): string {
   if (value === null || value === undefined) return 'string';
   if (typeof value === 'boolean') return 'boolean';
+  if (typeof value === 'object') return 'object';
   if (
     typeof value === 'number' ||
     (typeof value === 'string' && !isNaN(Number(value)) && value !== '')
   )
     return 'number';
   return 'string';
+}
+
+function cellValue(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
 }
 
 interface Props {
@@ -32,6 +39,7 @@ const typeColor: Record<string, 'default' | 'secondary' | 'outline'> = {
   number: 'default',
   boolean: 'outline',
   integer: 'default',
+  object: 'outline',
 };
 
 export function DatasetPreview({ datasetId, versionNumber }: Props) {
@@ -84,9 +92,9 @@ export function DatasetPreview({ datasetId, versionNumber }: Props) {
             {rows.slice(0, 50).map((row, ri) => (
               <tr key={ri} className="border-t hover:bg-muted/30">
                 {columns.map((col) => (
-                  <td key={col} className="p-2 whitespace-nowrap max-w-[200px] truncate">
+                  <td key={col} className="p-2 max-w-[240px] truncate">
                     {row[col] !== null && row[col] !== undefined ? (
-                      String(row[col])
+                      <code className="whitespace-nowrap font-mono">{cellValue(row[col])}</code>
                     ) : (
                       <span className="text-muted-foreground italic">null</span>
                     )}
