@@ -113,8 +113,10 @@ export class EvaluationsService {
     };
   }
 
-  findAll(filters?: { status?: string; promptId?: string }): Promise<EvaluationJob[]> {
-    return this.prisma.evaluationJob.findMany({
+  async findAll(
+    filters?: { status?: string; promptId?: string },
+  ): Promise<Record<string, unknown>[]> {
+    const jobs = await this.prisma.evaluationJob.findMany({
       where: {
         ...(filters?.status && {
           status: filters.status as 'pending' | 'running' | 'completed' | 'failed' | 'cancelled',
@@ -122,8 +124,19 @@ export class EvaluationsService {
         ...(filters?.promptId && { promptId: filters.promptId }),
       },
       orderBy: { createdAt: 'desc' },
-      include: { prompt: { select: { name: true } } },
+      include: {
+        prompt: { select: { name: true } },
+        dataset: { select: { name: true } },
+        provider: { select: { name: true } },
+      },
     });
+    return jobs.map((job) => ({
+      ...job,
+      promptName: job.prompt?.name,
+      model: job.modelName,
+      providerName: job.provider?.name,
+      datasetName: job.dataset?.name,
+    }));
   }
 
   async cancel(id: string): Promise<EvaluationJob> {
