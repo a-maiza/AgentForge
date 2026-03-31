@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, AlertCircle, Trash2 } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { evaluationsApi } from '@/lib/api';
@@ -31,6 +31,18 @@ interface EvaluationResult {
   score: number;
   grade: string | null;
   details?: { reason?: string };
+}
+
+interface EvaluationTrace {
+  id: string;
+  rowIndex: number;
+  inputData: Record<string, unknown>;
+  prediction: string;
+  reference: string | null;
+  latencyMs: number;
+  inputTokens: number;
+  outputTokens: number;
+  error: string | null;
 }
 
 interface EvaluationJob {
@@ -80,6 +92,7 @@ export default function EvaluationDetailPage({ params }: { params: { id: string 
   const { id } = params;
   const router = useRouter();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [expandedRow, setExpandedRow] = useState<number | null>(null);
 
   const deleteMutation = useMutation({
     mutationFn: () => evaluationsApi.remove(id),
@@ -100,6 +113,15 @@ export default function EvaluationDetailPage({ params }: { params: { id: string 
       const data = query.state.data as EvaluationJob | undefined;
       return data?.status === 'running' ? 3000 : false;
     },
+  });
+
+  const { data: traces = [] } = useQuery<EvaluationTrace[]>({
+    queryKey: ['evaluation-traces', id],
+    queryFn: async () => {
+      const res = await evaluationsApi.traces(id);
+      return res.data as EvaluationTrace[];
+    },
+    enabled: job?.status === 'completed',
   });
 
   if (isLoading) {
@@ -279,6 +301,134 @@ export default function EvaluationDetailPage({ params }: { params: { id: string 
           No metric results recorded for this evaluation.
         </div>
       ) : null}
+
+      {/* Row-by-row traces */}
+      {traces.length > 0 && (
+        <div>
+          <h2 className="text-base font-semibold mb-3">
+            Predictions — {traces.length} row{traces.length > 1 ? 's' : ''}
+          </h2>
+          <div className="rounded-md border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="p-3 w-8" />
+                  <th className="p-3 text-left font-medium">#</th>
+                  <th className="p-3 text-left font-medium">Prediction</th>
+                  <th className="p-3 text-left font-medium">Expected</th>
+                  <th className="p-3 text-left font-medium w-20">Latency</th>
+                  <th className="p-3 text-left font-medium w-20">Tokens</th>
+                </tr>
+              </thead>
+              <tbody>
+                {traces.map((trace) => {
+                  const isExpanded = expandedRow === trace.rowIndex;
+                  const inputEntries = Object.entries(trace.inputData);
+                  return (
+                    <>
+                      <tr
+                        key={trace.id}
+                        className={cn(
+                          'border-t cursor-pointer transition-colors hover:bg-muted/30',
+                          trace.error && 'bg-red-50',
+                        )}
+                        onClick={() =>
+                          setExpandedRow(isExpanded ? null : trace.rowIndex)
+                        }
+                      >
+                        <td className="p-3 text-muted-foreground">
+                          {isExpanded ? (
+                            <ChevronDown className="h-3.5 w-3.5" />
+                          ) : (
+                            <ChevronRight className="h-3.5 w-3.5" />
+                          )}
+                        </td>
+                        <td className="p-3 font-mono text-xs text-muted-foreground">
+                          {trace.rowIndex + 1}
+                        </td>
+                        <td className="p-3 max-w-[260px]">
+                          {trace.error ? (
+                            <span className="text-xs text-red-600 italic">{trace.error}</span>
+                          ) : (
+                            <span className="line-clamp-2 text-xs">{trace.prediction}</span>
+                          )}
+                        </td>
+                        <td className="p-3 max-w-[260px]">
+                          <span className="line-clamp-2 text-xs text-muted-foreground">
+                            {trace.reference ?? '—'}
+                          </span>
+                        </td>
+                        <td className="p-3 text-xs text-muted-foreground whitespace-nowrap">
+                          {trace.latencyMs}ms
+                        </td>
+                        <td className="p-3 text-xs text-muted-foreground whitespace-nowrap">
+                          {trace.inputTokens + trace.outputTokens}
+                        </td>
+                      </tr>
+
+                      {isExpanded && (
+                        <tr key={`${trace.id}-expanded`} className="border-t bg-muted/10">
+                          <td colSpan={6} className="p-4">
+                            <div className="grid gap-4 md:grid-cols-2">
+                              {/* Inputs */}
+                              <div className="space-y-2">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                  Inputs
+                                </p>
+                                <div className="rounded-md border bg-background p-3 space-y-1.5">
+                                  {inputEntries.map(([key, val]) => (
+                                    <div key={key}>
+                                      <span className="text-[10px] font-mono text-muted-foreground">
+                                        {key}
+                                      </span>
+                                      <p className="text-xs mt-0.5 whitespace-pre-wrap">
+                                        {typeof val === 'object'
+                                          ? JSON.stringify(val, null, 2)
+                                          : String(val)}
+                                      </p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Prediction vs Expected */}
+                              <div className="space-y-2">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                  Prediction
+                                </p>
+                                <pre className="rounded-md border bg-emerald-50 border-emerald-200 p-3 text-xs whitespace-pre-wrap text-emerald-900">
+                                  {trace.prediction || '(empty)'}
+                                </pre>
+
+                                {trace.reference !== null && (
+                                  <>
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                      Expected
+                                    </p>
+                                    <pre className="rounded-md border bg-blue-50 border-blue-200 p-3 text-xs whitespace-pre-wrap text-blue-900">
+                                      {trace.reference}
+                                    </pre>
+                                  </>
+                                )}
+
+                                <div className="flex gap-4 text-xs text-muted-foreground">
+                                  <span>In: {trace.inputTokens} tok</span>
+                                  <span>Out: {trace.outputTokens} tok</span>
+                                  <span>{trace.latencyMs}ms</span>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

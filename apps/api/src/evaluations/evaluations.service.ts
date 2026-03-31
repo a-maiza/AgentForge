@@ -141,6 +141,15 @@ export class EvaluationsService {
     }));
   }
 
+  async getTraces(id: string): Promise<Record<string, unknown>[]> {
+    const job = await this.prisma.evaluationJob.findUnique({ where: { id } });
+    if (!job) throw new NotFoundException('Evaluation job not found');
+    return this.prisma.evaluationTrace.findMany({
+      where: { jobId: id },
+      orderBy: { rowIndex: 'asc' },
+    });
+  }
+
   async cancel(id: string): Promise<EvaluationJob> {
     const job = await this.prisma.evaluationJob.findUnique({ where: { id } });
     if (!job) throw new NotFoundException('Evaluation job not found');

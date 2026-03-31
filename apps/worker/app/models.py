@@ -106,6 +106,24 @@ class AiProvider(Base):
     )
 
 
+class EvaluationTrace(Base):
+    __tablename__ = "evaluation_traces"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    job_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    row_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    input_data: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    prediction: Mapped[str] = mapped_column(Text, nullable=False)
+    reference: Mapped[str | None] = mapped_column(Text, nullable=True)
+    latency_ms: Mapped[int] = mapped_column(Integer, nullable=False)
+    input_tokens: Mapped[int] = mapped_column(Integer, nullable=False)
+    output_tokens: Mapped[int] = mapped_column(Integer, nullable=False)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
 class PromptDatasetConfig(Base):
     __tablename__ = "prompt_dataset_configs"
 

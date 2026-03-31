@@ -143,6 +143,7 @@ export const evaluationsApi = {
   list: (params?: { status?: string; promptId?: string }) =>
     api.get('/api/evaluations', { params }),
   get: (id: string) => api.get(`/api/evaluations/${id}`),
+  traces: (id: string) => api.get(`/api/evaluations/${id}/traces`),
   create: (data: Record<string, unknown>) => api.post('/api/evaluations', data),
   cancel: (id: string) => api.post(`/api/evaluations/${id}/cancel`),
   remove: (id: string) => api.delete(`/api/evaluations/${id}`),

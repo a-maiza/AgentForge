@@ -24,6 +24,7 @@ from app.models import (
     DatasetVersion,
     EvaluationJob,
     EvaluationResult,
+    EvaluationTrace,
     PromptDatasetConfig,
     PromptVersion,
 )
@@ -235,7 +236,23 @@ async def _run_job(
             model_name=job.model_name,
         )
 
-        # 9. Insert EvaluationResult rows
+        # 9. Insert EvaluationTrace rows (one per dataset row)
+        for rr, ref in zip(row_results, references):
+            trace = EvaluationTrace(
+                id=uuid.uuid4(),
+                job_id=job_uuid,
+                row_index=rr.row_index,
+                input_data=rows[rr.row_index],
+                prediction=rr.prediction,
+                reference=ref if ref else None,
+                latency_ms=int(rr.latency_s * 1000),
+                input_tokens=rr.input_tokens,
+                output_tokens=rr.output_tokens,
+                error=rr.error,
+            )
+            db.add(trace)
+
+        # 10. Insert EvaluationResult rows
         for mr in metric_results:
             eval_result = EvaluationResult(
                 id=uuid.uuid4(),
@@ -248,11 +265,11 @@ async def _run_job(
             )
             db.add(eval_result)
 
-        # 10. Compute overall grade
+        # 11. Compute overall grade
         metric_scores = {mr.name: mr.score for mr in metric_results}
         overall_grade = compute_overall_grade(metric_scores) if metric_scores else "F"
 
-        # 11. Update job: completed
+        # 12. Update job: completed
         job.status = "completed"
         job.grade = overall_grade
         job.completed_at = datetime.now(tz=UTC)
