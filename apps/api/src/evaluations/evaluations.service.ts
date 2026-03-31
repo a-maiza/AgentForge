@@ -126,6 +126,7 @@ export class EvaluationsService {
       orderBy: { createdAt: 'desc' },
       include: {
         prompt: { select: { name: true } },
+        promptVersion: { select: { versionNumber: true } },
         dataset: { select: { name: true } },
         provider: { select: { name: true } },
       },
@@ -133,6 +134,7 @@ export class EvaluationsService {
     return jobs.map((job) => ({
       ...job,
       promptName: job.prompt?.name,
+      promptVersionNumber: job.promptVersion?.versionNumber,
       model: job.modelName,
       providerName: job.provider?.name,
       datasetName: job.dataset?.name,

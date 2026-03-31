@@ -5,7 +5,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { Sparkles, CheckCircle2, AlertTriangle, ChevronRight, ChevronLeft } from 'lucide-react';
 import { toast } from 'sonner';
-import { evaluationsApi, metricsApi } from '@/lib/api';
+import { evaluationsApi, metricsApi, promptsApi, datasetsApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -15,6 +15,13 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { MetricGrid } from '@/components/evaluations/MetricGrid';
 import { cn } from '@/lib/utils';
 
@@ -24,11 +31,24 @@ interface Suggestion {
   reason: string;
 }
 
+interface PromptVersion {
+  id: string;
+  versionNumber: number;
+}
+
+interface DatasetVersion {
+  id: string;
+  versionNumber: number;
+}
+
 interface Props {
+  workspaceId: string;
   promptId: string;
   promptName: string;
   promptContent: string;
   promptVersionId: string;
+  datasetId?: string | undefined;
+  datasetVersionId?: string | undefined;
   datasetName?: string | undefined;
   providerName?: string | undefined;
   open: boolean;
@@ -36,13 +56,16 @@ interface Props {
   onSuccess?: (evalId: string) => void;
 }
 
-const STEPS = ['Select Metrics', 'Review'] as const;
+const STEPS = ['Configure', 'Select Metrics', 'Review'] as const;
 
 export function EvaluationWizard({
+  workspaceId,
   promptId,
   promptName,
   promptContent,
   promptVersionId,
+  datasetId,
+  datasetVersionId,
   datasetName,
   providerName,
   open,
@@ -54,6 +77,29 @@ export function EvaluationWizard({
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [selectedPromptVersionId, setSelectedPromptVersionId] = useState(promptVersionId);
+  const [selectedDatasetVersionId, setSelectedDatasetVersionId] = useState(
+    datasetVersionId ?? '',
+  );
+
+  const { data: promptVersions = [] } = useQuery<PromptVersion[]>({
+    queryKey: ['prompt-versions-wizard', workspaceId, promptId],
+    queryFn: async () => {
+      const res = await promptsApi.versions(workspaceId, promptId);
+      return res.data as PromptVersion[];
+    },
+    enabled: !!workspaceId && !!promptId && open,
+  });
+
+  const { data: datasetVersions = [] } = useQuery<DatasetVersion[]>({
+    queryKey: ['dataset-versions-wizard', workspaceId, datasetId],
+    queryFn: async () => {
+      if (!datasetId) return [];
+      const res = await datasetsApi.versions(workspaceId, datasetId);
+      return res.data as DatasetVersion[];
+    },
+    enabled: !!workspaceId && !!datasetId && open,
+  });
 
   const { data: metrics = [] } = useQuery<{ id: string; name: string }[]>({
     queryKey: ['metrics'],
@@ -88,7 +134,8 @@ export function EvaluationWizard({
     mutationFn: () =>
       evaluationsApi.create({
         promptId,
-        promptVersionId,
+        promptVersionId: selectedPromptVersionId,
+        ...(selectedDatasetVersionId && { datasetVersionId: selectedDatasetVersionId }),
         metrics: selectedMetrics,
       }),
     onSuccess: (res) => {
@@ -105,11 +152,16 @@ export function EvaluationWizard({
     setStep(0);
     setSelectedMetrics([]);
     setSuggestions([]);
+    setSelectedPromptVersionId(promptVersionId);
+    setSelectedDatasetVersionId(datasetVersionId ?? '');
     onClose();
   };
 
   const isReady = selectedMetrics.length > 0;
   const selectedNames = metrics.filter((m) => selectedMetrics.includes(m.id)).map((m) => m.name);
+
+  const selectedPV = promptVersions.find((v) => v.id === selectedPromptVersionId);
+  const selectedDV = datasetVersions.find((v) => v.id === selectedDatasetVersionId);
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
@@ -138,8 +190,75 @@ export function EvaluationWizard({
           ))}
         </div>
 
-        {/* Step 1: Select Metrics */}
+        {/* Step 1: Configure versions */}
         {step === 0 && (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Choose which prompt version and dataset version to evaluate.
+            </p>
+
+            <div className="grid grid-cols-2 gap-4">
+              {/* Prompt version */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Prompt — {promptName}
+                </label>
+                <Select
+                  value={selectedPromptVersionId}
+                  onValueChange={setSelectedPromptVersionId}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select version" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {promptVersions.map((v) => (
+                      <SelectItem key={v.id} value={v.id}>
+                        v{v.versionNumber}
+                        {v.id === promptVersionId ? ' (current)' : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Dataset version */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Dataset{datasetName ? ` — ${datasetName}` : ''}
+                </label>
+                {datasetId ? (
+                  <Select
+                    value={selectedDatasetVersionId}
+                    onValueChange={setSelectedDatasetVersionId}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select version" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {datasetVersions.map((v) => (
+                        <SelectItem key={v.id} value={v.id}>
+                          v{v.versionNumber}
+                          {v.id === datasetVersionId ? ' (current)' : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">No dataset connected</p>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-md border bg-muted/30 p-3 text-xs space-y-1">
+              <p>
+                <span className="text-muted-foreground">Provider:</span> {providerName ?? '—'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Step 2: Select Metrics */}
+        {step === 1 && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
@@ -169,19 +288,6 @@ export function EvaluationWizard({
               </Button>
             </div>
 
-            {/* Config summary sidebar */}
-            <div className="rounded-md border bg-muted/30 p-3 text-xs space-y-1">
-              <p>
-                <span className="text-muted-foreground">Prompt:</span> {promptName}
-              </p>
-              <p>
-                <span className="text-muted-foreground">Dataset:</span> {datasetName ?? '—'}
-              </p>
-              <p>
-                <span className="text-muted-foreground">Provider:</span> {providerName ?? '—'}
-              </p>
-            </div>
-
             <MetricGrid
               selectedMetrics={selectedMetrics}
               onToggle={toggleMetric}
@@ -190,18 +296,32 @@ export function EvaluationWizard({
           </div>
         )}
 
-        {/* Step 2: Review */}
-        {step === 1 && (
+        {/* Step 3: Review */}
+        {step === 2 && (
           <div className="space-y-4">
             <div className="rounded-md border p-4 space-y-3 text-sm">
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <p className="text-xs text-muted-foreground">Prompt</p>
-                  <p className="font-medium">{promptName}</p>
+                  <p className="font-medium">
+                    {promptName}
+                    {selectedPV && (
+                      <span className="ml-1 text-xs text-muted-foreground font-mono">
+                        v{selectedPV.versionNumber}
+                      </span>
+                    )}
+                  </p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Dataset</p>
-                  <p className="font-medium">{datasetName ?? '—'}</p>
+                  <p className="font-medium">
+                    {datasetName ?? '—'}
+                    {selectedDV && (
+                      <span className="ml-1 text-xs text-muted-foreground font-mono">
+                        v{selectedDV.versionNumber}
+                      </span>
+                    )}
+                  </p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">AI Provider</p>
@@ -242,7 +362,7 @@ export function EvaluationWizard({
         )}
 
         <DialogFooter className="flex items-center justify-between">
-          <Button variant="outline" onClick={step === 0 ? handleClose : () => setStep(0)}>
+          <Button variant="outline" onClick={step === 0 ? handleClose : () => setStep((s) => s - 1)}>
             {step === 0 ? (
               'Cancel'
             ) : (
@@ -252,12 +372,15 @@ export function EvaluationWizard({
             )}
           </Button>
           <div>
-            {step === 0 && (
-              <Button onClick={() => setStep(1)} disabled={selectedMetrics.length === 0}>
+            {step < 2 && (
+              <Button
+                onClick={() => setStep((s) => s + 1)}
+                disabled={step === 1 && selectedMetrics.length === 0}
+              >
                 Next <ChevronRight className="h-4 w-4" />
               </Button>
             )}
-            {step === 1 && (
+            {step === 2 && (
               <Button
                 onClick={() => createMutation.mutate()}
                 disabled={createMutation.isPending || !isReady}

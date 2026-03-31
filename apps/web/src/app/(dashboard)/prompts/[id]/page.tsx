@@ -50,6 +50,7 @@ export default function PromptDetailPage({ params }: { readonly params: { id: st
   const { activeWorkspace } = useWorkspaceStore();
   const [wizardOpen, setWizardOpen] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
+  const [selectedVersion, setSelectedVersion] = useState<Version | null>(null);
 
   const { data: prompt, isLoading } = useQuery<Prompt>({
     queryKey: ['prompt', id],
@@ -61,16 +62,26 @@ export default function PromptDetailPage({ params }: { readonly params: { id: st
     enabled: !!activeWorkspace,
   });
 
-  const { data: datasetName } = useQuery<string | undefined>({
+  const { data: datasetConfig } = useQuery({
     queryKey: ['prompt-dataset-name', id],
     queryFn: async () => {
-      if (!activeWorkspace) return undefined;
+      if (!activeWorkspace) return null;
       const res = await promptDatasetConfigsApi.get(activeWorkspace.id, id);
-      const raw = res.data as { dataset?: { name: string } } | null;
-      return raw?.dataset?.name;
+      const raw = res.data as {
+        datasetId?: string;
+        datasetVersionId?: string;
+        dataset?: { name: string };
+      } | null;
+      if (!raw) return null;
+      return {
+        ...(raw.dataset?.name !== undefined && { name: raw.dataset.name }),
+        ...(raw.datasetId !== undefined && { datasetId: raw.datasetId }),
+        ...(raw.datasetVersionId !== undefined && { datasetVersionId: raw.datasetVersionId }),
+      };
     },
     enabled: !!activeWorkspace,
   });
+  const datasetName = datasetConfig?.name;
 
   const { data: providerName } = useQuery<string | undefined>({
     queryKey: ['prompt-ai-config-name', id],
@@ -108,6 +119,7 @@ export default function PromptDetailPage({ params }: { readonly params: { id: st
   }
 
   const latestVersion = prompt.versions?.[0];
+  const activeVersion = selectedVersion ?? latestVersion;
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -151,10 +163,13 @@ export default function PromptDetailPage({ params }: { readonly params: { id: st
       <EvaluationWizard
         open={wizardOpen}
         onClose={() => setWizardOpen(false)}
+        workspaceId={activeWorkspace?.id ?? ''}
         promptId={id}
         promptName={prompt.name}
-        promptContent={prompt.versions?.[0]?.content ?? ''}
-        promptVersionId={prompt.versions?.[0]?.id ?? ''}
+        promptContent={activeVersion?.content ?? ''}
+        promptVersionId={activeVersion?.id ?? ''}
+        datasetId={datasetConfig?.datasetId}
+        datasetVersionId={datasetConfig?.datasetVersionId}
         datasetName={datasetName}
         providerName={providerName}
       />
@@ -247,33 +262,66 @@ export default function PromptDetailPage({ params }: { readonly params: { id: st
           <Card>
             <CardHeader>
               <CardTitle className="text-base">
-                Current Content (v{latestVersion?.versionNumber ?? 1})
+                Content (v{activeVersion?.versionNumber ?? 1})
+                {activeVersion?.id !== latestVersion?.id && (
+                  <span className="ml-2 text-xs font-normal text-muted-foreground">
+                    — not the latest version
+                  </span>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <pre className="whitespace-pre-wrap font-mono text-sm text-foreground bg-muted rounded-md p-4 overflow-auto">
-                {latestVersion?.content ?? ''}
+                {activeVersion?.content ?? ''}
               </pre>
             </CardContent>
           </Card>
 
           {/* Version history */}
-          {prompt.versions && prompt.versions.length > 1 && (
+          {prompt.versions && prompt.versions.length >= 1 && (
             <Card className="mt-4">
               <CardHeader>
                 <CardTitle className="text-base">Version History</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {prompt.versions.map((v) => (
-                    <div key={v.id} className="flex items-center gap-3 rounded-md border p-3">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">v{v.versionNumber}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(v.createdAt), { addSuffix: true })}
-                      </span>
-                    </div>
-                  ))}
+                  {prompt.versions.map((v) => {
+                    const isSelected = (selectedVersion?.id ?? latestVersion?.id) === v.id;
+                    return (
+                      <button
+                        key={v.id}
+                        type="button"
+                        className={`flex w-full items-center gap-3 rounded-md border p-3 text-left transition-colors hover:bg-muted/50 ${
+                          isSelected ? 'border-primary bg-primary/5' : ''
+                        }`}
+                        onClick={() => setSelectedVersion(v)}
+                      >
+                        <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <span className="text-sm font-medium">v{v.versionNumber}</span>
+                        <span className="text-xs text-muted-foreground flex-1">
+                          {formatDistanceToNow(new Date(v.createdAt), { addSuffix: true })}
+                        </span>
+                        {v.versionNumber === latestVersion?.versionNumber && (
+                          <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 rounded px-1.5 py-0.5">
+                            latest
+                          </span>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 shrink-0 text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedVersion(v);
+                            setWizardOpen(true);
+                          }}
+                        >
+                          <Play className="h-3 w-3 mr-1" />
+                          Evaluate
+                        </Button>
+                      </button>
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
