@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { Search, Grid3X3, List, Table2, Plus, FileText } from 'lucide-react';
+import { Search, Grid3X3, List, Table2, Plus, FileText, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { promptsApi } from '@/lib/api';
 import { useWorkspaceStore } from '@/stores/workspace.store';
@@ -22,6 +22,17 @@ import {
 import { cn } from '@/lib/utils';
 import { QualityBadge } from './QualityBadge';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 
 type ViewMode = 'grid' | 'table' | 'list';
 type StatusFilter = 'all' | 'draft' | 'active' | 'archived';
@@ -71,8 +82,20 @@ export function PromptList({ onCreateClick }: { onCreateClick: () => void }) {
   const [view, setView] = useState<ViewMode>('grid');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [deleteTarget, setDeleteTarget] = useState<Prompt | null>(null);
   const { activeWorkspace } = useWorkspaceStore();
   const router = useRouter();
+  const queryClient = useQueryClient();
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => promptsApi.delete(activeWorkspace!.id, id),
+    onSuccess: () => {
+      toast.success('Prompt deleted');
+      void queryClient.invalidateQueries({ queryKey: ['prompts', activeWorkspace?.id] });
+      setDeleteTarget(null);
+    },
+    onError: () => toast.error('Failed to delete prompt'),
+  });
 
   const { data: prompts = [], isLoading } = useQuery<Prompt[]>({
     queryKey: ['prompts', activeWorkspace?.id],
@@ -200,9 +223,22 @@ export function PromptList({ onCreateClick }: { onCreateClick: () => void }) {
                         <QualityBadge workspaceId={activeWorkspace.id} promptId={prompt.id} />
                       )}
                     </div>
-                    <Badge variant={statusVariant[prompt.status] ?? 'outline'}>
-                      {prompt.status}
-                    </Badge>
+                    <div className="flex items-center gap-1">
+                      <Badge variant={statusVariant[prompt.status] ?? 'outline'}>
+                        {prompt.status}
+                      </Badge>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteTarget(prompt);
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
                   {prompt.description && (
                     <CardDescription className="line-clamp-2">{prompt.description}</CardDescription>
@@ -242,11 +278,43 @@ export function PromptList({ onCreateClick }: { onCreateClick: () => void }) {
                 <span className="shrink-0 text-xs text-muted-foreground">
                   {formatDistanceToNow(new Date(prompt.updatedAt), { addSuffix: true })}
                 </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeleteTarget(prompt);
+                  }}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete prompt?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete &ldquo;{deleteTarget?.name}&rdquo;, all its versions, and
+              associated evaluation jobs.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </TooltipProvider>
   );
 }

@@ -36,6 +36,7 @@ interface EvaluationJob {
   id: string;
   status: string;
   promptName?: string;
+  promptVersionNumber?: number;
   model?: string;
   datasetName?: string;
   progress?: number;
@@ -217,7 +218,14 @@ export default function EvaluationsPage() {
                   <td className="p-3">
                     <Badge variant={STATUS_VARIANTS[job.status] ?? 'outline'}>{job.status}</Badge>
                   </td>
-                  <td className="p-3 max-w-[140px] truncate">{job.promptName ?? '—'}</td>
+                  <td className="p-3 max-w-[160px]">
+                    <span className="truncate">{job.promptName ?? '—'}</span>
+                    {job.promptVersionNumber !== undefined && (
+                      <span className="ml-1 text-[10px] text-muted-foreground font-mono">
+                        v{job.promptVersionNumber}
+                      </span>
+                    )}
+                  </td>
                   <td className="p-3 text-xs text-muted-foreground">{job.model ?? '—'}</td>
                   <td className="p-3 text-xs text-muted-foreground max-w-[120px] truncate">
                     {job.datasetName ?? '—'}

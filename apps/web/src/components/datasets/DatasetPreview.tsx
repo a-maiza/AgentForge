@@ -4,21 +4,37 @@ import { useQuery } from '@tanstack/react-query';
 import { datasetsApi } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 interface PreviewData {
   rows: Record<string, unknown>[];
   columns: string[];
 }
 
-function inferType(value: unknown): string {
+function flattenRow(
+  obj: Record<string, unknown>,
+  prefix = '',
+): Record<string, string | number | boolean | null> {
+  const result: Record<string, string | number | boolean | null> = {};
+  for (const key of Object.keys(obj)) {
+    const fullKey = prefix ? `${prefix}.${key}` : key;
+    const val = obj[key];
+    if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
+      Object.assign(result, flattenRow(val as Record<string, unknown>, fullKey));
+    } else if (Array.isArray(val)) {
+      result[fullKey] = JSON.stringify(val);
+    } else {
+      result[fullKey] = val as string | number | boolean | null;
+    }
+  }
+  return result;
+}
+
+function inferType(value: string | number | boolean | null): string {
   if (value === null || value === undefined) return 'string';
   if (typeof value === 'boolean') return 'boolean';
-  if (
-    typeof value === 'number' ||
-    (typeof value === 'string' && !isNaN(Number(value)) && value !== '')
-  )
-    return 'number';
+  if (typeof value === 'number') return 'number';
+  if (typeof value === 'string' && !isNaN(Number(value)) && value !== '') return 'number';
   return 'string';
 }
 
@@ -63,17 +79,27 @@ export function DatasetPreview({ datasetId, versionNumber }: Props) {
     );
   }
 
-  const { rows, columns } = data;
-  const firstRow = rows[0] ?? {};
+  const { rows } = data;
+  const flatRows = rows.map((r) => flattenRow(r as Record<string, unknown>));
+
+  // Union of all keys across rows (handles sparse datasets)
+  const flatColumns = Array.from(
+    flatRows.reduce<Set<string>>((acc, r) => {
+      Object.keys(r).forEach((k) => acc.add(k));
+      return acc;
+    }, new Set()),
+  );
+
+  const firstFlat = flatRows[0] ?? {};
 
   return (
     <div className="flex gap-4">
       {/* Table */}
       <ScrollArea className="flex-1 h-96 rounded-md border">
-        <table className="w-full text-xs">
+        <table className="text-xs whitespace-nowrap">
           <thead className="sticky top-0 bg-muted/80 backdrop-blur">
             <tr>
-              {columns.map((col) => (
+              {flatColumns.map((col) => (
                 <th key={col} className="p-2 text-left font-medium whitespace-nowrap">
                   {col}
                 </th>
@@ -81,21 +107,25 @@ export function DatasetPreview({ datasetId, versionNumber }: Props) {
             </tr>
           </thead>
           <tbody>
-            {rows.slice(0, 50).map((row, ri) => (
+            {flatRows.slice(0, 50).map((row, ri) => (
               <tr key={ri} className="border-t hover:bg-muted/30">
-                {columns.map((col) => (
-                  <td key={col} className="p-2 whitespace-nowrap max-w-[200px] truncate">
-                    {row[col] !== null && row[col] !== undefined ? (
-                      String(row[col])
-                    ) : (
-                      <span className="text-muted-foreground italic">null</span>
-                    )}
-                  </td>
-                ))}
+                {flatColumns.map((col) => {
+                  const val = row[col];
+                  return (
+                    <td key={col} className="p-2 max-w-[240px] truncate">
+                      {val !== null && val !== undefined ? (
+                        <code className="whitespace-nowrap font-mono">{String(val)}</code>
+                      ) : (
+                        <span className="text-muted-foreground italic">null</span>
+                      )}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>
         </table>
+        <ScrollBar orientation="horizontal" />
       </ScrollArea>
 
       {/* Column schema sidebar */}
@@ -104,8 +134,8 @@ export function DatasetPreview({ datasetId, versionNumber }: Props) {
           Schema
         </p>
         <div className="space-y-1">
-          {columns.map((col) => {
-            const type = inferType(firstRow[col]);
+          {flatColumns.map((col) => {
+            const type = inferType(firstFlat[col] ?? null);
             return (
               <div key={col} className="flex items-center justify-between gap-1 text-xs">
                 <span className="truncate font-mono">{col}</span>

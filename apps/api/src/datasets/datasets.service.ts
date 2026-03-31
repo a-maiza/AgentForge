@@ -91,7 +91,11 @@ export class DatasetsService {
   async delete(id: string, workspaceId: string): Promise<void> {
     const dataset = await this.prisma.dataset.findFirst({ where: { id, workspaceId } });
     if (!dataset) throw new NotFoundException('Dataset not found');
-    await this.prisma.dataset.delete({ where: { id } });
+    await this.prisma.$transaction(async (tx) => {
+      // evaluation_results cascade from evaluation_jobs, but jobs reference the dataset
+      await tx.evaluationJob.deleteMany({ where: { datasetId: id } });
+      await tx.dataset.delete({ where: { id } });
+    });
   }
 
   async upload(

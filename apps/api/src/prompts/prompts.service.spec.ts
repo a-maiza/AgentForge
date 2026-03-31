@@ -206,11 +206,26 @@ describe('PromptsService', () => {
   describe('delete', () => {
     it('deletes prompt when found', async () => {
       mockPrisma.prompt.findFirst.mockResolvedValue({ id: 'p-1' });
-      mockPrisma.prompt.delete.mockResolvedValue({});
+
+      const txMock = {
+        promptVersion: { findMany: jest.fn().mockResolvedValue([{ id: 'v-1' }]) },
+        evaluationJob: { deleteMany: jest.fn().mockResolvedValue({}) },
+        deployment: { deleteMany: jest.fn().mockResolvedValue({}) },
+        prompt: { delete: jest.fn().mockResolvedValue({}) },
+      };
+      mockPrisma.$transaction.mockImplementation((cb: (tx: typeof txMock) => Promise<void>) =>
+        cb(txMock),
+      );
 
       await service.delete('p-1', 'ws-1');
 
-      expect(mockPrisma.prompt.delete).toHaveBeenCalledWith({ where: { id: 'p-1' } });
+      expect(txMock.evaluationJob.deleteMany).toHaveBeenCalledWith({
+        where: { promptVersionId: { in: ['v-1'] } },
+      });
+      expect(txMock.deployment.deleteMany).toHaveBeenCalledWith({
+        where: { promptVersionId: { in: ['v-1'] } },
+      });
+      expect(txMock.prompt.delete).toHaveBeenCalledWith({ where: { id: 'p-1' } });
     });
 
     it('throws NotFoundException when prompt not found', async () => {
