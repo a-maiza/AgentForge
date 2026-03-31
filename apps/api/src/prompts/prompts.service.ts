@@ -132,7 +132,20 @@ export class PromptsService {
   async delete(id: string, workspaceId: string): Promise<void> {
     const prompt = await this.prisma.prompt.findFirst({ where: { id, workspaceId } });
     if (!prompt) throw new NotFoundException('Prompt not found');
-    await this.prisma.prompt.delete({ where: { id } });
+    await this.prisma.$transaction(async (tx) => {
+      // evaluation_jobs.prompt_version_id and deployments.prompt_version_id have no
+      // onDelete: Cascade — must be cleaned up before prompt_versions are deleted
+      const versions = await tx.promptVersion.findMany({
+        where: { promptId: id },
+        select: { id: true },
+      });
+      const versionIds = versions.map((v) => v.id);
+      if (versionIds.length > 0) {
+        await tx.evaluationJob.deleteMany({ where: { promptVersionId: { in: versionIds } } });
+        await tx.deployment.deleteMany({ where: { promptVersionId: { in: versionIds } } });
+      }
+      await tx.prompt.delete({ where: { id } });
+    });
   }
 
   async getVersions(promptId: string, workspaceId: string): Promise<PromptVersion[]> {

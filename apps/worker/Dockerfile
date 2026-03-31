@@ -35,6 +35,10 @@ COPY --chown=workeruser:worker apps/worker ./
 ENV PATH="/venv/bin:$PATH"
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+# HuggingFace evaluate/datasets cache — must be writable by the non-root user
+ENV HF_HOME=/tmp/hf_cache
+ENV HF_DATASETS_CACHE=/tmp/hf_cache/datasets
+ENV TRANSFORMERS_CACHE=/tmp/hf_cache/transformers
 
 USER workeruser
 
