@@ -10,7 +10,8 @@ export class DeployPromptDto {
   promptVersionId!: string;
 
   @IsUUID()
-  providerId!: string;
+  @IsOptional()
+  providerId?: string;
 
   @IsUUID()
   @IsOptional()
