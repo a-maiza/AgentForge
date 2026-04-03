@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Edit, Trash2 } from 'lucide-react';
+import { ArrowLeft, Edit, GitBranch, Trash2 } from 'lucide-react';
 import { agentsApi } from '@/lib/api';
 import { useWorkspaceStore } from '@/stores/workspace.store';
 import { Button } from '@/components/ui/button';
@@ -117,7 +117,7 @@ export default function AgentDetailPage({ params }: { readonly params: { id: str
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <Button variant="outline" onClick={() => router.push(`/agents/${id}/edit`)}>
+          <Button onClick={() => router.push(`/agents/${id}/edit`)}>
             <Edit className="mr-2 h-4 w-4" />
             Edit Workflow
           </Button>
@@ -135,8 +135,37 @@ export default function AgentDetailPage({ params }: { readonly params: { id: str
         </TabsList>
 
         <TabsContent value="workflow" className="mt-4">
-          <div className="h-[520px] rounded-lg border overflow-hidden">
+          <div className="relative h-[520px] rounded-lg border overflow-hidden">
             <WorkflowCanvas initialNodes={workflowNodes} initialEdges={workflowEdges} readOnly />
+
+            {/* Empty-state overlay — shown when no real nodes have been added yet */}
+            {workflowNodes.length <= 1 && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/80 backdrop-blur-sm">
+                <GitBranch className="h-10 w-10 text-muted-foreground" />
+                <p className="text-lg font-semibold">No workflow built yet</p>
+                <p className="text-sm text-muted-foreground">
+                  Use the Workflow Studio to add nodes and connect them
+                </p>
+                <Button asChild>
+                  <Link href={`/agents/${id}/edit`}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Open Workflow Studio
+                  </Link>
+                </Button>
+              </div>
+            )}
+
+            {/* Edit shortcut badge when a real workflow exists */}
+            {workflowNodes.length > 1 && (
+              <div className="absolute top-3 right-3 pointer-events-auto">
+                <Button size="sm" variant="secondary" asChild>
+                  <Link href={`/agents/${id}/edit`}>
+                    <Edit className="mr-1.5 h-3.5 w-3.5" />
+                    Edit
+                  </Link>
+                </Button>
+              </div>
+            )}
           </div>
         </TabsContent>
 
