@@ -159,6 +159,7 @@ pnpm --filter @agentforge/api db:generate
 | `0002_datasets_evals`      | 2.1   | datasets, dataset_versions, prompt_dataset_configs, ai_providers, prompt_ai_configs, evaluation_jobs, evaluation_results |
 | `0003_deployments_gateway` | 3.1   | deployments, failover_configs, api_keys, api_call_logs                                                                   |
 | `0004_agents`              | 5.1   | agents, agent_versions (enum: agent_status)                                                                              |
+| `0005_evaluation_traces`   | 5.2   | evaluation_traces (per-row prediction vs reference log, FK → evaluation_jobs, cascade delete)                            |
 
 ---
 
@@ -579,8 +580,8 @@ k6 run apps/gateway/k6/load-test.js
 | `/api-gateway/[hash]/docs` | `api-gateway/[hash]/docs/page.tsx` | Auto-generated per-endpoint docs — URL, auth header format, request/response schema, code examples in cURL / Python / Node.js                                                                                                                                                               |
 | `/datasets`                | `datasets/page.tsx`                | Dataset list and upload                                                                                                                                                                                                                                                                     |
 | `/evaluations`             | `evaluations/page.tsx`             | Evaluation job list                                                                                                                                                                                                                                                                         |
-| `/evaluations/new`         | `evaluations/new/page.tsx`         | Evaluation wizard (prompt + dataset + metric selection)                                                                                                                                                                                                                                     |
-| `/evaluations/[id]`        | `evaluations/[id]/page.tsx`        | Evaluation result viewer with metric breakdown                                                                                                                                                                                                                                              |
+| `/evaluations/new`         | `evaluations/new/page.tsx`         | 3-step evaluation wizard (Configure → Select Metrics → Review) with prompt version and dataset version selectors                                                                                                                                                                            |
+| `/evaluations/[id]`        | `evaluations/[id]/page.tsx`        | Evaluation result viewer with metric breakdown and collapsible per-row trace table (prediction vs expected)                                                                                                                                                                                 |
 | `/ai-providers`            | `ai-providers/page.tsx`            | AI provider CRUD and encrypted key management                                                                                                                                                                                                                                               |
 | `/live-monitoring`         | `live-monitoring/page.tsx`         | Real-time KPI dashboard — 6 KPI cards (total calls, success rate, avg latency, tokens, cost, failovers), time-window selector (1m/5m/1h/24h/7d), environment filter, live Socket.io connection badge, Recharts line chart with metric toggles, 5 s REST auto-refresh, recent-errors section |
 | `/api-calls`               | `api-calls/page.tsx`               | Per-endpoint call breakdown — summary KPI cards, environment tabs (all/dev/staging/prod), expandable endpoint rows with full metrics                                                                                                                                                        |
@@ -668,10 +669,10 @@ AgentForge/
 │   │       ├── prompts/          # CRUD + versioning + variable extraction
 │   │       ├── users/            # Clerk webhook sync + GET /auth/me
 │   │       ├── workspaces/       # CRUD + WorkspaceGuard
-│   │       ├── datasets/         # CRUD + S3 upload + version diff
+│   │       ├── datasets/         # CRUD + S3 upload (CSV, JSON, JSONL) + version diff
 │   │       ├── ai-providers/     # CRUD + AES-256-GCM key encryption
 │   │       ├── prompt-ai-configs/# Model params per prompt
-│   │       ├── evaluations/      # BullMQ job enqueue + status polling
+│   │       ├── evaluations/      # BullMQ job enqueue + status polling + per-row trace retrieval
 │   │       ├── metrics/          # Metric catalogue + /suggest proxy
 │   │       ├── storage/          # S3/MinIO abstraction
 │   │       ├── deployments/      # Deploy / promote / rollback / go-live
