@@ -233,16 +233,34 @@ export class DatasetsService {
   }
 
   private parseFile(buffer: Buffer, mimetype: string, filename: string): ParsedFile {
-    const isJson = mimetype === 'application/json' || filename.endsWith('.json');
-    if (isJson) {
-      const data = JSON.parse(buffer.toString('utf8')) as unknown;
-      const rows = Array.isArray(data)
-        ? (data as Record<string, unknown>[])
-        : [data as Record<string, unknown>];
-      const columns = rows.length > 0 ? Object.keys(rows[0] as Record<string, unknown>) : [];
-      return { rows, columns };
+    const lower = filename.toLowerCase();
+    const isJsonl = lower.endsWith('.jsonl');
+    const isJson = !isJsonl && (mimetype === 'application/json' || lower.endsWith('.json'));
+
+    if (isJsonl) {
+      return this.parseJsonl(buffer);
     }
-    // CSV
+
+    if (isJson) {
+      const text = buffer.toString('utf8');
+      try {
+        const data = JSON.parse(text) as unknown;
+        const rows = Array.isArray(data)
+          ? (data as Record<string, unknown>[])
+          : [data as Record<string, unknown>];
+        const columns = rows.length > 0 ? Object.keys(rows[0] as Record<string, unknown>) : [];
+        return { rows, columns };
+      } catch {
+        // Possibly JSONL with a .json extension — fall back to line-by-line
+        try {
+          return this.parseJsonl(buffer);
+        } catch {
+          throw new BadRequestException('Invalid JSON file: not a valid JSON array or JSONL');
+        }
+      }
+    }
+
+    // CSV (default)
     try {
       const records = parse(buffer, {
         columns: true,
@@ -252,7 +270,25 @@ export class DatasetsService {
       const columns = records.length > 0 ? Object.keys(records[0] as Record<string, unknown>) : [];
       return { rows: records, columns };
     } catch {
-      throw new BadRequestException('Invalid CSV file');
+      throw new BadRequestException('Invalid file: expected CSV, JSON array, or JSONL');
     }
+  }
+
+  private parseJsonl(buffer: Buffer): ParsedFile {
+    const lines = buffer
+      .toString('utf8')
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
+    if (lines.length === 0) throw new BadRequestException('JSONL file is empty');
+    const rows = lines.map((line, i) => {
+      try {
+        return JSON.parse(line) as Record<string, unknown>;
+      } catch {
+        throw new BadRequestException(`Invalid JSON on line ${i + 1}`);
+      }
+    });
+    const columns = Object.keys(rows[0] as Record<string, unknown>);
+    return { rows, columns };
   }
 }

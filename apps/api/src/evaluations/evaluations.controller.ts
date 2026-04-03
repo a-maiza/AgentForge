@@ -32,6 +32,11 @@ export class EvaluationsController {
     return this.evaluations.findOne(id);
   }
 
+  @Get(':id/traces')
+  getTraces(@Param('id') id: string) {
+    return this.evaluations.getTraces(id);
+  }
+
   @Post()
   create(@Body() dto: CreateEvaluationDto, @Req() req: FastifyRequest & { user: User }) {
     return this.evaluations.create(dto, req.user.id);

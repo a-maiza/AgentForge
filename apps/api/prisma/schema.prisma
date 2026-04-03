@@ -339,6 +339,7 @@ model EvaluationJob {
   provider       AiProvider       @relation(fields: [providerId], references: [id])
   creator        User             @relation(fields: [createdBy], references: [id])
   results        EvaluationResult[]
+  traces         EvaluationTrace[]
 
   @@index([promptId, status])
   @@map("evaluation_jobs")
@@ -357,6 +358,25 @@ model EvaluationResult {
   job EvaluationJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@map("evaluation_results")
+}
+
+model EvaluationTrace {
+  id           String   @id @default(uuid()) @db.Uuid
+  jobId        String   @map("job_id") @db.Uuid
+  rowIndex     Int      @map("row_index")
+  inputData    Json     @map("input_data")
+  prediction   String
+  reference    String?
+  latencyMs    Int      @map("latency_ms")
+  inputTokens  Int      @map("input_tokens")
+  outputTokens Int      @map("output_tokens")
+  error        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  job EvaluationJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId, rowIndex])
+  @@map("evaluation_traces")
 }
 
 // ─── Phase 3: Deployment Pipeline ────────────────────────────────────────────
