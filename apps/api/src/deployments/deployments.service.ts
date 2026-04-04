@@ -19,6 +19,7 @@ export class DeploymentsService {
         id: promptId,
         workspace: { members: { some: { userId } } },
       },
+      select: { id: true },
     });
     if (!prompt) throw new NotFoundException('Prompt not found');
     return prompt;
@@ -28,7 +29,7 @@ export class DeploymentsService {
 
   private async nextVersionLabel(promptId: string): Promise<string> {
     const latest = await this.prisma.deployment.findFirst({
-      where: { promptId },
+      where: { promptId, status: 'active' },
       orderBy: { deployedAt: 'desc' },
       select: { versionLabel: true },
     });
@@ -82,6 +83,7 @@ export class DeploymentsService {
     const source = await this.prisma.deployment.findFirst({
       where: { promptId, environment: sourceEnv, status: 'active' },
       orderBy: { deployedAt: 'desc' },
+      select: { promptVersionId: true, versionLabel: true, notes: true },
     });
     if (!source) {
       throw new NotFoundException(`No active deployment in ${sourceEnv} to promote`);

@@ -46,13 +46,24 @@ export class DatasetsService {
     private readonly storage: StorageService,
   ) {}
 
-  async findAll(workspaceId: string): Promise<SerializedDataset[]> {
+  async findAll(
+    workspaceId: string,
+    take = 25,
+    cursor?: string,
+  ): Promise<{ items: SerializedDataset[]; nextCursor: string | null }> {
     const rows = await this.prisma.dataset.findMany({
       where: { workspaceId },
       include: { versions: { orderBy: { versionNumber: 'desc' }, take: 1 } },
       orderBy: { updatedAt: 'desc' },
+      take: take + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     });
-    return rows.map(serializeDataset);
+    let nextCursor: string | null = null;
+    if (rows.length > take) {
+      nextCursor = rows[take]!.id;
+      rows.pop();
+    }
+    return { items: rows.map(serializeDataset), nextCursor };
   }
 
   async findOne(id: string, workspaceId: string): Promise<SerializedDataset> {
@@ -76,7 +87,7 @@ export class DatasetsService {
   }
 
   async update(id: string, workspaceId: string, dto: UpdateDatasetDto): Promise<Dataset> {
-    const dataset = await this.prisma.dataset.findFirst({ where: { id, workspaceId } });
+    const dataset = await this.prisma.dataset.findFirst({ where: { id, workspaceId }, select: { id: true } });
     if (!dataset) throw new NotFoundException('Dataset not found');
     return this.prisma.dataset.update({
       where: { id },
@@ -89,7 +100,7 @@ export class DatasetsService {
   }
 
   async delete(id: string, workspaceId: string): Promise<void> {
-    const dataset = await this.prisma.dataset.findFirst({ where: { id, workspaceId } });
+    const dataset = await this.prisma.dataset.findFirst({ where: { id, workspaceId }, select: { id: true } });
     if (!dataset) throw new NotFoundException('Dataset not found');
     await this.prisma.$transaction(async (tx) => {
       // evaluation_results cascade from evaluation_jobs, but jobs reference the dataset
@@ -104,7 +115,9 @@ export class DatasetsService {
     filename: string,
     mimetype: string,
   ): Promise<UploadResult> {
-    const dataset = await this.prisma.dataset.findUnique({ where: { id: datasetId } });
+    const dataset = await this.prisma.dataset.findUnique({
+      where: { id: datasetId },
+    });
     if (!dataset) throw new NotFoundException('Dataset not found');
 
     const parsed = this.parseFile(fileBuffer, mimetype, filename);
@@ -112,6 +125,7 @@ export class DatasetsService {
     const latestVersion = await this.prisma.datasetVersion.findFirst({
       where: { datasetId },
       orderBy: { versionNumber: 'desc' },
+      select: { versionNumber: true },
     });
     const nextVersion = (latestVersion?.versionNumber ?? 0) + 1;
 
@@ -146,7 +160,7 @@ export class DatasetsService {
   }
 
   async getVersions(datasetId: string, workspaceId: string): Promise<SerializedVersion[]> {
-    const dataset = await this.prisma.dataset.findFirst({ where: { id: datasetId, workspaceId } });
+    const dataset = await this.prisma.dataset.findFirst({ where: { id: datasetId, workspaceId }, select: { id: true } });
     if (!dataset) throw new NotFoundException('Dataset not found');
     const versions = await this.prisma.datasetVersion.findMany({
       where: { datasetId },
@@ -160,7 +174,7 @@ export class DatasetsService {
     versionNumber: number,
     limit = 50,
   ): Promise<{ columns: string[]; rows: Record<string, unknown>[] }> {
-    const dataset = await this.prisma.dataset.findUnique({ where: { id: datasetId } });
+    const dataset = await this.prisma.dataset.findUnique({ where: { id: datasetId }, select: { id: true } });
     if (!dataset) throw new NotFoundException('Dataset not found');
 
     const version = await this.prisma.datasetVersion.findUnique({
@@ -178,7 +192,7 @@ export class DatasetsService {
   }
 
   async compare(datasetId: string, versionA: number, versionB: number): Promise<CompareResult> {
-    const dataset = await this.prisma.dataset.findUnique({ where: { id: datasetId } });
+    const dataset = await this.prisma.dataset.findUnique({ where: { id: datasetId }, select: { id: true } });
     if (!dataset) throw new NotFoundException('Dataset not found');
 
     const [va, vb] = await Promise.all([

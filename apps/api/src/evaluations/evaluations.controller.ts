@@ -8,6 +8,7 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  ParseIntPipe,
   Req,
 } from '@nestjs/common';
 import { EvaluationsService } from './evaluations.service';
@@ -20,11 +21,20 @@ export class EvaluationsController {
   constructor(private readonly evaluations: EvaluationsService) {}
 
   @Get()
-  findAll(@Query('status') status?: string, @Query('promptId') promptId?: string) {
-    return this.evaluations.findAll({
-      ...(status !== undefined && { status }),
-      ...(promptId !== undefined && { promptId }),
-    });
+  findAll(
+    @Query('status') status?: string,
+    @Query('promptId') promptId?: string,
+    @Query('take', new ParseIntPipe({ optional: true })) take?: number,
+    @Query('cursor') cursor?: string,
+  ) {
+    return this.evaluations.findAll(
+      {
+        ...(status !== undefined && { status }),
+        ...(promptId !== undefined && { promptId }),
+      },
+      take,
+      cursor,
+    );
   }
 
   @Get(':id')

@@ -74,7 +74,7 @@ export class ApiKeysService {
   }
 
   async disable(id: string, workspaceId: string): Promise<ApiKeySafe> {
-    const key = await this.prisma.apiKey.findFirst({ where: { id, workspaceId } });
+    const key = await this.prisma.apiKey.findFirst({ where: { id, workspaceId }, select: { id: true } });
     if (!key) throw new NotFoundException('API key not found');
 
     const updated = await this.prisma.apiKey.update({
@@ -85,7 +85,7 @@ export class ApiKeysService {
   }
 
   async remove(id: string, workspaceId: string): Promise<void> {
-    const key = await this.prisma.apiKey.findFirst({ where: { id, workspaceId } });
+    const key = await this.prisma.apiKey.findFirst({ where: { id, workspaceId }, select: { id: true } });
     if (!key) throw new NotFoundException('API key not found');
     await this.prisma.apiKey.delete({ where: { id } });
   }

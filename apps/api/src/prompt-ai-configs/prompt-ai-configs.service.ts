@@ -8,7 +8,7 @@ export class PromptAiConfigsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findByPrompt(promptId: string, workspaceId: string): Promise<PromptAiConfig[]> {
-    const prompt = await this.prisma.prompt.findFirst({ where: { id: promptId, workspaceId } });
+    const prompt = await this.prisma.prompt.findFirst({ where: { id: promptId, workspaceId }, select: { id: true } });
     if (!prompt) throw new NotFoundException('Prompt not found');
     return this.prisma.promptAiConfig.findMany({
       where: { promptId },
@@ -23,11 +23,12 @@ export class PromptAiConfigsService {
     workspaceId: string,
     dto: UpsertPromptAiConfigDto,
   ): Promise<PromptAiConfig> {
-    const prompt = await this.prisma.prompt.findFirst({ where: { id: promptId, workspaceId } });
+    const prompt = await this.prisma.prompt.findFirst({ where: { id: promptId, workspaceId }, select: { id: true } });
     if (!prompt) throw new NotFoundException('Prompt not found');
 
     const existing = await this.prisma.promptAiConfig.findFirst({
       where: { promptId, ...(dto.providerId ? { providerId: dto.providerId } : {}) },
+      select: { id: true },
     });
 
     const data = {
@@ -60,10 +61,11 @@ export class PromptAiConfigsService {
   }
 
   async delete(promptId: string, configId: string, workspaceId: string): Promise<void> {
-    const prompt = await this.prisma.prompt.findFirst({ where: { id: promptId, workspaceId } });
+    const prompt = await this.prisma.prompt.findFirst({ where: { id: promptId, workspaceId }, select: { id: true } });
     if (!prompt) throw new NotFoundException('Prompt not found');
     const config = await this.prisma.promptAiConfig.findFirst({
       where: { id: configId, promptId },
+      select: { id: true },
     });
     if (!config) throw new NotFoundException('Config not found');
     await this.prisma.promptAiConfig.delete({ where: { id: configId } });
