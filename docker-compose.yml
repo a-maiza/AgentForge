@@ -139,7 +139,7 @@ services:
       target: builder
     env_file: .env.local
     environment:
-      DATABASE_URL: postgresql://agentforge:agentforge@pgbouncer:6432/agentforge
+      DATABASE_URL: postgresql://agentforge:agentforge@postgres:5432/agentforge
       REDIS_URL: redis://redis:6379
       PORT: '3002'
     ports:
@@ -147,6 +147,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      pgbouncer:
+        condition: service_started
       redis:
         condition: service_healthy
     volumes:

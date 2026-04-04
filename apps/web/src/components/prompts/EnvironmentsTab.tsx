@@ -115,7 +115,11 @@ export function EnvironmentsTab({ promptId, versions = [] }: Props) {
       await queryClient.invalidateQueries({ queryKey: ['deployments', promptId] });
       toast.success('Endpoint is now live');
     },
-    onError: () => toast.error('Go-live failed'),
+    onError: (err: unknown) => {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail ?? 'Go-live failed');
+    },
   });
 
   const isMutating =

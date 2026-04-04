@@ -162,7 +162,7 @@ export class DeploymentsService {
     await this.getPromptForUser(promptId, userId);
 
     const deployments = await this.prisma.deployment.findMany({
-      where: { promptId },
+      where: { promptId, status: 'active' },
       orderBy: { deployedAt: 'desc' },
       include: {
         promptVersion: { select: { versionNumber: true, content: true } },
@@ -170,7 +170,7 @@ export class DeploymentsService {
       },
     });
 
-    // Return latest per environment
+    // Return latest active deployment per environment
     const result: Record<string, Deployment | null> = { dev: null, staging: null, prod: null };
     for (const env of ENVIRONMENT_ORDER) {
       result[env] = deployments.find((d) => d.environment === env) ?? null;

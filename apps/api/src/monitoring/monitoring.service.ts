@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { Redis } from 'ioredis';
 import { PrismaService } from '../prisma/prisma.service';
 import type {
@@ -190,6 +191,10 @@ export class MonitoringService {
       total_cost_usd: number | null;
     };
 
+    const envFilter = dto.environment
+      ? Prisma.sql`AND d.environment = ${dto.environment}`
+      : Prisma.empty;
+
     const rows = await this.prisma.$queryRaw<RawRow[]>`
       SELECT
         date_trunc(${pgInterval}, acl.created_at) AS bucket,
@@ -203,7 +208,7 @@ export class MonitoringService {
       JOIN prompts     p  ON d.prompt_id       = p.id
       WHERE p.workspace_id = ${workspaceId}::uuid
         AND acl.created_at BETWEEN ${from} AND ${to}
-        ${dto.environment ? `AND d.environment = '${dto.environment}'` : ''}
+        ${envFilter}
       GROUP BY 1
       ORDER BY 1 ASC
     `;
@@ -236,6 +241,10 @@ export class MonitoringService {
       total_tokens: bigint;
     };
 
+    const envFilter = dto.environment
+      ? Prisma.sql`AND d.environment = ${dto.environment}`
+      : Prisma.empty;
+
     const rows = await this.prisma.$queryRaw<RawRow[]>`
       SELECT
         acl.endpoint_hash,
@@ -251,7 +260,7 @@ export class MonitoringService {
       JOIN deployments d ON acl.deployment_id = d.id
       JOIN prompts     p ON d.prompt_id       = p.id
       WHERE p.workspace_id = ${workspaceId}::uuid
-        ${dto.environment ? `AND d.environment = '${dto.environment}'` : ''}
+        ${envFilter}
       GROUP BY acl.endpoint_hash, p.name, d.environment
       ORDER BY total_calls DESC
     `;
