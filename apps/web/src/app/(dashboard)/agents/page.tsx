@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { Plus, Bot } from 'lucide-react';
 import { agentsApi } from '@/lib/api';
@@ -31,13 +31,18 @@ export default function AgentsPage() {
   const { activeWorkspace } = useWorkspaceStore();
   const [createOpen, setCreateOpen] = useState(false);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ['agents', activeWorkspace?.id],
-    queryFn: () => agentsApi.list(activeWorkspace!.id),
+    queryFn: async ({ pageParam }: { pageParam: string | undefined }) => {
+      const res = await agentsApi.list(activeWorkspace!.id, { take: 25, ...(pageParam ? { cursor: pageParam } : {}) });
+      return res.data as { items: Agent[]; nextCursor: string | null };
+    },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     enabled: !!activeWorkspace?.id,
   });
 
-  const agents: Agent[] = (data?.data as Agent[]) ?? [];
+  const agents = data?.pages.flatMap((p) => p.items) ?? [];
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -77,33 +82,42 @@ export default function AgentsPage() {
       )}
 
       {!isLoading && agents.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {agents.map((agent) => (
-            <button
-              key={agent.id}
-              onClick={() => router.push(`/agents/${agent.id}`)}
-              className="rounded-lg border bg-card p-5 text-left hover:bg-accent transition-colors"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <Bot className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <p className="font-semibold truncate">{agent.name}</p>
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {agents.map((agent) => (
+              <button
+                key={agent.id}
+                onClick={() => router.push(`/agents/${agent.id}`)}
+                className="rounded-lg border bg-card p-5 text-left hover:bg-accent transition-colors"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Bot className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <p className="font-semibold truncate">{agent.name}</p>
+                  </div>
+                  <Badge variant={STATUS_COLORS[agent.status] as 'default' | 'secondary' | 'outline'}>
+                    {agent.status}
+                  </Badge>
                 </div>
-                <Badge variant={STATUS_COLORS[agent.status] as 'default' | 'secondary' | 'outline'}>
-                  {agent.status}
-                </Badge>
-              </div>
-              {agent.description && (
-                <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
-                  {agent.description}
+                {agent.description && (
+                  <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
+                    {agent.description}
+                  </p>
+                )}
+                <p className="mt-3 text-xs text-muted-foreground">
+                  v{agent.currentVersion} · updated {new Date(agent.updatedAt).toLocaleDateString()}
                 </p>
-              )}
-              <p className="mt-3 text-xs text-muted-foreground">
-                v{agent.currentVersion} · updated {new Date(agent.updatedAt).toLocaleDateString()}
-              </p>
-            </button>
-          ))}
-        </div>
+              </button>
+            ))}
+          </div>
+          {hasNextPage && (
+            <div className="flex justify-center">
+              <Button variant="outline" onClick={() => void fetchNextPage()} disabled={isFetchingNextPage}>
+                {isFetchingNextPage ? 'Loading…' : 'Load more'}
+              </Button>
+            </div>
+          )}
+        </>
       )}
 
       {activeWorkspace && (

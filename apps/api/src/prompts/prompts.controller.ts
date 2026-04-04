@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -30,8 +31,12 @@ export class PromptsController {
   constructor(private readonly promptsService: PromptsService) {}
 
   @Get()
-  findAll(@Param('workspaceId') workspaceId: string) {
-    return this.promptsService.findAll(workspaceId);
+  findAll(
+    @Param('workspaceId') workspaceId: string,
+    @Query('take', new ParseIntPipe({ optional: true })) take?: number,
+    @Query('cursor') cursor?: string,
+  ) {
+    return this.promptsService.findAll(workspaceId, take, cursor);
   }
 
   @Get(':id')

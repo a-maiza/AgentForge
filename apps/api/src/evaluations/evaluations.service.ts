@@ -24,7 +24,7 @@ export class EvaluationsService {
 
   async create(dto: CreateEvaluationDto, userId: string): Promise<EvaluationJob> {
     // Validate prompt exists
-    const prompt = await this.prisma.prompt.findUnique({ where: { id: dto.promptId } });
+    const prompt = await this.prisma.prompt.findUnique({ where: { id: dto.promptId }, select: { id: true } });
     if (!prompt) throw new NotFoundException('Prompt not found');
 
     // Resolve dataset from prompt config if not provided
@@ -115,7 +115,9 @@ export class EvaluationsService {
 
   async findAll(
     filters?: { status?: string; promptId?: string },
-  ): Promise<Record<string, unknown>[]> {
+    take = 25,
+    cursor?: string,
+  ): Promise<{ items: Record<string, unknown>[]; nextCursor: string | null }> {
     const jobs = await this.prisma.evaluationJob.findMany({
       where: {
         ...(filters?.status && {
@@ -124,6 +126,8 @@ export class EvaluationsService {
         ...(filters?.promptId && { promptId: filters.promptId }),
       },
       orderBy: { createdAt: 'desc' },
+      take: take + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       include: {
         prompt: { select: { name: true } },
         promptVersion: { select: { versionNumber: true } },
@@ -131,18 +135,28 @@ export class EvaluationsService {
         provider: { select: { name: true } },
       },
     });
-    return jobs.map((job) => ({
-      ...job,
-      promptName: job.prompt?.name,
-      promptVersionNumber: job.promptVersion?.versionNumber,
-      model: job.modelName,
-      providerName: job.provider?.name,
-      datasetName: job.dataset?.name,
-    }));
+
+    let nextCursor: string | null = null;
+    if (jobs.length > take) {
+      nextCursor = jobs[take]!.id;
+      jobs.pop();
+    }
+
+    return {
+      items: jobs.map((job) => ({
+        ...job,
+        promptName: job.prompt?.name,
+        promptVersionNumber: job.promptVersion?.versionNumber,
+        model: job.modelName,
+        providerName: job.provider?.name,
+        datasetName: job.dataset?.name,
+      })),
+      nextCursor,
+    };
   }
 
   async getTraces(id: string): Promise<Record<string, unknown>[]> {
-    const job = await this.prisma.evaluationJob.findUnique({ where: { id } });
+    const job = await this.prisma.evaluationJob.findUnique({ where: { id }, select: { id: true } });
     if (!job) throw new NotFoundException('Evaluation job not found');
     return this.prisma.evaluationTrace.findMany({
       where: { jobId: id },
@@ -151,7 +165,7 @@ export class EvaluationsService {
   }
 
   async cancel(id: string): Promise<EvaluationJob> {
-    const job = await this.prisma.evaluationJob.findUnique({ where: { id } });
+    const job = await this.prisma.evaluationJob.findUnique({ where: { id }, select: { id: true } });
     if (!job) throw new NotFoundException('Evaluation job not found');
     const bullJob = await this.queue.getJob(id);
     if (bullJob) await bullJob.remove();
@@ -162,7 +176,7 @@ export class EvaluationsService {
   }
 
   async remove(id: string): Promise<void> {
-    const job = await this.prisma.evaluationJob.findUnique({ where: { id } });
+    const job = await this.prisma.evaluationJob.findUnique({ where: { id }, select: { id: true } });
     if (!job) throw new NotFoundException('Evaluation job not found');
     // Remove from queue if still pending/running
     const bullJob = await this.queue.getJob(id);

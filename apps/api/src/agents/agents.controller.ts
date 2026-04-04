@@ -6,9 +6,11 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
   HttpCode,
   HttpStatus,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { AgentsService } from './agents.service';
 import { WorkspaceGuard } from '../workspaces/guards/workspace.guard';
@@ -30,8 +32,12 @@ export class AgentsController {
   constructor(private readonly agentsService: AgentsService) {}
 
   @Get()
-  findAll(@Param('workspaceId') workspaceId: string) {
-    return this.agentsService.findAll(workspaceId);
+  findAll(
+    @Param('workspaceId') workspaceId: string,
+    @Query('take', new ParseIntPipe({ optional: true })) take?: number,
+    @Query('cursor') cursor?: string,
+  ) {
+    return this.agentsService.findAll(workspaceId, take, cursor);
   }
 
   @Get(':id')

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { Search, Grid3X3, List, Table2, Plus, FileText, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -97,15 +97,25 @@ export function PromptList({ onCreateClick }: { onCreateClick: () => void }) {
     onError: () => toast.error('Failed to delete prompt'),
   });
 
-  const { data: prompts = [], isLoading } = useQuery<Prompt[]>({
+  const {
+    data,
+    isLoading,
+    isFetchingNextPage,
+    fetchNextPage,
+    hasNextPage,
+  } = useInfiniteQuery({
     queryKey: ['prompts', activeWorkspace?.id],
-    queryFn: async () => {
-      if (!activeWorkspace) return [];
-      const res = await promptsApi.list(activeWorkspace.id);
-      return res.data as Prompt[];
+    queryFn: async ({ pageParam }: { pageParam: string | undefined }) => {
+      if (!activeWorkspace) return { items: [], nextCursor: null };
+      const res = await promptsApi.list(activeWorkspace.id, { take: 25, ...(pageParam ? { cursor: pageParam } : {}) });
+      return res.data as { items: Prompt[]; nextCursor: string | null };
     },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     enabled: !!activeWorkspace,
   });
+
+  const prompts = data?.pages.flatMap((p) => p.items) ?? [];
 
   const filtered = prompts.filter((p) => {
     const matchesSearch =
@@ -291,6 +301,14 @@ export function PromptList({ onCreateClick }: { onCreateClick: () => void }) {
                 </Button>
               </div>
             ))}
+          </div>
+        )}
+
+        {hasNextPage && (
+          <div className="flex justify-center pt-2">
+            <Button variant="outline" onClick={() => void fetchNextPage()} disabled={isFetchingNextPage}>
+              {isFetchingNextPage ? 'Loading…' : 'Load more'}
+            </Button>
           </div>
         )}
       </div>

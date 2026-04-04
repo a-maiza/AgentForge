@@ -647,6 +647,48 @@ Owners can permanently delete the active workspace or the active organization (a
 
 ---
 
+## Performance
+
+### SELECT optimisation (existence checks)
+
+All existence-check queries across the NestJS API use `select: { id: true }` instead of fetching full rows. This applies to 8 services: `prompts`, `agents`, `datasets`, `evaluations`, `ai-providers`, `api-keys`, `prompt-ai-configs`, and `deployments`. Queries that previously fetched entire rows purely to check whether a record exists now retrieve only the primary key.
+
+### Redis caching — AI providers
+
+`AiProvidersService.findAll` caches per-workspace provider lists in Redis:
+
+| Detail        | Value                              |
+| ------------- | ---------------------------------- |
+| Cache key     | `ai_providers:{workspaceId}`       |
+| TTL           | 60 seconds                         |
+| Invalidation  | On `create`, `update`, or `delete` |
+
+The cached value is the full serialised provider list (with decrypted keys excluded, as always). On cache miss the service queries PostgreSQL and writes the result to Redis.
+
+### Cursor-based pagination
+
+List endpoints for `prompts`, `agents`, `datasets`, and `evaluations` support cursor-based pagination via query parameters:
+
+| Parameter | Type     | Default | Description                                    |
+| --------- | -------- | ------- | ---------------------------------------------- |
+| `take`    | `number` | `25`    | Maximum items to return per page               |
+| `cursor`  | `string` | —       | Opaque cursor (the `id` of the last seen item) |
+
+**Response shape** (replaces plain arrays):
+
+```json
+{
+  "items": [ ... ],
+  "nextCursor": "cm9c..."
+}
+```
+
+`nextCursor` is `null` when no further pages exist.
+
+**Frontend integration:** `PromptList`, `DatasetList`, and `AgentsPage` use TanStack Query `useInfiniteQuery` with a Load-more button. Each page request passes the previous page's `nextCursor` as the `cursor` query parameter.
+
+---
+
 ## Project Structure
 
 ```

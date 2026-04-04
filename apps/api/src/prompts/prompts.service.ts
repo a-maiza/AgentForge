@@ -14,11 +14,23 @@ interface CreatePromptData {
 export class PromptsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll(workspaceId: string): Promise<Prompt[]> {
-    return this.prisma.prompt.findMany({
+  async findAll(
+    workspaceId: string,
+    take = 25,
+    cursor?: string,
+  ): Promise<{ items: Prompt[]; nextCursor: string | null }> {
+    const items = await this.prisma.prompt.findMany({
       where: { workspaceId },
       orderBy: { updatedAt: 'desc' },
+      take: take + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     });
+    let nextCursor: string | null = null;
+    if (items.length > take) {
+      nextCursor = items[take]!.id;
+      items.pop();
+    }
+    return { items, nextCursor };
   }
 
   async findOne(
@@ -130,7 +142,7 @@ export class PromptsService {
   }
 
   async delete(id: string, workspaceId: string): Promise<void> {
-    const prompt = await this.prisma.prompt.findFirst({ where: { id, workspaceId } });
+    const prompt = await this.prisma.prompt.findFirst({ where: { id, workspaceId }, select: { id: true } });
     if (!prompt) throw new NotFoundException('Prompt not found');
     await this.prisma.$transaction(async (tx) => {
       // evaluation_jobs.prompt_version_id and deployments.prompt_version_id have no
@@ -151,6 +163,7 @@ export class PromptsService {
   async getVersions(promptId: string, workspaceId: string): Promise<PromptVersion[]> {
     const prompt = await this.prisma.prompt.findFirst({
       where: { id: promptId, workspaceId },
+      select: { id: true },
     });
     if (!prompt) throw new NotFoundException('Prompt not found');
     return this.prisma.promptVersion.findMany({
@@ -166,6 +179,7 @@ export class PromptsService {
   ): Promise<PromptVersion> {
     const prompt = await this.prisma.prompt.findFirst({
       where: { id: promptId, workspaceId },
+      select: { id: true },
     });
     if (!prompt) throw new NotFoundException('Prompt not found');
 
@@ -177,7 +191,7 @@ export class PromptsService {
   }
 
   async getDatasetConfig(promptId: string, workspaceId: string): Promise<unknown> {
-    const prompt = await this.prisma.prompt.findFirst({ where: { id: promptId, workspaceId } });
+    const prompt = await this.prisma.prompt.findFirst({ where: { id: promptId, workspaceId }, select: { id: true } });
     if (!prompt) throw new NotFoundException('Prompt not found');
     return this.prisma.promptDatasetConfig.findFirst({
       where: { promptId },
@@ -198,7 +212,7 @@ export class PromptsService {
       isActive?: boolean;
     },
   ): Promise<unknown> {
-    const prompt = await this.prisma.prompt.findFirst({ where: { id: promptId, workspaceId } });
+    const prompt = await this.prisma.prompt.findFirst({ where: { id: promptId, workspaceId }, select: { id: true } });
     if (!prompt) throw new NotFoundException('Prompt not found');
 
     const existing = await this.prisma.promptDatasetConfig.findFirst({
@@ -248,7 +262,7 @@ export class PromptsService {
     versionB: number;
     hunks: { type: 'added' | 'removed' | 'unchanged'; line: string }[];
   }> {
-    const prompt = await this.prisma.prompt.findFirst({ where: { id: promptId, workspaceId } });
+    const prompt = await this.prisma.prompt.findFirst({ where: { id: promptId, workspaceId }, select: { id: true } });
     if (!prompt) throw new NotFoundException('Prompt not found');
 
     const [va, vb] = await Promise.all([
