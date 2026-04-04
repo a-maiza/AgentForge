@@ -85,6 +85,23 @@ enum agent_status {
   archived
 }
 
+enum audit_action {
+  dataset_created
+  dataset_updated
+  dataset_deleted
+  dataset_version_uploaded
+  deployment_created
+  deployment_rolled_back
+  deployment_went_live
+  api_key_created
+  api_key_disabled
+  api_key_deleted
+  agent_created
+  agent_updated
+  agent_deleted
+  agent_workflow_saved
+}
+
 model User {
   id        String   @id @default(uuid()) @db.Uuid
   clerkId   String   @unique @map("clerk_id")
@@ -103,6 +120,7 @@ model User {
   apiKeys          ApiKey[]
   agents           Agent[]
   agentVersions    AgentVersion[]
+  auditLogs        AuditLog[]
 
   @@map("users")
 }
@@ -148,6 +166,7 @@ model Workspace {
   aiProviders AiProvider[]
   apiKeys     ApiKey[]
   agents      Agent[]
+  auditLogs   AuditLog[]
 
   @@unique([orgId, slug])
   @@map("workspaces")
@@ -511,4 +530,27 @@ model AgentVersion {
 
   @@unique([agentId, versionNumber])
   @@map("agent_versions")
+}
+
+// ─── Phase 6: Security ────────────────────────────────────────────────────────
+
+model AuditLog {
+  id           String       @id @default(uuid()) @db.Uuid
+  userId       String       @map("user_id") @db.Uuid
+  workspaceId  String?      @map("workspace_id") @db.Uuid
+  action       audit_action
+  resourceType String       @map("resource_type")
+  resourceId   String       @map("resource_id")
+  /// Optional JSON snapshot of relevant fields before/after the change
+  metadata     Json?
+  ipAddress    String?      @map("ip_address")
+  createdAt    DateTime     @default(now()) @map("created_at")
+
+  user      User       @relation(fields: [userId], references: [id])
+  workspace Workspace? @relation(fields: [workspaceId], references: [id])
+
+  @@index([workspaceId, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([resourceType, resourceId])
+  @@map("audit_logs")
 }

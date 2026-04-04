@@ -39,6 +39,7 @@ function inferType(value: string | number | boolean | null): string {
 }
 
 interface Props {
+  workspaceId: string;
   datasetId: string;
   versionNumber: number;
 }
@@ -50,14 +51,14 @@ const typeColor: Record<string, 'default' | 'secondary' | 'outline'> = {
   integer: 'default',
 };
 
-export function DatasetPreview({ datasetId, versionNumber }: Props) {
+export function DatasetPreview({ workspaceId, datasetId, versionNumber }: Props) {
   const { data, isLoading } = useQuery<PreviewData>({
-    queryKey: ['dataset-preview', datasetId, versionNumber],
+    queryKey: ['dataset-preview', workspaceId, datasetId, versionNumber],
     queryFn: async () => {
-      const res = await datasetsApi.preview(datasetId, versionNumber);
+      const res = await datasetsApi.preview(workspaceId, datasetId, versionNumber);
       return res.data as PreviewData;
     },
-    enabled: !!datasetId && !!versionNumber,
+    enabled: !!workspaceId && !!datasetId && !!versionNumber,
   });
 
   if (isLoading) {

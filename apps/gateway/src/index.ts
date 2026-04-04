@@ -6,6 +6,7 @@ import { connectRedis } from './redis.js';
 import { db } from './db.js';
 import { healthRoutes } from './routes/health.js';
 import { liveRoutes } from './routes/live.js';
+import { registerIpFilter } from './lib/ip-filter.js';
 
 const PORT = Number(process.env['PORT'] ?? 3002);
 const HOST = '0.0.0.0';
@@ -34,6 +35,10 @@ await fastify.register(rateLimit, {
   max: 10_000,
   timeWindow: '1 minute',
 });
+
+// ── IP filter (allowlist / blocklist via Redis sets) ──────────────────────────
+
+await registerIpFilter(fastify);
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 

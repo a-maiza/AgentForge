@@ -96,18 +96,18 @@ export const datasetsApi = {
     api.put(`/api/workspaces/${workspaceId}/datasets/${id}`, data),
   delete: (workspaceId: string, id: string) =>
     api.delete(`/api/workspaces/${workspaceId}/datasets/${id}`),
-  upload: (_workspaceId: string, id: string, file: File, onProgress?: (pct: number) => void) => {
+  upload: (workspaceId: string, id: string, file: File, onProgress?: (pct: number) => void) => {
     const form = new FormData();
     form.append('file', file);
-    return api.post(`/api/datasets/${id}/upload`, form, {
+    return api.post(`/api/workspaces/${workspaceId}/datasets/${id}/upload`, form, {
       headers: { 'Content-Type': 'multipart/form-data' },
       onUploadProgress: (e) => onProgress?.(Math.round((e.loaded * 100) / (e.total ?? 1))),
     });
   },
-  preview: (id: string, versionNumber: number) =>
-    api.get(`/api/datasets/${id}/versions/${versionNumber}/preview`),
-  compare: (id: string, v1: string, v2: string) =>
-    api.post(`/api/datasets/${id}/versions/compare`, { versionId1: v1, versionId2: v2 }),
+  preview: (workspaceId: string, id: string, versionNumber: number) =>
+    api.get(`/api/workspaces/${workspaceId}/datasets/${id}/versions/${versionNumber}/preview`),
+  compare: (workspaceId: string, id: string, versionA: number, versionB: number) =>
+    api.post(`/api/workspaces/${workspaceId}/datasets/${id}/versions/compare`, { versionA, versionB }),
   versions: (workspaceId: string, id: string) =>
     api.get(`/api/workspaces/${workspaceId}/datasets/${id}/versions`),
 };

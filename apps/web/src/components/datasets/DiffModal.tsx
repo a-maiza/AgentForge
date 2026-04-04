@@ -13,9 +13,10 @@ interface DiffResult {
 }
 
 interface Props {
+  workspaceId: string;
   datasetId: string;
-  version1Id: string;
-  version2Id: string;
+  versionA: number;
+  versionB: number;
   open: boolean;
   onClose: () => void;
 }
@@ -33,14 +34,14 @@ function RowDisplay({ row }: { row: Record<string, unknown> }) {
   );
 }
 
-export function DiffModal({ datasetId, version1Id, version2Id, open, onClose }: Props) {
+export function DiffModal({ workspaceId, datasetId, versionA, versionB, open, onClose }: Props) {
   const { data, isLoading } = useQuery<DiffResult>({
-    queryKey: ['dataset-diff', datasetId, version1Id, version2Id],
+    queryKey: ['dataset-diff', workspaceId, datasetId, versionA, versionB],
     queryFn: async () => {
-      const res = await datasetsApi.compare(datasetId, version1Id, version2Id);
+      const res = await datasetsApi.compare(workspaceId, datasetId, versionA, versionB);
       return res.data as DiffResult;
     },
-    enabled: open && !!datasetId && !!version1Id && !!version2Id,
+    enabled: open && !!workspaceId && !!datasetId && !!versionA && !!versionB,
   });
 
   return (

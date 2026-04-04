@@ -11,17 +11,31 @@ import {
   HttpStatus,
   UseGuards,
   Req,
+  BadRequestException,
 } from '@nestjs/common';
 import { DatasetsService } from './datasets.service';
 import { UpdateDatasetDto } from './dto/update-dataset.dto';
 import { WorkspaceGuard } from '../workspaces/guards/workspace.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { AuditService } from '../audit/audit.service';
 import type { FastifyRequest } from 'fastify';
 import type { User } from '@prisma/client';
 
+const ALLOWED_MIMETYPES = new Set([
+  'text/csv',
+  'application/csv',
+  'application/json',
+  'application/x-ndjson',
+  'text/plain',
+  'application/octet-stream',
+]);
+
 @Controller('api')
 export class DatasetsController {
-  constructor(private readonly datasets: DatasetsService) {}
+  constructor(
+    private readonly datasets: DatasetsService,
+    private readonly audit: AuditService,
+  ) {}
 
   @Get('workspaces/:workspaceId/datasets')
   @UseGuards(WorkspaceGuard)
@@ -37,12 +51,22 @@ export class DatasetsController {
 
   @Post('workspaces/:workspaceId/datasets')
   @UseGuards(WorkspaceGuard)
-  create(
+  async create(
     @Param('workspaceId') workspaceId: string,
     @Body() body: { name: string; description?: string },
     @CurrentUser() user: User,
+    @Req() req: FastifyRequest,
   ) {
-    return this.datasets.create({ workspaceId, ...body }, user.id);
+    const dataset = await this.datasets.create({ workspaceId, ...body }, user.id);
+    void this.audit.log({
+      userId: user.id,
+      workspaceId,
+      action: 'dataset_created',
+      resourceType: 'dataset',
+      resourceId: dataset.id,
+      ipAddress: req.ip,
+    });
+    return dataset;
   }
 
   @Put('workspaces/:workspaceId/datasets/:id')
@@ -58,8 +82,21 @@ export class DatasetsController {
   @Delete('workspaces/:workspaceId/datasets/:id')
   @UseGuards(WorkspaceGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
-  async delete(@Param('workspaceId') workspaceId: string, @Param('id') id: string) {
+  async delete(
+    @Param('workspaceId') workspaceId: string,
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Req() req: FastifyRequest,
+  ) {
     await this.datasets.delete(id, workspaceId);
+    void this.audit.log({
+      userId: user.id,
+      workspaceId,
+      action: 'dataset_deleted',
+      resourceType: 'dataset',
+      resourceId: id,
+      ipAddress: req.ip,
+    });
   }
 
   @Get('workspaces/:workspaceId/datasets/:id/versions')
@@ -68,25 +105,60 @@ export class DatasetsController {
     return this.datasets.getVersions(id, workspaceId);
   }
 
-  // These routes are not workspace-prefixed on the frontend — keep paths unchanged
-  @Post('datasets/:id/upload')
-  async upload(@Param('id') id: string, @Req() req: FastifyRequest & { user: User }) {
+  // Upload: workspace-scoped via WorkspaceGuard; workspaceId passed to service for double-check
+  @Post('workspaces/:workspaceId/datasets/:id/upload')
+  @UseGuards(WorkspaceGuard)
+  async upload(
+    @Param('workspaceId') workspaceId: string,
+    @Param('id') id: string,
+    @Req() req: FastifyRequest & { user: User },
+  ) {
     const data = await (
       req as unknown as {
         file(): Promise<{ filename: string; mimetype: string; toBuffer(): Promise<Buffer> }>;
       }
     ).file();
+
+    const lower = data.filename.toLowerCase();
+    const isAllowedExtension =
+      lower.endsWith('.csv') || lower.endsWith('.json') || lower.endsWith('.jsonl');
+    if (!isAllowedExtension && !ALLOWED_MIMETYPES.has(data.mimetype)) {
+      throw new BadRequestException('Unsupported file type. Allowed: .csv, .json, .jsonl');
+    }
+
     const buffer = await data.toBuffer();
-    return this.datasets.upload(id, buffer, data.filename, data.mimetype);
+    const result = await this.datasets.upload(id, workspaceId, buffer, data.filename, data.mimetype);
+
+    void this.audit.log({
+      userId: req.user.id,
+      workspaceId,
+      action: 'dataset_version_uploaded',
+      resourceType: 'dataset_version',
+      resourceId: result.version.id,
+      metadata: { datasetId: id, versionNumber: result.version.versionNumber, filename: data.filename },
+      ipAddress: req.ip,
+    });
+
+    return result;
   }
 
-  @Get('datasets/:id/versions/:v/preview')
-  preview(@Param('id') id: string, @Param('v', ParseIntPipe) v: number) {
-    return this.datasets.preview(id, v);
+  @Get('workspaces/:workspaceId/datasets/:id/versions/:v/preview')
+  @UseGuards(WorkspaceGuard)
+  preview(
+    @Param('workspaceId') workspaceId: string,
+    @Param('id') id: string,
+    @Param('v', ParseIntPipe) v: number,
+  ) {
+    return this.datasets.preview(id, workspaceId, v);
   }
 
-  @Post('datasets/:id/versions/compare')
-  compare(@Param('id') id: string, @Body() body: { versionA: number; versionB: number }) {
-    return this.datasets.compare(id, body.versionA, body.versionB);
+  @Post('workspaces/:workspaceId/datasets/:id/versions/compare')
+  @UseGuards(WorkspaceGuard)
+  compare(
+    @Param('workspaceId') workspaceId: string,
+    @Param('id') id: string,
+    @Body() body: { versionA: number; versionB: number },
+  ) {
+    return this.datasets.compare(id, workspaceId, body.versionA, body.versionB);
   }
 }
