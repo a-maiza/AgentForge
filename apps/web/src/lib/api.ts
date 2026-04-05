@@ -44,7 +44,8 @@ export default api;
 
 // Typed API helpers
 export const promptsApi = {
-  list: (workspaceId: string) => api.get(`/api/workspaces/${workspaceId}/prompts`),
+  list: (workspaceId: string, params?: { take?: number; cursor?: string }) =>
+    api.get(`/api/workspaces/${workspaceId}/prompts`, { params }),
   get: (workspaceId: string, id: string) => api.get(`/api/workspaces/${workspaceId}/prompts/${id}`),
   create: (workspaceId: string, data: { name: string; content: string; description?: string }) =>
     api.post(`/api/workspaces/${workspaceId}/prompts`, { ...data, workspaceId }),
@@ -87,7 +88,8 @@ export const organizationsApi = {
 
 // Datasets
 export const datasetsApi = {
-  list: (workspaceId: string) => api.get(`/api/workspaces/${workspaceId}/datasets`),
+  list: (workspaceId: string, params?: { take?: number; cursor?: string }) =>
+    api.get(`/api/workspaces/${workspaceId}/datasets`, { params }),
   get: (workspaceId: string, id: string) =>
     api.get(`/api/workspaces/${workspaceId}/datasets/${id}`),
   create: (workspaceId: string, data: { name: string; description?: string }) =>
@@ -140,7 +142,7 @@ export const promptDatasetConfigsApi = {
 
 // Evaluations
 export const evaluationsApi = {
-  list: (params?: { status?: string; promptId?: string }) =>
+  list: (params?: { status?: string; promptId?: string; take?: number; cursor?: string }) =>
     api.get('/api/evaluations', { params }),
   get: (id: string) => api.get(`/api/evaluations/${id}`),
   traces: (id: string) => api.get(`/api/evaluations/${id}/traces`),
@@ -197,7 +199,8 @@ export const monitoringApi = {
 
 // Agents
 export const agentsApi = {
-  list: (workspaceId: string) => api.get(`/api/workspaces/${workspaceId}/agents`),
+  list: (workspaceId: string, params?: { take?: number; cursor?: string }) =>
+    api.get(`/api/workspaces/${workspaceId}/agents`, { params }),
   get: (workspaceId: string, id: string) => api.get(`/api/workspaces/${workspaceId}/agents/${id}`),
   create: (workspaceId: string, data: { name: string; description?: string }) =>
     api.post(`/api/workspaces/${workspaceId}/agents`, data),

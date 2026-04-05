@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { Search, Grid3X3, List, Table2, Plus, Database, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -91,15 +91,19 @@ export function DatasetList({ onCreateClick }: { onCreateClick: () => void }) {
     onError: () => toast.error('Failed to delete dataset'),
   });
 
-  const { data: datasets = [], isLoading } = useQuery<Dataset[]>({
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ['datasets', activeWorkspace?.id],
-    queryFn: async () => {
-      if (!activeWorkspace) return [];
-      const res = await datasetsApi.list(activeWorkspace.id);
-      return res.data as Dataset[];
+    queryFn: async ({ pageParam }: { pageParam: string | undefined }) => {
+      if (!activeWorkspace) return { items: [], nextCursor: null };
+      const res = await datasetsApi.list(activeWorkspace.id, { take: 25, ...(pageParam ? { cursor: pageParam } : {}) });
+      return res.data as { items: Dataset[]; nextCursor: string | null };
     },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     enabled: !!activeWorkspace,
   });
+
+  const datasets = data?.pages.flatMap((p) => p.items) ?? [];
 
   const filtered = datasets.filter((d) => {
     const q = search.toLowerCase();
@@ -263,6 +267,14 @@ export function DatasetList({ onCreateClick }: { onCreateClick: () => void }) {
               </Button>
             </div>
           ))}
+        </div>
+      )}
+
+      {hasNextPage && (
+        <div className="flex justify-center pt-2">
+          <Button variant="outline" onClick={() => void fetchNextPage()} disabled={isFetchingNextPage}>
+            {isFetchingNextPage ? 'Loading…' : 'Load more'}
+          </Button>
         </div>
       )}
 

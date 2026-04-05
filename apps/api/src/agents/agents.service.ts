@@ -7,11 +7,23 @@ import type { CreateAgentInput, UpdateAgentInput } from '@agentforge/shared';
 export class AgentsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll(workspaceId: string): Promise<Agent[]> {
-    return this.prisma.agent.findMany({
+  async findAll(
+    workspaceId: string,
+    take = 25,
+    cursor?: string,
+  ): Promise<{ items: Agent[]; nextCursor: string | null }> {
+    const items = await this.prisma.agent.findMany({
       where: { workspaceId },
       orderBy: { updatedAt: 'desc' },
+      take: take + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     });
+    let nextCursor: string | null = null;
+    if (items.length > take) {
+      nextCursor = items[take]!.id;
+      items.pop();
+    }
+    return { items, nextCursor };
   }
 
   async findOne(id: string, workspaceId: string): Promise<Agent & { versions: AgentVersion[] }> {
@@ -41,7 +53,7 @@ export class AgentsService {
     data: UpdateAgentInput,
     _userId: string,
   ): Promise<Agent> {
-    const agent = await this.prisma.agent.findFirst({ where: { id, workspaceId } });
+    const agent = await this.prisma.agent.findFirst({ where: { id, workspaceId }, select: { id: true } });
     if (!agent) throw new NotFoundException('Agent not found');
     return this.prisma.agent.update({
       where: { id },
@@ -54,13 +66,13 @@ export class AgentsService {
   }
 
   async delete(id: string, workspaceId: string): Promise<void> {
-    const agent = await this.prisma.agent.findFirst({ where: { id, workspaceId } });
+    const agent = await this.prisma.agent.findFirst({ where: { id, workspaceId }, select: { id: true } });
     if (!agent) throw new NotFoundException('Agent not found');
     await this.prisma.agent.delete({ where: { id } });
   }
 
   async getVersions(id: string, workspaceId: string): Promise<AgentVersion[]> {
-    const agent = await this.prisma.agent.findFirst({ where: { id, workspaceId } });
+    const agent = await this.prisma.agent.findFirst({ where: { id, workspaceId }, select: { id: true } });
     if (!agent) throw new NotFoundException('Agent not found');
     return this.prisma.agentVersion.findMany({
       where: { agentId: id },
@@ -74,12 +86,13 @@ export class AgentsService {
     workflow: Record<string, unknown>,
     userId: string,
   ): Promise<AgentVersion> {
-    const agent = await this.prisma.agent.findFirst({ where: { id, workspaceId } });
+    const agent = await this.prisma.agent.findFirst({ where: { id, workspaceId }, select: { id: true } });
     if (!agent) throw new NotFoundException('Agent not found');
 
     const last = await this.prisma.agentVersion.findFirst({
       where: { agentId: id },
       orderBy: { versionNumber: 'desc' },
+      select: { versionNumber: true },
     });
     const nextVersion = (last?.versionNumber ?? 0) + 1;
     const versionLabel = `v${nextVersion}.0.0`;

@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   ParseIntPipe,
   HttpCode,
   HttpStatus,
@@ -39,8 +40,12 @@ export class DatasetsController {
 
   @Get('workspaces/:workspaceId/datasets')
   @UseGuards(WorkspaceGuard)
-  findAll(@Param('workspaceId') workspaceId: string) {
-    return this.datasets.findAll(workspaceId);
+  findAll(
+    @Param('workspaceId') workspaceId: string,
+    @Query('take', new ParseIntPipe({ optional: true })) take?: number,
+    @Query('cursor') cursor?: string,
+  ) {
+    return this.datasets.findAll(workspaceId, take, cursor);
   }
 
   @Get('workspaces/:workspaceId/datasets/:id')

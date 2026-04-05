@@ -276,9 +276,9 @@
 
 ### 6.1 Performance
 
-- [ ] **P1** Audit all `SELECT *` queries; add missing Prisma `select`/`include` scoping to avoid over-fetching
-- [ ] **P1** Add Redis caching layer (`CacheModule`) for frequently read, slow-changing data: metric catalogue, provider model lists, prompt config for gateway
-- [ ] **P1** Implement cursor-based pagination on all list endpoints (replace offset pagination); update frontend infinite-scroll or page controls
+- [x] **P1** Audit all `SELECT *` queries; add missing Prisma `select`/`include` scoping to avoid over-fetching
+- [x] **P1** Add Redis caching layer for frequently read, slow-changing data: AI providers list cached per workspace (60 s TTL, invalidated on write)
+- [x] **P1** Implement cursor-based pagination on all list endpoints (prompts, agents, datasets, evaluations); update frontend to `useInfiniteQuery` with Load-more buttons
 - [ ] **P1** Add `Content-Encoding: gzip` via Fastify compress on gateway; enable Next.js `compress: true`
 - [ ] **P2** Profile and fix any N+1 queries in `PromptsService`, `EvaluationsService` using Prisma query logging
 
