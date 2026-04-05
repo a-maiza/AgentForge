@@ -186,6 +186,7 @@ pnpm clean            # Remove dist/, .next/, node_modules/
 pnpm --filter @agentforge/api dev              # nest start --watch
 pnpm --filter @agentforge/api build            # nest build
 pnpm --filter @agentforge/api test             # jest --passWithNoTests
+pnpm --filter @agentforge/api test -- --coverage               # jest with coverage report
 pnpm --filter @agentforge/api test -- --testPathPattern=<file>  # single test file
 pnpm --filter @agentforge/api typecheck        # tsc --noEmit
 pnpm --filter @agentforge/api lint             # eslint src/
@@ -254,6 +255,82 @@ For **VS Code** specifically, also add the following to `.vscode/settings.json` 
   "python.analysis.venv": ".venv",
   "python.analysis.extraPaths": ["${workspaceFolder}/apps/worker"]
 }
+```
+
+---
+
+## Testing
+
+### NestJS API — unit tests
+
+The API test suite uses **Jest** with `ts-jest`. All 15 service spec files are colocated with their source modules under `apps/api/src/`.
+
+```bash
+# Run all unit tests
+pnpm --filter @agentforge/api test
+
+# Run with coverage report (outputs to apps/api/coverage/)
+pnpm --filter @agentforge/api test -- --coverage
+
+# Run a single test file
+pnpm --filter @agentforge/api test -- --testPathPattern=prompts.service
+```
+
+#### Test suites
+
+| Spec file                                             | Service under test       |
+| ----------------------------------------------------- | ------------------------ |
+| `agents/agents.service.spec.ts`                       | `AgentsService`          |
+| `ai-providers/ai-providers.service.spec.ts`           | `AiProvidersService`     |
+| `api-keys/api-keys.service.spec.ts`                   | `ApiKeysService`         |
+| `datasets/datasets.service.spec.ts`                   | `DatasetsService`        |
+| `deployments/deployments.service.spec.ts`             | `DeploymentsService`     |
+| `evaluations/evaluations.service.spec.ts`             | `EvaluationsService`     |
+| `common/services/encryption.service.spec.ts`          | `EncryptionService`      |
+| `failover-configs/failover-configs.service.spec.ts`   | `FailoverConfigsService` |
+| `monitoring/monitoring.service.spec.ts`               | `MonitoringService`      |
+| `organizations/organizations.service.spec.ts`         | `OrganizationsService`   |
+| `prompt-ai-configs/prompt-ai-configs.service.spec.ts` | `PromptAiConfigsService` |
+| `prompts/prompts.service.spec.ts`                     | `PromptsService`         |
+| `storage/storage.service.spec.ts`                     | `StorageService`         |
+| `users/users.service.spec.ts`                         | `UsersService`           |
+| `workspaces/workspaces.service.spec.ts`               | `WorkspacesService`      |
+
+**Total: 211 tests across 15 suites.**
+
+#### Coverage configuration
+
+Coverage is collected from `**/*.service.ts` only (modules, `PrismaService`, and `main.ts` are excluded). The following thresholds are enforced and will fail the CI run if not met:
+
+| Metric     | Threshold | Achieved |
+| ---------- | --------- | -------- |
+| Statements | 80%       | 96.97%   |
+| Functions  | 80%       | 98.84%   |
+| Lines      | 80%       | 98.11%   |
+| Branches   | 70%       | 75.05%   |
+
+Coverage output is written to `apps/api/coverage/`.
+
+### Next.js and Gateway — unit tests
+
+Both apps use **Vitest**.
+
+```bash
+# Frontend (apps/web)
+pnpm --filter @agentforge/web test
+
+# Gateway (apps/gateway)
+pnpm --filter @agentforge/gateway test
+```
+
+### FastAPI Worker — unit tests
+
+```bash
+cd apps/worker
+pytest                                     # all tests
+pytest tests/test_metrics.py              # single file
+pytest -k "test_f1"                       # single test by name
+pytest --cov=main --cov-report=xml -q     # with coverage
 ```
 
 ---
