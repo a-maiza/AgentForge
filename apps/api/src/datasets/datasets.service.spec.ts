@@ -5,14 +5,15 @@ import { DatasetsService } from './datasets.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 
-const WS_ID = 'ws-1';
-const DS_ID = 'ds-1';
+const WORKSPACE_A = 'workspace-a';
+const WORKSPACE_B = 'workspace-b';
+const DATASET_ID = 'dataset-1';
 const USER_ID = 'user-1';
 
 const mockDataset = {
-  id: DS_ID,
-  workspaceId: WS_ID,
-  name: 'Test DS',
+  id: DATASET_ID,
+  workspaceId: WORKSPACE_A,
+  name: 'Test Dataset',
   description: null,
   status: 'active',
   createdBy: USER_ID,
@@ -21,14 +22,14 @@ const mockDataset = {
 };
 
 const mockVersion = {
-  id: 'v-1',
-  datasetId: DS_ID,
+  id: 'version-1',
+  datasetId: DATASET_ID,
   versionNumber: 1,
-  storagePath: 'datasets/ws-1/ds-1/v1/data.csv',
-  rowCount: 2,
+  storagePath: 'workspaces/workspace-a/datasets/dataset-1/v1/data.csv',
+  rowCount: 3,
   columnCount: 2,
   fileSizeBytes: BigInt(100),
-  columns: ['a', 'b'],
+  columns: ['name', 'age'],
   status: 'latest',
   createdAt: new Date(),
 };
@@ -43,19 +44,24 @@ const mockPrisma = {
     delete: jest.fn(),
   },
   datasetVersion: {
-    findMany: jest.fn(),
     findFirst: jest.fn(),
+    findMany: jest.fn(),
     findUnique: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     updateMany: jest.fn(),
   },
-  evaluationJob: { deleteMany: jest.fn() },
+  evaluationJob: {
+    deleteMany: jest.fn(),
+  },
   $transaction: jest.fn(),
 };
+// Assign after declaration to avoid self-referential type inference
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+mockPrisma.$transaction.mockImplementation((fn: (tx: any) => Promise<unknown>) => fn(mockPrisma));
 
 const mockStorage = {
-  buildKey: jest.fn().mockReturnValue('datasets/ws-1/ds-1/v1/data.csv'),
+  buildKey: jest.fn().mockReturnValue('some/storage/path'),
   upload: jest.fn().mockResolvedValue(undefined),
   getBuffer: jest.fn(),
 };
@@ -71,6 +77,7 @@ describe('DatasetsService', () => {
         { provide: StorageService, useValue: mockStorage },
       ],
     }).compile();
+
     service = module.get<DatasetsService>(DatasetsService);
     jest.clearAllMocks();
   });
@@ -82,11 +89,11 @@ describe('DatasetsService', () => {
       mockPrisma.dataset.findMany.mockResolvedValue([
         { ...mockDataset, versions: [mockVersion] },
       ]);
-      const result = await service.findAll(WS_ID);
+      const result = await service.findAll(WORKSPACE_A);
       expect(result.items).toHaveLength(1);
       expect(result.nextCursor).toBeNull();
       expect(mockPrisma.dataset.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { workspaceId: WS_ID } }),
+        expect.objectContaining({ where: { workspaceId: WORKSPACE_A } }),
       );
     });
 
@@ -97,7 +104,7 @@ describe('DatasetsService', () => {
         versions: [],
       }));
       mockPrisma.dataset.findMany.mockResolvedValue(datasets);
-      const result = await service.findAll(WS_ID, 25);
+      const result = await service.findAll(WORKSPACE_A, 25);
       expect(result.items).toHaveLength(25);
       expect(result.nextCursor).toBe('ds-25');
     });
@@ -106,7 +113,7 @@ describe('DatasetsService', () => {
       mockPrisma.dataset.findMany.mockResolvedValue([
         { ...mockDataset, versions: [mockVersion] },
       ]);
-      const result = await service.findAll(WS_ID);
+      const result = await service.findAll(WORKSPACE_A);
       expect(typeof result.items[0]!.versions[0]!.fileSizeBytes).toBe('string');
     });
   });
@@ -114,15 +121,18 @@ describe('DatasetsService', () => {
   // ─── findOne ─────────────────────────────────────────────────────────────────
 
   describe('findOne', () => {
-    it('returns dataset for correct workspace', async () => {
-      mockPrisma.dataset.findFirst.mockResolvedValue({ ...mockDataset, versions: [mockVersion] });
-      const result = await service.findOne(DS_ID, WS_ID);
-      expect(result.id).toBe(DS_ID);
+    it('returns the dataset when workspaceId matches', async () => {
+      mockPrisma.dataset.findFirst.mockResolvedValue({ ...mockDataset, versions: [] });
+      const result = await service.findOne(DATASET_ID, WORKSPACE_A);
+      expect(result.id).toBe(DATASET_ID);
+      expect(mockPrisma.dataset.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: DATASET_ID, workspaceId: WORKSPACE_A } }),
+      );
     });
 
-    it('throws NotFoundException when dataset not found', async () => {
+    it('throws NotFoundException when workspaceId belongs to another user', async () => {
       mockPrisma.dataset.findFirst.mockResolvedValue(null);
-      await expect(service.findOne('bad', WS_ID)).rejects.toThrow(NotFoundException);
+      await expect(service.findOne(DATASET_ID, WORKSPACE_B)).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -131,14 +141,11 @@ describe('DatasetsService', () => {
   describe('create', () => {
     it('creates a dataset', async () => {
       mockPrisma.dataset.create.mockResolvedValue(mockDataset);
-      const result = await service.create(
-        { workspaceId: WS_ID, name: 'Test DS' },
-        USER_ID,
-      );
-      expect(result.id).toBe(DS_ID);
+      const result = await service.create({ workspaceId: WORKSPACE_A, name: 'Test Dataset' }, USER_ID);
+      expect(result.id).toBe(DATASET_ID);
       expect(mockPrisma.dataset.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ workspaceId: WS_ID, name: 'Test DS' }),
+          data: expect.objectContaining({ workspaceId: WORKSPACE_A, name: 'Test Dataset' }),
         }),
       );
     });
@@ -147,24 +154,31 @@ describe('DatasetsService', () => {
   // ─── update ──────────────────────────────────────────────────────────────────
 
   describe('update', () => {
-    it('updates dataset when found in workspace', async () => {
-      mockPrisma.dataset.findFirst.mockResolvedValue({ id: DS_ID });
-      mockPrisma.dataset.update.mockResolvedValue({ ...mockDataset, name: 'Renamed' });
-      const result = await service.update(DS_ID, WS_ID, { name: 'Renamed' });
-      expect(result.name).toBe('Renamed');
+    it('throws NotFoundException when updating a dataset in another workspace', async () => {
+      mockPrisma.dataset.findFirst.mockResolvedValue(null);
+      await expect(
+        service.update(DATASET_ID, WORKSPACE_B, { name: 'Hacked' }),
+      ).rejects.toThrow(NotFoundException);
     });
 
-    it('throws NotFoundException when not in workspace', async () => {
-      mockPrisma.dataset.findFirst.mockResolvedValue(null);
-      await expect(service.update('bad', WS_ID, { name: 'X' })).rejects.toThrow(NotFoundException);
+    it('updates successfully when workspaceId matches', async () => {
+      mockPrisma.dataset.findFirst.mockResolvedValue(mockDataset);
+      mockPrisma.dataset.update.mockResolvedValue({ ...mockDataset, name: 'Updated' });
+      const result = await service.update(DATASET_ID, WORKSPACE_A, { name: 'Updated' });
+      expect(result.name).toBe('Updated');
     });
   });
 
   // ─── delete ──────────────────────────────────────────────────────────────────
 
   describe('delete', () => {
+    it('throws NotFoundException when deleting a dataset in another workspace', async () => {
+      mockPrisma.dataset.findFirst.mockResolvedValue(null);
+      await expect(service.delete(DATASET_ID, WORKSPACE_B)).rejects.toThrow(NotFoundException);
+    });
+
     it('deletes dataset and related jobs in transaction', async () => {
-      mockPrisma.dataset.findFirst.mockResolvedValue({ id: DS_ID });
+      mockPrisma.dataset.findFirst.mockResolvedValue({ id: DATASET_ID });
       const txMock = {
         evaluationJob: { deleteMany: jest.fn().mockResolvedValue({}) },
         dataset: { delete: jest.fn().mockResolvedValue({}) },
@@ -172,192 +186,188 @@ describe('DatasetsService', () => {
       mockPrisma.$transaction.mockImplementation((fn: (tx: typeof txMock) => Promise<void>) =>
         fn(txMock),
       );
-      await service.delete(DS_ID, WS_ID);
-      expect(txMock.evaluationJob.deleteMany).toHaveBeenCalledWith({ where: { datasetId: DS_ID } });
-      expect(txMock.dataset.delete).toHaveBeenCalledWith({ where: { id: DS_ID } });
-    });
-
-    it('throws NotFoundException when not found', async () => {
-      mockPrisma.dataset.findFirst.mockResolvedValue(null);
-      await expect(service.delete('bad', WS_ID)).rejects.toThrow(NotFoundException);
-    });
-  });
-
-  // ─── upload ──────────────────────────────────────────────────────────────────
-
-  describe('upload', () => {
-    it('uploads CSV and creates a new version', async () => {
-      mockPrisma.dataset.findUnique.mockResolvedValue(mockDataset);
-      mockPrisma.datasetVersion.findFirst.mockResolvedValue({ versionNumber: 1 });
-      mockPrisma.datasetVersion.updateMany.mockResolvedValue({});
-      mockPrisma.datasetVersion.create.mockResolvedValue(mockVersion);
-
-      const csv = Buffer.from('a,b\n1,2\n3,4');
-      const result = await service.upload(DS_ID, csv, 'data.csv', 'text/csv');
-
-      expect(result.dataset.id).toBe(DS_ID);
-      expect(result.version.versionNumber).toBe(1);
-      expect(mockPrisma.datasetVersion.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ versionNumber: 2, rowCount: 2 }),
-        }),
-      );
-    });
-
-    it('uses version 1 when no prior version exists', async () => {
-      mockPrisma.dataset.findUnique.mockResolvedValue(mockDataset);
-      mockPrisma.datasetVersion.findFirst.mockResolvedValue(null);
-      mockPrisma.datasetVersion.updateMany.mockResolvedValue({});
-      mockPrisma.datasetVersion.create.mockResolvedValue(mockVersion);
-
-      const csv = Buffer.from('a,b\n1,2');
-      await service.upload(DS_ID, csv, 'data.csv', 'text/csv');
-
-      expect(mockPrisma.datasetVersion.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ versionNumber: 1 }),
-        }),
-      );
-    });
-
-    it('parses JSONL files', async () => {
-      mockPrisma.dataset.findUnique.mockResolvedValue(mockDataset);
-      mockPrisma.datasetVersion.findFirst.mockResolvedValue(null);
-      mockPrisma.datasetVersion.updateMany.mockResolvedValue({});
-      mockPrisma.datasetVersion.create.mockResolvedValue(mockVersion);
-
-      const jsonl = Buffer.from('{"x":1}\n{"x":2}');
-      await service.upload(DS_ID, jsonl, 'data.jsonl', 'application/json');
-
-      expect(mockPrisma.datasetVersion.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ rowCount: 2, columnCount: 1 }),
-        }),
-      );
-    });
-
-    it('parses JSON array files', async () => {
-      mockPrisma.dataset.findUnique.mockResolvedValue(mockDataset);
-      mockPrisma.datasetVersion.findFirst.mockResolvedValue(null);
-      mockPrisma.datasetVersion.updateMany.mockResolvedValue({});
-      mockPrisma.datasetVersion.create.mockResolvedValue(mockVersion);
-
-      const json = Buffer.from(JSON.stringify([{ col: 'v1' }, { col: 'v2' }]));
-      await service.upload(DS_ID, json, 'data.json', 'application/json');
-
-      expect(mockPrisma.datasetVersion.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ rowCount: 2 }),
-        }),
-      );
-    });
-
-    it('throws NotFoundException when dataset not found', async () => {
-      mockPrisma.dataset.findUnique.mockResolvedValue(null);
-      await expect(
-        service.upload('bad', Buffer.from('a,b'), 'f.csv', 'text/csv'),
-      ).rejects.toThrow(NotFoundException);
-    });
-
-    it('throws BadRequestException for invalid JSONL', async () => {
-      mockPrisma.dataset.findUnique.mockResolvedValue(mockDataset);
-      mockPrisma.datasetVersion.findFirst.mockResolvedValue(null);
-
-      const bad = Buffer.from('not-json\n');
-      await expect(
-        service.upload(DS_ID, bad, 'data.jsonl', 'text/plain'),
-      ).rejects.toThrow(BadRequestException);
+      await service.delete(DATASET_ID, WORKSPACE_A);
+      expect(txMock.evaluationJob.deleteMany).toHaveBeenCalledWith({ where: { datasetId: DATASET_ID } });
+      expect(txMock.dataset.delete).toHaveBeenCalledWith({ where: { id: DATASET_ID } });
     });
   });
 
   // ─── getVersions ─────────────────────────────────────────────────────────────
 
   describe('getVersions', () => {
-    it('returns versions for a dataset', async () => {
-      mockPrisma.dataset.findFirst.mockResolvedValue({ id: DS_ID });
+    it('throws NotFoundException for cross-workspace version access', async () => {
+      mockPrisma.dataset.findFirst.mockResolvedValue(null);
+      await expect(service.getVersions(DATASET_ID, WORKSPACE_B)).rejects.toThrow(NotFoundException);
+    });
+
+    it('returns versions for the correct workspace', async () => {
+      mockPrisma.dataset.findFirst.mockResolvedValue(mockDataset);
       mockPrisma.datasetVersion.findMany.mockResolvedValue([mockVersion]);
-      const result = await service.getVersions(DS_ID, WS_ID);
+      const result = await service.getVersions(DATASET_ID, WORKSPACE_A);
       expect(result).toHaveLength(1);
       expect(result[0]!.fileSizeBytes).toBe('100');
     });
+  });
 
-    it('throws NotFoundException when dataset not in workspace', async () => {
-      mockPrisma.dataset.findFirst.mockResolvedValue(null);
-      await expect(service.getVersions('bad', WS_ID)).rejects.toThrow(NotFoundException);
+  // ─── upload ──────────────────────────────────────────────────────────────────
+
+  describe('upload', () => {
+    const csvBuffer = Buffer.from('name,age\nAlice,30\nBob,25');
+
+    it('throws NotFoundException when uploading to a dataset in another workspace', async () => {
+      mockPrisma.dataset.findUnique.mockResolvedValue(mockDataset);
+      await expect(
+        service.upload(DATASET_ID, WORKSPACE_B, csvBuffer, 'data.csv', 'text/csv'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('throws NotFoundException when dataset does not exist', async () => {
+      mockPrisma.dataset.findUnique.mockResolvedValue(null);
+      await expect(
+        service.upload('no-such-id', WORKSPACE_A, csvBuffer, 'data.csv', 'text/csv'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('succeeds for the correct workspace', async () => {
+      mockPrisma.dataset.findUnique.mockResolvedValue(mockDataset);
+      mockPrisma.datasetVersion.findFirst.mockResolvedValue(null);
+      mockPrisma.datasetVersion.updateMany.mockResolvedValue({ count: 0 });
+      mockPrisma.datasetVersion.create.mockResolvedValue(mockVersion);
+
+      const result = await service.upload(DATASET_ID, WORKSPACE_A, csvBuffer, 'data.csv', 'text/csv');
+      expect(result.dataset.id).toBe(DATASET_ID);
+      expect(mockStorage.upload).toHaveBeenCalled();
+    });
+
+    it('uses version 1 when no prior version exists', async () => {
+      mockPrisma.dataset.findUnique.mockResolvedValue(mockDataset);
+      mockPrisma.datasetVersion.findFirst.mockResolvedValue(null);
+      mockPrisma.datasetVersion.updateMany.mockResolvedValue({ count: 0 });
+      mockPrisma.datasetVersion.create.mockResolvedValue(mockVersion);
+
+      await service.upload(DATASET_ID, WORKSPACE_A, csvBuffer, 'data.csv', 'text/csv');
+      expect(mockPrisma.datasetVersion.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ versionNumber: 1 }) }),
+      );
+    });
+
+    it('increments version number when prior versions exist', async () => {
+      mockPrisma.dataset.findUnique.mockResolvedValue(mockDataset);
+      mockPrisma.datasetVersion.findFirst.mockResolvedValue({ versionNumber: 3 });
+      mockPrisma.datasetVersion.updateMany.mockResolvedValue({ count: 1 });
+      mockPrisma.datasetVersion.create.mockResolvedValue({ ...mockVersion, versionNumber: 4 });
+
+      await service.upload(DATASET_ID, WORKSPACE_A, csvBuffer, 'data.csv', 'text/csv');
+      expect(mockPrisma.datasetVersion.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ versionNumber: 4 }) }),
+      );
+    });
+  });
+
+  // ─── upload — file parsing ────────────────────────────────────────────────────
+
+  describe('upload — file parsing', () => {
+    beforeEach(() => {
+      mockPrisma.dataset.findUnique.mockResolvedValue(mockDataset);
+      mockPrisma.datasetVersion.findFirst.mockResolvedValue(null);
+      mockPrisma.datasetVersion.updateMany.mockResolvedValue({ count: 0 });
+      mockPrisma.datasetVersion.create.mockResolvedValue(mockVersion);
+    });
+
+    it('parses valid CSV and passes correct rowCount to prisma', async () => {
+      const buf = Buffer.from('a,b\n1,2\n3,4');
+      await service.upload(DATASET_ID, WORKSPACE_A, buf, 'data.csv', 'text/csv');
+      expect(mockPrisma.datasetVersion.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ rowCount: 2 }) }),
+      );
+    });
+
+    it('parses valid JSON array and passes correct rowCount to prisma', async () => {
+      const buf = Buffer.from(JSON.stringify([{ a: 1 }, { a: 2 }]));
+      await service.upload(DATASET_ID, WORKSPACE_A, buf, 'data.json', 'application/json');
+      expect(mockPrisma.datasetVersion.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ rowCount: 2 }) }),
+      );
+    });
+
+    it('parses valid JSONL and passes correct rowCount to prisma', async () => {
+      const buf = Buffer.from('{"a":1}\n{"a":2}\n{"a":3}');
+      await service.upload(DATASET_ID, WORKSPACE_A, buf, 'data.jsonl', 'text/plain');
+      expect(mockPrisma.datasetVersion.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ rowCount: 3 }) }),
+      );
+    });
+
+    it('throws BadRequestException for malformed JSONL', async () => {
+      const buf = Buffer.from('{"a":1}\nNOT_JSON\n{"a":3}');
+      await expect(
+        service.upload(DATASET_ID, WORKSPACE_A, buf, 'data.jsonl', 'text/plain'),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 
   // ─── preview ─────────────────────────────────────────────────────────────────
 
   describe('preview', () => {
-    it('returns columns and rows from storage', async () => {
-      mockPrisma.dataset.findUnique.mockResolvedValue({ id: DS_ID });
-      mockPrisma.datasetVersion.findUnique.mockResolvedValue(mockVersion);
-      mockStorage.getBuffer.mockResolvedValue(Buffer.from('a,b\n1,2\n3,4'));
-
-      const result = await service.preview(DS_ID, 1);
-      expect(result.columns).toEqual(['a', 'b']);
-      expect(result.rows).toHaveLength(2);
+    it('throws NotFoundException for cross-workspace preview access', async () => {
+      mockPrisma.dataset.findFirst.mockResolvedValue(null);
+      await expect(service.preview(DATASET_ID, WORKSPACE_B, 1)).rejects.toThrow(NotFoundException);
     });
 
-    it('throws NotFoundException when dataset not found', async () => {
-      mockPrisma.dataset.findUnique.mockResolvedValue(null);
-      await expect(service.preview('bad', 1)).rejects.toThrow(NotFoundException);
+    it('returns preview data for correct workspace', async () => {
+      mockPrisma.dataset.findFirst.mockResolvedValue({ id: DATASET_ID });
+      mockPrisma.datasetVersion.findUnique.mockResolvedValue(mockVersion);
+      mockStorage.getBuffer.mockResolvedValue(Buffer.from('name,age\nAlice,30'));
+
+      const result = await service.preview(DATASET_ID, WORKSPACE_A, 1);
+      expect(result.columns).toContain('name');
+      expect(result.rows.length).toBeGreaterThan(0);
     });
 
     it('throws NotFoundException when version not found', async () => {
-      mockPrisma.dataset.findUnique.mockResolvedValue({ id: DS_ID });
+      mockPrisma.dataset.findFirst.mockResolvedValue({ id: DATASET_ID });
       mockPrisma.datasetVersion.findUnique.mockResolvedValue(null);
-      await expect(service.preview(DS_ID, 99)).rejects.toThrow(NotFoundException);
+      await expect(service.preview(DATASET_ID, WORKSPACE_A, 99)).rejects.toThrow(NotFoundException);
     });
   });
 
   // ─── compare ─────────────────────────────────────────────────────────────────
 
   describe('compare', () => {
-    const makeVersion = (n: number, size: number) => ({
-      ...mockVersion,
-      versionNumber: n,
-      fileSizeBytes: BigInt(size),
-      storagePath: `path/v${n}`,
+    it('throws NotFoundException for cross-workspace compare access', async () => {
+      mockPrisma.dataset.findFirst.mockResolvedValue(null);
+      await expect(service.compare(DATASET_ID, WORKSPACE_B, 1, 2)).rejects.toThrow(NotFoundException);
     });
 
-    it('computes added, removed, and modified rows', async () => {
-      mockPrisma.dataset.findUnique.mockResolvedValue({ id: DS_ID });
+    it('returns diff result for correct workspace', async () => {
+      mockPrisma.dataset.findFirst.mockResolvedValue({ id: DATASET_ID });
       mockPrisma.datasetVersion.findUnique
-        .mockResolvedValueOnce(makeVersion(1, 50))
-        .mockResolvedValueOnce(makeVersion(2, 80));
-
+        .mockResolvedValueOnce({ ...mockVersion, versionNumber: 1, storagePath: 'path/v1.csv' })
+        .mockResolvedValueOnce({ ...mockVersion, versionNumber: 2, storagePath: 'path/v2.csv' });
       mockStorage.getBuffer
-        .mockResolvedValueOnce(Buffer.from('a,b\n1,2\n3,4'))
-        .mockResolvedValueOnce(Buffer.from('a,b\n1,2\n5,6\n7,8'));
+        .mockResolvedValueOnce(Buffer.from('name,age\nAlice,30'))
+        .mockResolvedValueOnce(Buffer.from('name,age\nAlice,30\nBob,25'));
 
-      const result = await service.compare(DS_ID, 1, 2);
-      expect(result.added).toBeGreaterThanOrEqual(0);
-      expect(result.removed).toBeGreaterThanOrEqual(0);
+      const result = await service.compare(DATASET_ID, WORKSPACE_A, 1, 2);
+      expect(result.added).toBe(1);
+      expect(result.removed).toBe(0);
       expect(result.rowCountDiff).toBe(1);
-      expect(result.sizeChange).toBe(30);
-    });
-
-    it('throws NotFoundException when dataset not found', async () => {
-      mockPrisma.dataset.findUnique.mockResolvedValue(null);
-      await expect(service.compare('bad', 1, 2)).rejects.toThrow(NotFoundException);
     });
 
     it('throws NotFoundException when version A not found', async () => {
-      mockPrisma.dataset.findUnique.mockResolvedValue({ id: DS_ID });
+      mockPrisma.dataset.findFirst.mockResolvedValue({ id: DATASET_ID });
       mockPrisma.datasetVersion.findUnique
         .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce(makeVersion(2, 80));
-      await expect(service.compare(DS_ID, 1, 2)).rejects.toThrow(NotFoundException);
+        .mockResolvedValueOnce({ ...mockVersion, versionNumber: 2 });
+      await expect(service.compare(DATASET_ID, WORKSPACE_A, 1, 2)).rejects.toThrow(NotFoundException);
     });
 
     it('throws NotFoundException when version B not found', async () => {
-      mockPrisma.dataset.findUnique.mockResolvedValue({ id: DS_ID });
+      mockPrisma.dataset.findFirst.mockResolvedValue({ id: DATASET_ID });
       mockPrisma.datasetVersion.findUnique
-        .mockResolvedValueOnce(makeVersion(1, 50))
+        .mockResolvedValueOnce({ ...mockVersion, versionNumber: 1 })
         .mockResolvedValueOnce(null);
-      await expect(service.compare(DS_ID, 1, 2)).rejects.toThrow(NotFoundException);
+      await expect(service.compare(DATASET_ID, WORKSPACE_A, 1, 2)).rejects.toThrow(NotFoundException);
     });
   });
 });

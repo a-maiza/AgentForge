@@ -153,13 +153,14 @@ pnpm --filter @agentforge/api db:generate
 
 ### Migration history
 
-| Migration                  | Phase | Tables added                                                                                                             |
-| -------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------ |
-| `0001_foundation`          | 1.2   | users, organizations, org_members, workspaces, workspace_members, prompts, prompt_versions, prompt_variables             |
-| `0002_datasets_evals`      | 2.1   | datasets, dataset_versions, prompt_dataset_configs, ai_providers, prompt_ai_configs, evaluation_jobs, evaluation_results |
-| `0003_deployments_gateway` | 3.1   | deployments, failover_configs, api_keys, api_call_logs                                                                   |
-| `0004_agents`              | 5.1   | agents, agent_versions (enum: agent_status)                                                                              |
-| `0005_evaluation_traces`   | 5.2   | evaluation_traces (per-row prediction vs reference log, FK → evaluation_jobs, cascade delete)                            |
+| Migration                            | Phase | Tables added                                                                                                             |
+| ------------------------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------ |
+| `0001_foundation`                    | 1.2   | users, organizations, org_members, workspaces, workspace_members, prompts, prompt_versions, prompt_variables             |
+| `0002_datasets_evals`                | 2.1   | datasets, dataset_versions, prompt_dataset_configs, ai_providers, prompt_ai_configs, evaluation_jobs, evaluation_results |
+| `0003_deployments_gateway`           | 3.1   | deployments, failover_configs, api_keys, api_call_logs                                                                   |
+| `0004_agents`                        | 5.1   | agents, agent_versions (enum: agent_status)                                                                              |
+| `0005_evaluation_traces`             | 5.2   | evaluation_traces (per-row prediction vs reference log, FK → evaluation_jobs, cascade delete)                            |
+| `20260404000000_add_audit_logs`      | 6.2   | audit_logs (AuditLog model), audit_action enum (14 action types)                                                         |
 
 ---
 
@@ -444,6 +445,14 @@ Override `WORKER_URL` to `http://localhost:8000` when running the worker outside
 | **Current user**     | Inject the authenticated user with `@CurrentUser()` param decorator            |
 | **Webhook security** | `POST /webhooks/clerk` verifies the `svix` signature before processing events  |
 
+### Security hardening (task 6.2)
+
+- **OWASP headers** — `@fastify/helmet` is registered in `apps/api/src/main.ts` before CORS. Headers applied on every response: `Content-Security-Policy` (defaultSrc, scriptSrc, styleSrc, imgSrc, connectSrc, fontSrc, objectSrc, frameAncestors, upgradeInsecureRequests), `Strict-Transport-Security` (1 year, includeSubDomains, preload), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`.
+- **EncryptionService** — constructor asserts the key is exactly 32 bytes; `decrypt()` validates the auth tag is exactly 16 bytes before accepting ciphertext. Unit tests at `apps/api/src/common/services/encryption.service.spec.ts`.
+- **Row-level workspace isolation** — dataset upload, preview, and compare routes are workspace-scoped (`/api/workspaces/:workspaceId/datasets/...`) and protected by `WorkspaceGuard`; service methods perform an ownership double-check.
+- **File upload validation** — MIME type and file extension are checked against an allowlist (csv, json, jsonl). JSON and JSONL parsing caps nesting depth at 10 levels. File size is limited to 100 MB via `@fastify/multipart`.
+- **Audit log** — `AuditService` records workspace-scoped events to the `audit_logs` table. Events are emitted by `DatasetsController` (create, delete, upload) and `ApiKeysController` (create, disable, delete). The full log is retrievable via `GET /api/workspaces/:workspaceId/audit-logs` (cursor-paginated).
+
 ### Module map
 
 ```
@@ -484,7 +493,16 @@ src/
 │                           POST   /api/prompts/:id/promote
 │                           POST   /api/prompts/:id/rollback/:environment
 │                           POST   /api/prompts/:id/go-live/:environment
-├── api-keys/             ApiKeysService + ApiKeysController (WorkspaceGuard)
+├── datasets/             DatasetsService + DatasetsController (WorkspaceGuard)
+│                         Upload: MIME + extension allowlist (csv/json/jsonl), 100 MB limit, JSON depth ≤ 10
+│                           GET    /api/workspaces/:workspaceId/datasets
+│                           POST   /api/workspaces/:workspaceId/datasets
+│                           GET    /api/workspaces/:workspaceId/datasets/:id
+│                           DELETE /api/workspaces/:workspaceId/datasets/:id
+│                           POST   /api/workspaces/:workspaceId/datasets/:id/upload
+│                           GET    /api/workspaces/:workspaceId/datasets/:id/preview
+│                           GET    /api/workspaces/:workspaceId/datasets/compare
+├── api-keys/             ApiKeysService + ApiKeysController (WorkspaceGuard; create/disable/delete emit AuditLog)
 │                           GET    /api/workspaces/:workspaceId/api-keys
 │                           POST   /api/workspaces/:workspaceId/api-keys
 │                           GET    /api/workspaces/:workspaceId/api-keys/:id
@@ -508,9 +526,12 @@ src/
 │                           emit  join_workspace   { workspaceId }  → joins workspace room
 │                           emit  leave_workspace  { workspaceId }  → leaves room
 │                           on    metrics_update   { workspaceId, metrics, timestamp }
+├── audit/                AuditService + AuditController (WorkspaceGuard)
+│                           GET /api/workspaces/:workspaceId/audit-logs  (cursor-paginated)
 └── common/
     ├── filters/          HttpExceptionFilter — RFC 7807 application/problem+json errors
-    └── pipes/            ZodValidationPipe — Zod-backed body validation
+    ├── pipes/            ZodValidationPipe — Zod-backed body validation
+    └── services/         EncryptionService — AES-256-GCM; asserts 32-byte key + 16-byte auth tag
 ```
 
 ### Prompt versioning & variable extraction
@@ -611,6 +632,17 @@ Per-key counters are stored in Redis:
 Exceeded limits return `429` with a `Retry-After` header (seconds until the window resets).
 
 A coarse global IP-level limit (10 000 req/min) is applied by `@fastify/rate-limit` before auth runs.
+
+### IP allowlist / blocklist
+
+Implemented in `apps/gateway/src/lib/ip-filter.ts` and registered as an `onRequest` hook in `apps/gateway/src/index.ts`. The hook runs before auth on every non-health route.
+
+| Redis key      | Type | Behaviour                                                                                 |
+| -------------- | ---- | ----------------------------------------------------------------------------------------- |
+| `ip:blocklist` | Set  | Any request whose source IP is a member is rejected immediately with `403`                |
+| `ip:allowlist` | Set  | When the set is non-empty, only IPs that are members are permitted; all others get `403`  |
+
+An empty `ip:allowlist` set means allow-all. `/health` and `/ready` routes are always exempt. The sets are managed externally by ops tooling (e.g. a Redis CLI command or a separate admin service) — there is no API endpoint in the gateway to modify them.
 
 ### Failover logic
 
@@ -777,27 +809,32 @@ AgentForge/
 │   │   │   │   ├── 20260312000000_foundation/
 │   │   │   │   ├── 20260314193244_0002_datasets_evals/
 │   │   │   │   ├── 20260316000000_0003_deployments_gateway/
-│   │   │   │   └── 20260330102751_0004_agents/
+│   │   │   │   ├── 20260330102751_0004_agents/
+│   │   │   │   └── 20260404000000_add_audit_logs/  # AuditLog model + audit_action enum
 │   │   │   ├── schema.prisma
 │   │   │   └── seed.ts
 │   │   └── src/
 │   │       ├── auth/             # AuthGuard, @Public(), @CurrentUser()
-│   │       ├── common/           # HttpExceptionFilter, ZodValidationPipe, EncryptionService
+│   │       ├── common/
+│   │       │   ├── filters/      # HttpExceptionFilter (RFC 7807)
+│   │       │   ├── pipes/        # ZodValidationPipe
+│   │       │   └── services/     # EncryptionService (AES-256-GCM; 32-byte key + 16-byte auth tag assert)
 │   │       ├── organizations/    # CRUD + OrgMemberGuard
 │   │       ├── prisma/           # PrismaService (@Global)
 │   │       ├── prompts/          # CRUD + versioning + variable extraction
 │   │       ├── users/            # Clerk webhook sync + GET /auth/me
 │   │       ├── workspaces/       # CRUD + WorkspaceGuard
-│   │       ├── datasets/         # CRUD + S3 upload (CSV, JSON, JSONL) + version diff
+│   │       ├── datasets/         # CRUD + workspace-scoped routes + file validation + audit events
 │   │       ├── ai-providers/     # CRUD + AES-256-GCM key encryption
 │   │       ├── prompt-ai-configs/# Model params per prompt
 │   │       ├── evaluations/      # BullMQ job enqueue + status polling + per-row trace retrieval
 │   │       ├── metrics/          # Metric catalogue + /suggest proxy
 │   │       ├── storage/          # S3/MinIO abstraction
 │   │       ├── deployments/      # Deploy / promote / rollback / go-live
-│   │       ├── api-keys/         # sk_org_ / sk_ws_ / sk_ro_ key lifecycle
+│   │       ├── api-keys/         # sk_org_ / sk_ws_ / sk_ro_ key lifecycle + audit events
 │   │       ├── failover-configs/ # Failover settings per prompt
-│   │       └── monitoring/       # REST metrics + Socket.io /monitoring gateway
+│   │       ├── monitoring/       # REST metrics + Socket.io /monitoring gateway
+│   │       └── audit/            # AuditService + cursor-paginated GET /audit-logs
 │   ├── gateway/          # Fastify 4 — live API proxy (port 3002)
 │   │   ├── k6/
 │   │   │   └── load-test.js      # k6 load test (1 000 req/s)
@@ -810,7 +847,8 @@ AgentForge/
 │   │       ├── lib/
 │   │       │   ├── llm.ts        # LLM dispatch (OpenAI-compat + Anthropic)
 │   │       │   ├── variables.ts  # {{variable}} substitution
-│   │       │   └── cost.ts       # Token cost estimation table
+│   │       │   ├── cost.ts       # Token cost estimation table
+│   │       │   └── ip-filter.ts  # onRequest hook: Redis ip:blocklist / ip:allowlist check
 │   │       └── routes/
 │   │           ├── live.ts       # POST /api/v1/live/:hash (main proxy)
 │   │           └── health.ts     # GET /health, GET /ready
