@@ -22,6 +22,17 @@ const mockPrisma = {
     deleteMany: jest.fn(),
     upsert: jest.fn(),
   },
+  promptDatasetConfig: {
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+  },
+  datasetVersion: {
+    findFirst: jest.fn(),
+  },
+  evaluationJob: {
+    findFirst: jest.fn(),
+  },
   $transaction: jest.fn(),
 };
 
@@ -88,6 +99,33 @@ describe('PromptsService', () => {
       expect(mockPrisma.prompt.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: { workspaceId: 'ws-1' } }),
       );
+    });
+
+    it('returns nextCursor when results exceed take', async () => {
+      const prompts = Array.from({ length: 26 }, (_, i) => ({ id: `p-${i}` }));
+      mockPrisma.prompt.findMany.mockResolvedValue(prompts);
+      const result = await service.findAll('ws-1', 25);
+      expect(result.items).toHaveLength(25);
+      expect(result.nextCursor).toBe('p-25');
+    });
+  });
+
+  // ─── findOne ────────────────────────────────────────────────────────────────
+
+  describe('findOne', () => {
+    it('returns prompt with versions and variables', async () => {
+      mockPrisma.prompt.findFirst.mockResolvedValue({
+        id: 'p-1',
+        versions: [{ versionNumber: 1, content: 'Hello' }],
+        variables: [{ name: 'var' }],
+      });
+      const result = await service.findOne('p-1', 'ws-1');
+      expect(result.id).toBe('p-1');
+    });
+
+    it('throws NotFoundException when not found', async () => {
+      mockPrisma.prompt.findFirst.mockResolvedValue(null);
+      await expect(service.findOne('bad', 'ws-1')).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -232,6 +270,213 @@ describe('PromptsService', () => {
       mockPrisma.prompt.findFirst.mockResolvedValue(null);
 
       await expect(service.delete('bad-id', 'ws-1')).rejects.toThrow(NotFoundException);
+    });
+
+    it('skips deleteMany calls when prompt has no versions', async () => {
+      mockPrisma.prompt.findFirst.mockResolvedValue({ id: 'p-1' });
+      const txMock = {
+        promptVersion: { findMany: jest.fn().mockResolvedValue([]) },
+        evaluationJob: { deleteMany: jest.fn() },
+        deployment: { deleteMany: jest.fn() },
+        prompt: { delete: jest.fn().mockResolvedValue({}) },
+      };
+      mockPrisma.$transaction.mockImplementation((cb: (tx: typeof txMock) => Promise<void>) =>
+        cb(txMock),
+      );
+      await service.delete('p-1', 'ws-1');
+      expect(txMock.evaluationJob.deleteMany).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─── getVersions ────────────────────────────────────────────────────────────
+
+  describe('getVersions', () => {
+    it('returns versions for a valid prompt', async () => {
+      mockPrisma.prompt.findFirst.mockResolvedValue({ id: 'p-1' });
+      mockPrisma.promptVersion.findMany.mockResolvedValue([{ versionNumber: 1 }]);
+      const result = await service.getVersions('p-1', 'ws-1');
+      expect(result).toHaveLength(1);
+    });
+
+    it('throws NotFoundException when prompt not found', async () => {
+      mockPrisma.prompt.findFirst.mockResolvedValue(null);
+      await expect(service.getVersions('bad', 'ws-1')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  // ─── getVersion ─────────────────────────────────────────────────────────────
+
+  describe('getVersion', () => {
+    it('returns a specific version', async () => {
+      mockPrisma.prompt.findFirst.mockResolvedValue({ id: 'p-1' });
+      mockPrisma.promptVersion.findUnique.mockResolvedValue({ versionNumber: 2, content: 'v2' });
+      const result = await service.getVersion('p-1', 2, 'ws-1');
+      expect(result.versionNumber).toBe(2);
+    });
+
+    it('throws NotFoundException when version not found', async () => {
+      mockPrisma.prompt.findFirst.mockResolvedValue({ id: 'p-1' });
+      mockPrisma.promptVersion.findUnique.mockResolvedValue(null);
+      await expect(service.getVersion('p-1', 99, 'ws-1')).rejects.toThrow(NotFoundException);
+    });
+
+    it('throws NotFoundException when prompt not found', async () => {
+      mockPrisma.prompt.findFirst.mockResolvedValue(null);
+      await expect(service.getVersion('bad', 1, 'ws-1')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  // ─── getDatasetConfig ───────────────────────────────────────────────────────
+
+  describe('getDatasetConfig', () => {
+    it('returns dataset config for a prompt', async () => {
+      mockPrisma.prompt.findFirst.mockResolvedValue({ id: 'p-1' });
+      mockPrisma.promptDatasetConfig.findFirst.mockResolvedValue({ id: 'cfg-1' });
+      const result = await service.getDatasetConfig('p-1', 'ws-1');
+      expect(result).toEqual({ id: 'cfg-1' });
+    });
+
+    it('throws NotFoundException when prompt not found', async () => {
+      mockPrisma.prompt.findFirst.mockResolvedValue(null);
+      await expect(service.getDatasetConfig('bad', 'ws-1')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  // ─── saveDatasetConfig ──────────────────────────────────────────────────────
+
+  describe('saveDatasetConfig', () => {
+    const configData = {
+      datasetId: 'ds-1',
+      datasetVersionId: 'dv-1',
+      variableMapping: { input: 'col_a' },
+    };
+
+    it('creates a new config when none exists', async () => {
+      mockPrisma.prompt.findFirst.mockResolvedValue({ id: 'p-1' });
+      mockPrisma.promptDatasetConfig.findFirst.mockResolvedValue(null);
+      mockPrisma.promptDatasetConfig.create.mockResolvedValue({ id: 'cfg-new' });
+
+      const result = await service.saveDatasetConfig('p-1', 'ws-1', configData);
+      expect(mockPrisma.promptDatasetConfig.create).toHaveBeenCalled();
+      expect(result).toEqual({ id: 'cfg-new' });
+    });
+
+    it('updates existing config', async () => {
+      mockPrisma.prompt.findFirst.mockResolvedValue({ id: 'p-1' });
+      mockPrisma.promptDatasetConfig.findFirst.mockResolvedValue({ id: 'cfg-1', promptId: 'p-1' });
+      mockPrisma.promptDatasetConfig.update.mockResolvedValue({ id: 'cfg-1' });
+
+      const result = await service.saveDatasetConfig('p-1', 'ws-1', configData);
+      expect(mockPrisma.promptDatasetConfig.update).toHaveBeenCalled();
+      expect(result).toEqual({ id: 'cfg-1' });
+    });
+
+    it('resolves latest version when versionId not provided', async () => {
+      mockPrisma.prompt.findFirst.mockResolvedValue({ id: 'p-1' });
+      mockPrisma.promptDatasetConfig.findFirst.mockResolvedValue(null);
+      mockPrisma.datasetVersion.findFirst.mockResolvedValue({ id: 'dv-latest' });
+      mockPrisma.promptDatasetConfig.create.mockResolvedValue({ id: 'cfg-new' });
+
+      await service.saveDatasetConfig('p-1', 'ws-1', {
+        datasetId: 'ds-1',
+        variableMapping: {},
+      });
+      expect(mockPrisma.datasetVersion.findFirst).toHaveBeenCalled();
+    });
+
+    it('throws NotFoundException when no dataset version found', async () => {
+      mockPrisma.prompt.findFirst.mockResolvedValue({ id: 'p-1' });
+      mockPrisma.promptDatasetConfig.findFirst.mockResolvedValue(null);
+      mockPrisma.datasetVersion.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.saveDatasetConfig('p-1', 'ws-1', { datasetId: 'ds-1', variableMapping: {} }),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  // ─── compareVersions ────────────────────────────────────────────────────────
+
+  describe('compareVersions', () => {
+    it('returns hunks for changed content', async () => {
+      mockPrisma.prompt.findFirst.mockResolvedValue({ id: 'p-1' });
+      mockPrisma.promptVersion.findUnique
+        .mockResolvedValueOnce({ versionNumber: 1, content: 'Hello world\nLine two' })
+        .mockResolvedValueOnce({ versionNumber: 2, content: 'Hello world\nLine changed' });
+
+      const result = await service.compareVersions('p-1', 'ws-1', 1, 2);
+      expect(result.versionA).toBe(1);
+      expect(result.versionB).toBe(2);
+      expect(result.hunks.some((h) => h.type === 'removed')).toBe(true);
+      expect(result.hunks.some((h) => h.type === 'added')).toBe(true);
+    });
+
+    it('returns only unchanged hunks for identical content', async () => {
+      mockPrisma.prompt.findFirst.mockResolvedValue({ id: 'p-1' });
+      mockPrisma.promptVersion.findUnique
+        .mockResolvedValueOnce({ versionNumber: 1, content: 'Same\nContent' })
+        .mockResolvedValueOnce({ versionNumber: 2, content: 'Same\nContent' });
+
+      const result = await service.compareVersions('p-1', 'ws-1', 1, 2);
+      expect(result.hunks.every((h) => h.type === 'unchanged')).toBe(true);
+    });
+
+    it('throws NotFoundException when version A not found', async () => {
+      mockPrisma.prompt.findFirst.mockResolvedValue({ id: 'p-1' });
+      mockPrisma.promptVersion.findUnique
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ versionNumber: 2, content: 'content' });
+      await expect(service.compareVersions('p-1', 'ws-1', 1, 2)).rejects.toThrow(NotFoundException);
+    });
+
+    it('throws NotFoundException when version B not found', async () => {
+      mockPrisma.prompt.findFirst.mockResolvedValue({ id: 'p-1' });
+      mockPrisma.promptVersion.findUnique
+        .mockResolvedValueOnce({ versionNumber: 1, content: 'content' })
+        .mockResolvedValueOnce(null);
+      await expect(service.compareVersions('p-1', 'ws-1', 1, 2)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  // ─── regressionTest ─────────────────────────────────────────────────────────
+
+  describe('regressionTest', () => {
+    const makeJob = (results: { metricName: string; score: number }[]) => ({
+      id: 'job-1',
+      results,
+    });
+
+    it('returns improved/degraded/unchanged metrics', async () => {
+      mockPrisma.prompt.findFirst.mockResolvedValue({
+        id: 'p-1',
+        versions: [{ versionNumber: 3 }],
+      });
+      mockPrisma.evaluationJob.findFirst
+        .mockResolvedValueOnce(makeJob([{ metricName: 'f1', score: 0.9 }]))
+        .mockResolvedValueOnce(makeJob([{ metricName: 'f1', score: 0.7 }]));
+
+      const result = await service.regressionTest('p-1', 'ws-1', 2);
+      expect(result.improved).toContain('f1');
+      expect(result.scoreDelta['f1']).toBeCloseTo(0.2);
+    });
+
+    it('throws NotFoundException when only one version exists', async () => {
+      mockPrisma.prompt.findFirst.mockResolvedValue({
+        id: 'p-1',
+        versions: [{ versionNumber: 1 }],
+      });
+      await expect(service.regressionTest('p-1', 'ws-1')).rejects.toThrow(NotFoundException);
+    });
+
+    it('throws NotFoundException when no completed evaluation for latest', async () => {
+      mockPrisma.prompt.findFirst.mockResolvedValue({
+        id: 'p-1',
+        versions: [{ versionNumber: 2 }],
+      });
+      mockPrisma.evaluationJob.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(makeJob([]));
+      await expect(service.regressionTest('p-1', 'ws-1')).rejects.toThrow(NotFoundException);
     });
   });
 });

@@ -77,9 +77,20 @@
     },
     "testEnvironment": "node",
     "collectCoverageFrom": [
-      "**/*.(t|j)s"
+      "**/*.service.ts",
+      "!**/*.module.ts",
+      "!**/prisma.service.ts",
+      "!**/main.ts"
     ],
-    "coverageDirectory": "../coverage"
+    "coverageDirectory": "../coverage",
+    "coverageThreshold": {
+      "global": {
+        "lines": 80,
+        "functions": 80,
+        "branches": 70,
+        "statements": 80
+      }
+    }
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",

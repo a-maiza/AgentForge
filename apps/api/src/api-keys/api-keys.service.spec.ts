@@ -138,4 +138,51 @@ describe('ApiKeysService', () => {
       expect(result).not.toHaveProperty('keyHash');
     });
   });
+
+  describe('disable', () => {
+    it('sets status to disabled', async () => {
+      mockPrisma.apiKey.findFirst.mockResolvedValue({ id: 'k1' });
+      mockPrisma.apiKey.update.mockResolvedValue({
+        id: 'k1',
+        keyHash: 'h',
+        status: 'disabled',
+        workspaceId: WORKSPACE_ID,
+      });
+
+      const result = await service.disable('k1', WORKSPACE_ID);
+      expect(result.status).toBe('disabled');
+      expect(result).not.toHaveProperty('keyHash');
+    });
+
+    it('throws NotFoundException when key not found', async () => {
+      mockPrisma.apiKey.findFirst.mockResolvedValue(null);
+      await expect(service.disable('bad', WORKSPACE_ID)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('remove', () => {
+    it('deletes the key', async () => {
+      mockPrisma.apiKey.findFirst.mockResolvedValue({ id: 'k1' });
+      mockPrisma.apiKey.delete.mockResolvedValue({});
+      await expect(service.remove('k1', WORKSPACE_ID)).resolves.toBeUndefined();
+      expect(mockPrisma.apiKey.delete).toHaveBeenCalledWith({ where: { id: 'k1' } });
+    });
+
+    it('throws NotFoundException when key not found', async () => {
+      mockPrisma.apiKey.findFirst.mockResolvedValue(null);
+      await expect(service.remove('bad', WORKSPACE_ID)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('findAll', () => {
+    it('filters by status when provided', async () => {
+      mockPrisma.apiKey.findMany.mockResolvedValue([]);
+      await service.findAll(WORKSPACE_ID, 'active');
+      expect(mockPrisma.apiKey.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ workspaceId: WORKSPACE_ID, status: 'active' }),
+        }),
+      );
+    });
+  });
 });
