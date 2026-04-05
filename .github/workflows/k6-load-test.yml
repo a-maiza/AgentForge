@@ -1,0 +1,53 @@
+name: k6 Load Test (Staging)
+
+# Runs automatically after a successful Deploy to Staging, and can also be
+# triggered manually from the GitHub Actions UI.
+on:
+  workflow_run:
+    workflows: ['Deploy to Staging']
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Base URL to load-test (defaults to STAGING_URL secret)'
+        required: false
+        type: string
+
+jobs:
+  k6-load-test:
+    name: k6 Load Test
+    runs-on: ubuntu-latest
+    # Only run on successful deploys (skip if Deploy to Staging failed)
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install k6
+        run: |
+          curl -fsSL https://pkg.k6.io/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/k6-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" \
+            | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update && sudo apt-get install -y k6
+
+      - name: Run load test
+        env:
+          BASE_URL: ${{ inputs.base_url || secrets.STAGING_URL }}
+          K6_API_TOKEN: ${{ secrets.STAGING_API_TOKEN }}
+          K6_WORKSPACE_ID: ${{ secrets.STAGING_WORKSPACE_ID }}
+        run: |
+          k6 run k6/load-test.js \
+            -e BASE_URL="$BASE_URL" \
+            -e K6_API_TOKEN="$K6_API_TOKEN" \
+            -e K6_WORKSPACE_ID="$K6_WORKSPACE_ID"
+
+      - name: Upload k6 results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-results-${{ github.run_number }}
+          path: k6-results.json
+          if-no-files-found: ignore

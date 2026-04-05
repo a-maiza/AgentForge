@@ -294,11 +294,11 @@
 ### 6.3 Testing Coverage
 
 - [x] **P1** Achieve 80% line coverage on NestJS services (Jest); enforce via `--coverage --coverageThreshold` in CI
-- [ ] **P1** Achieve 80% line coverage on FastAPI worker (Pytest + `pytest-cov`); enforce in CI
-- [ ] **P1** Write Supertest integration tests for all NestJS REST endpoints (auth, prompts, datasets, evaluations, deployments, agents, api-keys, gateway)
-- [ ] **P1** Write Playwright E2E tests for the 4 critical flows (§4.7): prompt create→version→evaluate→result; deploy DEV→STAGING→PROD; build agent workflow→test run; create API key→call live endpoint→verify response
-- [ ] **P2** Add React Testing Library tests for complex UI components: workflow studio node panels, evaluation wizard, variable mapping drag-and-drop
-- [ ] **P2** Run k6 load test in CI on staging after each production release; fail if p95 > 200 ms or error rate > 0.1%
+- [x] **P1** Achieve 80% line coverage on FastAPI worker (Pytest + `pytest-cov`); enforce in CI
+- [x] **P1** Write Supertest integration tests for all NestJS REST endpoints (auth, prompts, datasets, evaluations, deployments, agents, api-keys, gateway)
+- [x] **P1** Write Playwright E2E tests for the 4 critical flows (§4.7): prompt create→version→evaluate→result; deploy DEV→STAGING→PROD; build agent workflow→test run; create API key→call live endpoint→verify response
+- [x] **P2** Add React Testing Library tests for complex UI components: workflow studio node panels, evaluation wizard, variable mapping drag-and-drop
+- [x] **P2** Run k6 load test in CI on staging after each production release; fail if p95 > 200 ms or error rate > 0.1%
 
 ### 6.4 Observability
 

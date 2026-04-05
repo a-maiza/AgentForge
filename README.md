@@ -324,14 +324,116 @@ pnpm --filter @agentforge/web test
 pnpm --filter @agentforge/gateway test
 ```
 
-### FastAPI Worker — unit tests
+### FastAPI Worker — unit tests and coverage
+
+Test files live in `apps/worker/tests/`:
+
+| File                   | What it covers                              |
+| ---------------------- | ------------------------------------------- |
+| `test_metrics.py`      | HuggingFace evaluate scorers                |
+| `test_storage.py`      | S3/MinIO storage abstraction                |
+| `test_consumer.py`     | BullMQ Redis consumer                       |
+| `test_executor.py`     | Job executor pipeline                       |
+| `test_worker.py`       | End-to-end worker job processing            |
+| `test_integration.py`  | Integration-level worker scenarios          |
+
+An **80% line coverage floor** is enforced in `apps/worker/pyproject.toml` under `[tool.coverage.report]` (`fail_under = 80`). The CI run fails if coverage drops below this threshold.
 
 ```bash
 cd apps/worker
-pytest                                     # all tests
-pytest tests/test_metrics.py              # single file
-pytest -k "test_f1"                       # single test by name
-pytest --cov=main --cov-report=xml -q     # with coverage
+
+pytest                                              # all tests
+pytest tests/test_metrics.py                       # single file
+pytest -k "test_f1"                                # single test by name
+uv run pytest --cov=. --cov-fail-under=80          # full suite with 80% coverage gate
+pytest --cov=main --cov-report=xml -q              # XML coverage report (CI)
+```
+
+### NestJS API — integration tests
+
+Integration tests live in `apps/api/test/integration/` and run against a real PostgreSQL database using **Supertest** with a slim NestJS application bootstrapped via the Fastify adapter.
+
+**Test helper** — `apps/api/test/helpers/app.helper.ts` exports `buildSlimApp(FeatureModule, [...])`. Each integration spec imports only the module under test plus its direct dependencies, keeping startup fast without loading the full `AppModule`.
+
+**Jest config** — `apps/api/jest.integration.json` uses `apps/api/tsconfig.integration.json` and targets only `test/integration/**/*.spec.ts`.
+
+**39 tests** covering:
+
+| Spec file               | Feature under test                         |
+| ----------------------- | ------------------------------------------ |
+| `prompts.spec.ts`       | Prompts CRUD and versioning                |
+| `datasets.spec.ts`      | Datasets CRUD and file upload              |
+| `evaluations.spec.ts`   | Evaluation job creation and status         |
+| `deployments.spec.ts`   | Deploy, promote, rollback, go-live         |
+| `agents.spec.ts`        | Agents CRUD                                |
+| `api-keys.spec.ts`      | API key lifecycle (create, disable, delete)|
+
+```bash
+# Run integration tests (requires a running PostgreSQL instance)
+pnpm --filter @agentforge/api jest --config jest.integration.json
+```
+
+### Next.js — React Testing Library component tests
+
+Component tests use **Vitest** with a `jsdom` environment (configured in `apps/web/vitest.config.ts`). A shared test setup at `apps/web/src/test-setup.ts` provides polyfills for `ResizeObserver`, `DOMMatrix`, and other browser globals needed by React Flow and charting libraries.
+
+| Test file                                                           | Component under test |
+| ------------------------------------------------------------------- | -------------------- |
+| `components/agents/__tests__/WorkflowCanvas.test.tsx`               | `WorkflowCanvas`     |
+| `components/agents/__tests__/NodeConfigPanel.test.tsx`              | `NodeConfigPanel`    |
+| `components/evaluations/__tests__/EvaluationWizard.test.tsx`        | `EvaluationWizard`   |
+| `components/evaluations/__tests__/MetricGrid.test.tsx`              | `MetricGrid`         |
+
+```bash
+pnpm --filter @agentforge/web test
+```
+
+### Playwright — end-to-end tests
+
+E2E tests run against a live stack using **Playwright**. Configuration is at `apps/web/playwright.config.ts`.
+
+**Auth setup** — `apps/web/e2e/global-setup.ts` performs a Clerk sign-in before the test suite starts and saves the authenticated browser storage state to `apps/web/e2e/.auth/user.json`. All specs reuse this saved state, so only one real login round-trip occurs per run.
+
+**Required environment variables for E2E:**
+
+| Variable               | Purpose                                     |
+| ---------------------- | ------------------------------------------- |
+| `E2E_USER_EMAIL`       | Clerk account email used by global setup    |
+| `E2E_USER_PASSWORD`    | Clerk account password used by global setup |
+| `E2E_WORKSPACE_ID`     | Workspace ID pre-seeded for test runs       |
+| `NEXT_PUBLIC_APP_URL`  | Base URL of the running Next.js app         |
+
+**4 critical flow specs** in `apps/web/e2e/flows/`:
+
+| Spec file                      | Flow covered                                      |
+| ------------------------------ | ------------------------------------------------- |
+| `prompt-lifecycle.spec.ts`     | Create prompt → version → evaluate → result       |
+| `deployment-pipeline.spec.ts`  | Deploy DEV → promote to STAGING → promote to PROD |
+| `agent-workflow.spec.ts`       | Build workflow in Studio → run test               |
+| `api-key-lifecycle.spec.ts`    | Create API key → disable → delete                 |
+
+```bash
+pnpm --filter @agentforge/web exec playwright test
+```
+
+### k6 — load test (gateway)
+
+A k6 load test targeting `POST /api/v1/live/:hash` on the gateway lives at `k6/load-test.js`.
+
+**Ramp profile:**
+
+| Stage      | Duration | Virtual Users |
+| ---------- | -------- | ------------- |
+| Warm-up    | 30 s     | 10            |
+| Peak       | 2 min    | 50            |
+| Cool-down  | 30 s     | 0             |
+
+**Pass/fail thresholds:** p95 latency < 200 ms, error rate < 0.1%.
+
+A GitHub Actions workflow at `.github/workflows/k6-load-test.yml` triggers automatically after the "Deploy to Staging" workflow completes. It requires two repository secrets: `STAGING_WORKSPACE_ID` and `K6_API_TOKEN`.
+
+```bash
+k6 run k6/load-test.js
 ```
 
 ---
