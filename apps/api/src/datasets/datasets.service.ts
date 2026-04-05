@@ -111,6 +111,7 @@ export class DatasetsService {
 
   async upload(
     datasetId: string,
+    workspaceId: string,
     fileBuffer: Buffer,
     filename: string,
     mimetype: string,
@@ -119,6 +120,7 @@ export class DatasetsService {
       where: { id: datasetId },
     });
     if (!dataset) throw new NotFoundException('Dataset not found');
+    if (dataset.workspaceId !== workspaceId) throw new NotFoundException('Dataset not found');
 
     const parsed = this.parseFile(fileBuffer, mimetype, filename);
 
@@ -171,10 +173,11 @@ export class DatasetsService {
 
   async preview(
     datasetId: string,
+    workspaceId: string,
     versionNumber: number,
     limit = 50,
   ): Promise<{ columns: string[]; rows: Record<string, unknown>[] }> {
-    const dataset = await this.prisma.dataset.findUnique({ where: { id: datasetId }, select: { id: true } });
+    const dataset = await this.prisma.dataset.findFirst({ where: { id: datasetId, workspaceId }, select: { id: true } });
     if (!dataset) throw new NotFoundException('Dataset not found');
 
     const version = await this.prisma.datasetVersion.findUnique({
@@ -191,8 +194,8 @@ export class DatasetsService {
     };
   }
 
-  async compare(datasetId: string, versionA: number, versionB: number): Promise<CompareResult> {
-    const dataset = await this.prisma.dataset.findUnique({ where: { id: datasetId }, select: { id: true } });
+  async compare(datasetId: string, workspaceId: string, versionA: number, versionB: number): Promise<CompareResult> {
+    const dataset = await this.prisma.dataset.findFirst({ where: { id: datasetId, workspaceId }, select: { id: true } });
     if (!dataset) throw new NotFoundException('Dataset not found');
 
     const [va, vb] = await Promise.all([
@@ -246,13 +249,40 @@ export class DatasetsService {
     };
   }
 
+  private static measureNestingDepth(value: unknown, current = 0): number {
+    if (current > 20) return current; // short-circuit
+    if (Array.isArray(value)) {
+      return Math.max(...value.map((v) => DatasetsService.measureNestingDepth(v, current + 1)));
+    }
+    if (value !== null && typeof value === 'object') {
+      const depths = Object.values(value as Record<string, unknown>).map((v) =>
+        DatasetsService.measureNestingDepth(v, current + 1),
+      );
+      return depths.length > 0 ? Math.max(...depths) : current;
+    }
+    return current;
+  }
+
+  private assertNestingDepth(rows: Record<string, unknown>[]): void {
+    const MAX_DEPTH = 10;
+    for (const row of rows) {
+      if (DatasetsService.measureNestingDepth(row) > MAX_DEPTH) {
+        throw new BadRequestException(
+          `JSON nesting depth exceeds the maximum allowed depth of ${MAX_DEPTH}`,
+        );
+      }
+    }
+  }
+
   private parseFile(buffer: Buffer, mimetype: string, filename: string): ParsedFile {
     const lower = filename.toLowerCase();
     const isJsonl = lower.endsWith('.jsonl');
     const isJson = !isJsonl && (mimetype === 'application/json' || lower.endsWith('.json'));
 
     if (isJsonl) {
-      return this.parseJsonl(buffer);
+      const result = this.parseJsonl(buffer);
+      this.assertNestingDepth(result.rows);
+      return result;
     }
 
     if (isJson) {
@@ -263,11 +293,15 @@ export class DatasetsService {
           ? (data as Record<string, unknown>[])
           : [data as Record<string, unknown>];
         const columns = rows.length > 0 ? Object.keys(rows[0] as Record<string, unknown>) : [];
+        this.assertNestingDepth(rows);
         return { rows, columns };
-      } catch {
+      } catch (err) {
+        if (err instanceof BadRequestException) throw err;
         // Possibly JSONL with a .json extension — fall back to line-by-line
         try {
-          return this.parseJsonl(buffer);
+          const result = this.parseJsonl(buffer);
+          this.assertNestingDepth(result.rows);
+          return result;
         } catch {
           throw new BadRequestException('Invalid JSON file: not a valid JSON array or JSONL');
         }

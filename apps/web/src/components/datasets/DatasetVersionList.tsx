@@ -33,7 +33,7 @@ function formatBytes(bytes: number) {
 
 export function DatasetVersionList({ datasetId }: Props) {
   const { activeWorkspace } = useWorkspaceStore();
-  const [selected, setSelected] = useState<string[]>([]);
+  const [selected, setSelected] = useState<number[]>([]);
   const [diffOpen, setDiffOpen] = useState(false);
 
   const { data: versions = [], isLoading } = useQuery<DatasetVersion[]>({
@@ -46,11 +46,11 @@ export function DatasetVersionList({ datasetId }: Props) {
     enabled: !!activeWorkspace,
   });
 
-  const toggle = (id: string) => {
+  const toggle = (versionNumber: number) => {
     setSelected((prev) => {
-      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.includes(versionNumber)) return prev.filter((x) => x !== versionNumber);
       if (prev.length >= 2) return prev;
-      return [...prev, id];
+      return [...prev, versionNumber];
     });
   };
 
@@ -96,9 +96,9 @@ export function DatasetVersionList({ datasetId }: Props) {
               <tr key={v.id} className="border-t hover:bg-muted/30 transition-colors">
                 <td className="p-3">
                   <Checkbox
-                    checked={selected.includes(v.id)}
-                    onCheckedChange={() => toggle(v.id)}
-                    disabled={!selected.includes(v.id) && selected.length >= 2}
+                    checked={selected.includes(v.versionNumber)}
+                    onCheckedChange={() => toggle(v.versionNumber)}
+                    disabled={!selected.includes(v.versionNumber) && selected.length >= 2}
                   />
                 </td>
                 <td className="p-3 font-medium">v{v.versionNumber}</td>
@@ -119,11 +119,12 @@ export function DatasetVersionList({ datasetId }: Props) {
         </table>
       </div>
 
-      {selected.length === 2 && selected[0] !== undefined && selected[1] !== undefined && (
+      {selected.length === 2 && selected[0] !== undefined && selected[1] !== undefined && activeWorkspace && (
         <DiffModal
+          workspaceId={activeWorkspace.id}
           datasetId={datasetId}
-          version1Id={selected[0]}
-          version2Id={selected[1]}
+          versionA={selected[0]}
+          versionB={selected[1]}
           open={diffOpen}
           onClose={() => setDiffOpen(false)}
         />

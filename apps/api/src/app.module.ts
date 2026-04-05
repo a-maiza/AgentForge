@@ -21,6 +21,7 @@ import { ApiKeysModule } from './api-keys/api-keys.module';
 import { FailoverConfigsModule } from './failover-configs/failover-configs.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { AgentsModule } from './agents/agents.module';
+import { AuditModule } from './audit/audit.module';
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { AgentsModule } from './agents/agents.module';
     FailoverConfigsModule,
     MonitoringModule,
     AgentsModule,
+    AuditModule,
   ],
   providers: [
     // Apply AuthGuard globally; use @Public() to opt-out on specific routes

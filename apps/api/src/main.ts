@@ -3,6 +3,7 @@ import { NestFactory, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { ValidationPipe, ClassSerializerInterceptor } from '@nestjs/common';
 import { Logger } from 'nestjs-pino';
+import helmet from '@fastify/helmet';
 import { AppModule } from './app.module.js';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter.js';
 
@@ -17,15 +18,42 @@ async function bootstrap() {
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
   app.useGlobalFilters(new HttpExceptionFilter());
 
+  // OWASP security headers
+  const frontendOrigin = process.env['FRONTEND_URL'] ?? 'http://localhost:3000';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await app.register(helmet as any, {
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:', 'https:'],
+        connectSrc: ["'self'", frontendOrigin],
+        fontSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+        upgradeInsecureRequests: [],
+      },
+    },
+    hsts: {
+      maxAge: 31_536_000,
+      includeSubDomains: true,
+      preload: true,
+    },
+    frameguard: { action: 'deny' },
+    noSniff: true,
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  });
+
   app.enableCors({
-    origin: process.env['FRONTEND_URL'] ?? 'http://localhost:3000',
+    origin: frontendOrigin,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Authorization', 'Content-Type'],
     credentials: true,
   });
 
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  await app.register(require('@fastify/multipart'), { limits: { fileSize: 50 * 1024 * 1024 } });
+  await app.register(require('@fastify/multipart'), { limits: { fileSize: 100 * 1024 * 1024 } });
 
   // Let NestJS register its default parsers first, then replace the JSON parser
   // to capture raw body for webhook signature verification (svix).
