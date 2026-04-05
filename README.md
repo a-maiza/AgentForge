@@ -915,6 +915,19 @@ AgentForge/
 │   │   │   │   └── 20260404000000_add_audit_logs/  # AuditLog model + audit_action enum
 │   │   │   ├── schema.prisma
 │   │   │   └── seed.ts
+│   │   ├── test/
+│   │   │   ├── helpers/
+│   │   │   │   ├── app.helper.ts         # buildSlimApp() — slim NestJS + Fastify adapter for integration tests
+│   │   │   │   └── env.setup.ts          # Test environment variable bootstrap
+│   │   │   └── integration/
+│   │   │       ├── prompts.spec.ts
+│   │   │       ├── datasets.spec.ts
+│   │   │       ├── evaluations.spec.ts
+│   │   │       ├── deployments.spec.ts
+│   │   │       ├── agents.spec.ts
+│   │   │       └── api-keys.spec.ts
+│   │   ├── jest.integration.json         # Jest config for integration tests
+│   │   ├── tsconfig.integration.json     # tsconfig for integration tests
 │   │   └── src/
 │   │       ├── auth/             # AuthGuard, @Public(), @CurrentUser()
 │   │       ├── common/
@@ -955,6 +968,17 @@ AgentForge/
 │   │           ├── live.ts       # POST /api/v1/live/:hash (main proxy)
 │   │           └── health.ts     # GET /health, GET /ready
 │   ├── web/              # Next.js 14 — dashboard frontend (port 3000)
+│   │   ├── playwright.config.ts              # Playwright E2E config
+│   │   ├── e2e/
+│   │   │   ├── global-setup.ts               # Clerk sign-in; saves storageState to e2e/.auth/user.json
+│   │   │   ├── .auth/                        # Saved Playwright auth state (gitignored)
+│   │   │   ├── page-objects/
+│   │   │   │   └── prompts.page.ts
+│   │   │   └── flows/
+│   │   │       ├── prompt-lifecycle.spec.ts  # Create → version → evaluate → result
+│   │   │       ├── deployment-pipeline.spec.ts # DEV → STAGING → PROD
+│   │   │       ├── agent-workflow.spec.ts    # Build workflow → test run
+│   │   │       └── api-key-lifecycle.spec.ts # Create → disable → delete
 │   │   └── src/
 │   │       ├── app/
 │   │       │   ├── (dashboard)/
@@ -982,12 +1006,21 @@ AgentForge/
 │   │       │   │   ├── CreateWorkspaceModal.tsx     # Create workspace under active org (name + auto-slug)
 │   │       │   │   ├── DeleteWorkspaceModal.tsx     # Confirm and delete the active workspace
 │   │       │   │   └── DeleteOrganizationModal.tsx  # Confirm and delete the active org and all its contents
+│   │       │   ├── agents/
+│   │       │   │   └── __tests__/
+│   │       │   │       ├── WorkflowCanvas.test.tsx
+│   │       │   │       └── NodeConfigPanel.test.tsx
+│   │       │   ├── evaluations/
+│   │       │   │   └── __tests__/
+│   │       │   │       ├── EvaluationWizard.test.tsx
+│   │       │   │       └── MetricGrid.test.tsx
 │   │       │   ├── prompts/
 │   │       │   │   ├── EnvironmentsTab.tsx   # DEV/STAGING/PROD cards, Go Live/Promote/Rollback
 │   │       │   │   ├── FailoverTab.tsx       # Primary/secondary provider + failover settings form
 │   │       │   │   ├── AiProviderTab.tsx
 │   │       │   │   └── DatasetTab.tsx
 │   │       │   └── ui/                       # shadcn/ui primitives
+│   │       ├── test-setup.ts                 # Vitest jsdom polyfills (ResizeObserver, DOMMatrix, etc.)
 │   │       └── lib/
 │   │           └── api.ts                    # deploymentsApi, failoverConfigsApi, apiKeysApi, organizationsApi + prior modules
 │   └── worker/           # FastAPI — eval job processor (port 8000)
@@ -1002,6 +1035,14 @@ AgentForge/
 │       ├── pyrightconfig.json    # Pyright/Pylance venv config
 │       ├── .python-version       # Pins Python 3.11 for uv
 │       └── tests/
+│           ├── test_metrics.py       # HuggingFace evaluate scorers
+│           ├── test_storage.py       # S3/MinIO abstraction
+│           ├── test_consumer.py      # BullMQ Redis consumer
+│           ├── test_executor.py      # Job executor pipeline
+│           ├── test_worker.py        # End-to-end worker job processing
+│           └── test_integration.py   # Integration-level worker scenarios
+├── k6/
+│   └── load-test.js      # Gateway load test — 3-stage ramp (10→50→0 VU), p95 < 200 ms
 ├── packages/
 │   └── shared/           # Shared TypeScript types, Zod schemas, constants
 │       └── src/
@@ -1009,7 +1050,9 @@ AgentForge/
 │           ├── types.ts          # Domain interfaces (Prompt, Deployment, etc.)
 │           └── schemas.ts        # Zod validation schemas
 ├── .github/
-│   └── workflows/        # PR checks, staging deploy, prod release
+│   └── workflows/
+│       ├── k6-load-test.yml  # Triggers after Deploy to Staging; requires STAGING_WORKSPACE_ID + K6_API_TOKEN
+│       └── ...               # PR checks, staging deploy, prod release
 ├── Makefile              # make setup / make dev / make migrate / make reset
 ├── docker-compose.yml
 ├── .env.example
