@@ -284,21 +284,21 @@
 
 ### 6.2 Security Hardening
 
-- [ ] **P0** Verify AES-256-GCM implementation for AI provider keys: unique IV per encryption, authenticate tag verified on decrypt
-- [ ] **P0** Add OWASP-compliant `helmet` headers to NestJS (`X-Content-Type-Options`, `Strict-Transport-Security`, `X-Frame-Options`, CSP)
-- [ ] **P0** Enforce row-level scoping: add integration tests asserting that user A cannot read/write user B's workspace resources
-- [ ] **P1** Implement IP allowlist/blocklist for gateway (§14.8): store in Redis set; check on every request before auth
-- [ ] **P1** Validate and sanitize all file uploads: check MIME type, enforce 100 MB limit, scan CSV/JSON for excessively deep nesting
-- [ ] **P2** Add audit log table and service: record every state-changing operation (user, action, resource_type, resource_id, ip, timestamp); expose read endpoint for org admins
+- [x] **P0** Verify AES-256-GCM implementation for AI provider keys: unique IV per encryption, authenticate tag verified on decrypt
+- [x] **P0** Add OWASP-compliant `helmet` headers to NestJS (`X-Content-Type-Options`, `Strict-Transport-Security`, `X-Frame-Options`, CSP)
+- [x] **P0** Enforce row-level scoping: add integration tests asserting that user A cannot read/write user B's workspace resources
+- [x] **P1** Implement IP allowlist/blocklist for gateway (§14.8): store in Redis set; check on every request before auth
+- [x] **P1** Validate and sanitize all file uploads: check MIME type, enforce 100 MB limit, scan CSV/JSON for excessively deep nesting
+- [x] **P2** Add audit log table and service: record every state-changing operation (user, action, resource_type, resource_id, ip, timestamp); expose read endpoint for org admins
 
 ### 6.3 Testing Coverage
 
-- [ ] **P1** Achieve 80% line coverage on NestJS services (Jest); enforce via `--coverage --coverageThreshold` in CI
-- [ ] **P1** Achieve 80% line coverage on FastAPI worker (Pytest + `pytest-cov`); enforce in CI
-- [ ] **P1** Write Supertest integration tests for all NestJS REST endpoints (auth, prompts, datasets, evaluations, deployments, agents, api-keys, gateway)
-- [ ] **P1** Write Playwright E2E tests for the 4 critical flows (§4.7): prompt create→version→evaluate→result; deploy DEV→STAGING→PROD; build agent workflow→test run; create API key→call live endpoint→verify response
-- [ ] **P2** Add React Testing Library tests for complex UI components: workflow studio node panels, evaluation wizard, variable mapping drag-and-drop
-- [ ] **P2** Run k6 load test in CI on staging after each production release; fail if p95 > 200 ms or error rate > 0.1%
+- [x] **P1** Achieve 80% line coverage on NestJS services (Jest); enforce via `--coverage --coverageThreshold` in CI
+- [x] **P1** Achieve 80% line coverage on FastAPI worker (Pytest + `pytest-cov`); enforce in CI
+- [x] **P1** Write Supertest integration tests for all NestJS REST endpoints (auth, prompts, datasets, evaluations, deployments, agents, api-keys, gateway)
+- [x] **P1** Write Playwright E2E tests for the 4 critical flows (§4.7): prompt create→version→evaluate→result; deploy DEV→STAGING→PROD; build agent workflow→test run; create API key→call live endpoint→verify response
+- [x] **P2** Add React Testing Library tests for complex UI components: workflow studio node panels, evaluation wizard, variable mapping drag-and-drop
+- [x] **P2** Run k6 load test in CI on staging after each production release; fail if p95 > 200 ms or error rate > 0.1%
 
 ### 6.4 Observability
 

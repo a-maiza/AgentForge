@@ -187,6 +187,7 @@ pnpm clean            # Remove dist/, .next/, node_modules/
 pnpm --filter @agentforge/api dev              # nest start --watch
 pnpm --filter @agentforge/api build            # nest build
 pnpm --filter @agentforge/api test             # jest --passWithNoTests
+pnpm --filter @agentforge/api test -- --coverage               # jest with coverage report
 pnpm --filter @agentforge/api test -- --testPathPattern=<file>  # single test file
 pnpm --filter @agentforge/api typecheck        # tsc --noEmit
 pnpm --filter @agentforge/api lint             # eslint src/
@@ -255,6 +256,184 @@ For **VS Code** specifically, also add the following to `.vscode/settings.json` 
   "python.analysis.venv": ".venv",
   "python.analysis.extraPaths": ["${workspaceFolder}/apps/worker"]
 }
+```
+
+---
+
+## Testing
+
+### NestJS API — unit tests
+
+The API test suite uses **Jest** with `ts-jest`. All 15 service spec files are colocated with their source modules under `apps/api/src/`.
+
+```bash
+# Run all unit tests
+pnpm --filter @agentforge/api test
+
+# Run with coverage report (outputs to apps/api/coverage/)
+pnpm --filter @agentforge/api test -- --coverage
+
+# Run a single test file
+pnpm --filter @agentforge/api test -- --testPathPattern=prompts.service
+```
+
+#### Test suites
+
+| Spec file                                             | Service under test       |
+| ----------------------------------------------------- | ------------------------ |
+| `agents/agents.service.spec.ts`                       | `AgentsService`          |
+| `ai-providers/ai-providers.service.spec.ts`           | `AiProvidersService`     |
+| `api-keys/api-keys.service.spec.ts`                   | `ApiKeysService`         |
+| `datasets/datasets.service.spec.ts`                   | `DatasetsService`        |
+| `deployments/deployments.service.spec.ts`             | `DeploymentsService`     |
+| `evaluations/evaluations.service.spec.ts`             | `EvaluationsService`     |
+| `common/services/encryption.service.spec.ts`          | `EncryptionService`      |
+| `failover-configs/failover-configs.service.spec.ts`   | `FailoverConfigsService` |
+| `monitoring/monitoring.service.spec.ts`               | `MonitoringService`      |
+| `organizations/organizations.service.spec.ts`         | `OrganizationsService`   |
+| `prompt-ai-configs/prompt-ai-configs.service.spec.ts` | `PromptAiConfigsService` |
+| `prompts/prompts.service.spec.ts`                     | `PromptsService`         |
+| `storage/storage.service.spec.ts`                     | `StorageService`         |
+| `users/users.service.spec.ts`                         | `UsersService`           |
+| `workspaces/workspaces.service.spec.ts`               | `WorkspacesService`      |
+
+**Total: 211 tests across 15 suites.**
+
+#### Coverage configuration
+
+Coverage is collected from `**/*.service.ts` only (modules, `PrismaService`, and `main.ts` are excluded). The following thresholds are enforced and will fail the CI run if not met:
+
+| Metric     | Threshold | Achieved |
+| ---------- | --------- | -------- |
+| Statements | 80%       | 96.97%   |
+| Functions  | 80%       | 98.84%   |
+| Lines      | 80%       | 98.11%   |
+| Branches   | 70%       | 75.05%   |
+
+Coverage output is written to `apps/api/coverage/`.
+
+### Next.js and Gateway — unit tests
+
+Both apps use **Vitest**.
+
+```bash
+# Frontend (apps/web)
+pnpm --filter @agentforge/web test
+
+# Gateway (apps/gateway)
+pnpm --filter @agentforge/gateway test
+```
+
+### FastAPI Worker — unit tests and coverage
+
+Test files live in `apps/worker/tests/`:
+
+| File                   | What it covers                              |
+| ---------------------- | ------------------------------------------- |
+| `test_metrics.py`      | HuggingFace evaluate scorers                |
+| `test_storage.py`      | S3/MinIO storage abstraction                |
+| `test_consumer.py`     | BullMQ Redis consumer                       |
+| `test_executor.py`     | Job executor pipeline                       |
+| `test_worker.py`       | End-to-end worker job processing            |
+| `test_integration.py`  | Integration-level worker scenarios          |
+
+An **80% line coverage floor** is enforced in `apps/worker/pyproject.toml` under `[tool.coverage.report]` (`fail_under = 80`). The CI run fails if coverage drops below this threshold.
+
+```bash
+cd apps/worker
+
+pytest                                              # all tests
+pytest tests/test_metrics.py                       # single file
+pytest -k "test_f1"                                # single test by name
+uv run pytest --cov=. --cov-fail-under=80          # full suite with 80% coverage gate
+pytest --cov=main --cov-report=xml -q              # XML coverage report (CI)
+```
+
+### NestJS API — integration tests
+
+Integration tests live in `apps/api/test/integration/` and run against a real PostgreSQL database using **Supertest** with a slim NestJS application bootstrapped via the Fastify adapter.
+
+**Test helper** — `apps/api/test/helpers/app.helper.ts` exports `buildSlimApp(FeatureModule, [...])`. Each integration spec imports only the module under test plus its direct dependencies, keeping startup fast without loading the full `AppModule`.
+
+**Jest config** — `apps/api/jest.integration.json` uses `apps/api/tsconfig.integration.json` and targets only `test/integration/**/*.spec.ts`.
+
+**39 tests** covering:
+
+| Spec file               | Feature under test                         |
+| ----------------------- | ------------------------------------------ |
+| `prompts.spec.ts`       | Prompts CRUD and versioning                |
+| `datasets.spec.ts`      | Datasets CRUD and file upload              |
+| `evaluations.spec.ts`   | Evaluation job creation and status         |
+| `deployments.spec.ts`   | Deploy, promote, rollback, go-live         |
+| `agents.spec.ts`        | Agents CRUD                                |
+| `api-keys.spec.ts`      | API key lifecycle (create, disable, delete)|
+
+```bash
+# Run integration tests (requires a running PostgreSQL instance)
+pnpm --filter @agentforge/api jest --config jest.integration.json
+```
+
+### Next.js — React Testing Library component tests
+
+Component tests use **Vitest** with a `jsdom` environment (configured in `apps/web/vitest.config.ts`). A shared test setup at `apps/web/src/test-setup.ts` provides polyfills for `ResizeObserver`, `DOMMatrix`, and other browser globals needed by React Flow and charting libraries.
+
+| Test file                                                           | Component under test |
+| ------------------------------------------------------------------- | -------------------- |
+| `components/agents/__tests__/WorkflowCanvas.test.tsx`               | `WorkflowCanvas`     |
+| `components/agents/__tests__/NodeConfigPanel.test.tsx`              | `NodeConfigPanel`    |
+| `components/evaluations/__tests__/EvaluationWizard.test.tsx`        | `EvaluationWizard`   |
+| `components/evaluations/__tests__/MetricGrid.test.tsx`              | `MetricGrid`         |
+
+```bash
+pnpm --filter @agentforge/web test
+```
+
+### Playwright — end-to-end tests
+
+E2E tests run against a live stack using **Playwright**. Configuration is at `apps/web/playwright.config.ts`.
+
+**Auth setup** — `apps/web/e2e/global-setup.ts` performs a Clerk sign-in before the test suite starts and saves the authenticated browser storage state to `apps/web/e2e/.auth/user.json`. All specs reuse this saved state, so only one real login round-trip occurs per run.
+
+**Required environment variables for E2E:**
+
+| Variable               | Purpose                                     |
+| ---------------------- | ------------------------------------------- |
+| `E2E_USER_EMAIL`       | Clerk account email used by global setup    |
+| `E2E_USER_PASSWORD`    | Clerk account password used by global setup |
+| `E2E_WORKSPACE_ID`     | Workspace ID pre-seeded for test runs       |
+| `NEXT_PUBLIC_APP_URL`  | Base URL of the running Next.js app         |
+
+**4 critical flow specs** in `apps/web/e2e/flows/`:
+
+| Spec file                      | Flow covered                                      |
+| ------------------------------ | ------------------------------------------------- |
+| `prompt-lifecycle.spec.ts`     | Create prompt → version → evaluate → result       |
+| `deployment-pipeline.spec.ts`  | Deploy DEV → promote to STAGING → promote to PROD |
+| `agent-workflow.spec.ts`       | Build workflow in Studio → run test               |
+| `api-key-lifecycle.spec.ts`    | Create API key → disable → delete                 |
+
+```bash
+pnpm --filter @agentforge/web exec playwright test
+```
+
+### k6 — load test (gateway)
+
+A k6 load test targeting `POST /api/v1/live/:hash` on the gateway lives at `k6/load-test.js`.
+
+**Ramp profile:**
+
+| Stage      | Duration | Virtual Users |
+| ---------- | -------- | ------------- |
+| Warm-up    | 30 s     | 10            |
+| Peak       | 2 min    | 50            |
+| Cool-down  | 30 s     | 0             |
+
+**Pass/fail thresholds:** p95 latency < 200 ms, error rate < 0.1%.
+
+A GitHub Actions workflow at `.github/workflows/k6-load-test.yml` triggers automatically after the "Deploy to Staging" workflow completes. It requires two repository secrets: `STAGING_WORKSPACE_ID` and `K6_API_TOKEN`.
+
+```bash
+k6 run k6/load-test.js
 ```
 
 ---
@@ -736,6 +915,19 @@ AgentForge/
 │   │   │   │   └── 20260404000000_add_audit_logs/  # AuditLog model + audit_action enum
 │   │   │   ├── schema.prisma
 │   │   │   └── seed.ts
+│   │   ├── test/
+│   │   │   ├── helpers/
+│   │   │   │   ├── app.helper.ts         # buildSlimApp() — slim NestJS + Fastify adapter for integration tests
+│   │   │   │   └── env.setup.ts          # Test environment variable bootstrap
+│   │   │   └── integration/
+│   │   │       ├── prompts.spec.ts
+│   │   │       ├── datasets.spec.ts
+│   │   │       ├── evaluations.spec.ts
+│   │   │       ├── deployments.spec.ts
+│   │   │       ├── agents.spec.ts
+│   │   │       └── api-keys.spec.ts
+│   │   ├── jest.integration.json         # Jest config for integration tests
+│   │   ├── tsconfig.integration.json     # tsconfig for integration tests
 │   │   └── src/
 │   │       ├── auth/             # AuthGuard, @Public(), @CurrentUser()
 │   │       ├── common/
@@ -776,6 +968,17 @@ AgentForge/
 │   │           ├── live.ts       # POST /api/v1/live/:hash (main proxy)
 │   │           └── health.ts     # GET /health, GET /ready
 │   ├── web/              # Next.js 14 — dashboard frontend (port 3000)
+│   │   ├── playwright.config.ts              # Playwright E2E config
+│   │   ├── e2e/
+│   │   │   ├── global-setup.ts               # Clerk sign-in; saves storageState to e2e/.auth/user.json
+│   │   │   ├── .auth/                        # Saved Playwright auth state (gitignored)
+│   │   │   ├── page-objects/
+│   │   │   │   └── prompts.page.ts
+│   │   │   └── flows/
+│   │   │       ├── prompt-lifecycle.spec.ts  # Create → version → evaluate → result
+│   │   │       ├── deployment-pipeline.spec.ts # DEV → STAGING → PROD
+│   │   │       ├── agent-workflow.spec.ts    # Build workflow → test run
+│   │   │       └── api-key-lifecycle.spec.ts # Create → disable → delete
 │   │   └── src/
 │   │       ├── app/
 │   │       │   ├── (dashboard)/
@@ -803,12 +1006,21 @@ AgentForge/
 │   │       │   │   ├── CreateWorkspaceModal.tsx     # Create workspace under active org (name + auto-slug)
 │   │       │   │   ├── DeleteWorkspaceModal.tsx     # Confirm and delete the active workspace
 │   │       │   │   └── DeleteOrganizationModal.tsx  # Confirm and delete the active org and all its contents
+│   │       │   ├── agents/
+│   │       │   │   └── __tests__/
+│   │       │   │       ├── WorkflowCanvas.test.tsx
+│   │       │   │       └── NodeConfigPanel.test.tsx
+│   │       │   ├── evaluations/
+│   │       │   │   └── __tests__/
+│   │       │   │       ├── EvaluationWizard.test.tsx
+│   │       │   │       └── MetricGrid.test.tsx
 │   │       │   ├── prompts/
 │   │       │   │   ├── EnvironmentsTab.tsx   # DEV/STAGING/PROD cards, Go Live/Promote/Rollback
 │   │       │   │   ├── FailoverTab.tsx       # Primary/secondary provider + failover settings form
 │   │       │   │   ├── AiProviderTab.tsx
 │   │       │   │   └── DatasetTab.tsx
 │   │       │   └── ui/                       # shadcn/ui primitives
+│   │       ├── test-setup.ts                 # Vitest jsdom polyfills (ResizeObserver, DOMMatrix, etc.)
 │   │       └── lib/
 │   │           └── api.ts                    # deploymentsApi, failoverConfigsApi, apiKeysApi, organizationsApi + prior modules
 │   └── worker/           # FastAPI — eval job processor (port 8000)
@@ -823,6 +1035,14 @@ AgentForge/
 │       ├── pyrightconfig.json    # Pyright/Pylance venv config
 │       ├── .python-version       # Pins Python 3.11 for uv
 │       └── tests/
+│           ├── test_metrics.py       # HuggingFace evaluate scorers
+│           ├── test_storage.py       # S3/MinIO abstraction
+│           ├── test_consumer.py      # BullMQ Redis consumer
+│           ├── test_executor.py      # Job executor pipeline
+│           ├── test_worker.py        # End-to-end worker job processing
+│           └── test_integration.py   # Integration-level worker scenarios
+├── k6/
+│   └── load-test.js      # Gateway load test — 3-stage ramp (10→50→0 VU), p95 < 200 ms
 ├── packages/
 │   └── shared/           # Shared TypeScript types, Zod schemas, constants
 │       └── src/
@@ -830,7 +1050,9 @@ AgentForge/
 │           ├── types.ts          # Domain interfaces (Prompt, Deployment, etc.)
 │           └── schemas.ts        # Zod validation schemas
 ├── .github/
-│   └── workflows/        # PR checks, staging deploy, prod release
+│   └── workflows/
+│       ├── k6-load-test.yml  # Triggers after Deploy to Staging; requires STAGING_WORKSPACE_ID + K6_API_TOKEN
+│       └── ...               # PR checks, staging deploy, prod release
 ├── Makefile              # make setup / make dev / make migrate / make reset
 ├── docker-compose.yml
 ├── .env.example

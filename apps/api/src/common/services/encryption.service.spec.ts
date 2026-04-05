@@ -82,7 +82,7 @@ describe('EncryptionService', () => {
       const encrypted = svc.encrypt('sensitive');
       const parts = encrypted.split(':');
       // Flip the first byte of the tag
-      const tamperedTag = (parseInt(parts[1]!.slice(0, 2), 16) ^ 0xff).toString(16).padStart(2, '0') + parts[1]!.slice(2);
+      const tamperedTag = (Number.parseInt(parts[1]!.slice(0, 2), 16) ^ 0xff).toString(16).padStart(2, '0') + parts[1]!.slice(2);
       const tampered = `${parts[0]}:${tamperedTag}:${parts[2]}`;
       expect(() => svc.decrypt(tampered)).toThrow();
     });
@@ -93,7 +93,7 @@ describe('EncryptionService', () => {
       const parts = encrypted.split(':');
       // Flip last byte of ciphertext
       const ct = parts[2]!;
-      const tamperedCt = ct.slice(0, -2) + (parseInt(ct.slice(-2), 16) ^ 0xff).toString(16).padStart(2, '0');
+      const tamperedCt = ct.slice(0, -2) + (Number.parseInt(ct.slice(-2), 16) ^ 0xff).toString(16).padStart(2, '0');
       const tampered = `${parts[0]}:${parts[1]}:${tamperedCt}`;
       expect(() => svc.decrypt(tampered)).toThrow();
     });

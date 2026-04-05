@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { DeploymentsService } from './deployments.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -112,6 +112,89 @@ describe('DeploymentsService', () => {
       expect(result['dev']).toBeDefined();
       expect(result['staging']).toBeNull();
       expect(result['prod']).toBeNull();
+    });
+  });
+
+  describe('promote', () => {
+    it('promotes dev to staging', async () => {
+      mockPrisma.prompt.findFirst.mockResolvedValue({ id: PROMPT_ID });
+      mockPrisma.deployment.findFirst.mockResolvedValue({
+        promptVersionId: VERSION_ID,
+        versionLabel: '1.0.0.2',
+        notes: null,
+      });
+      mockPrisma.deployment.updateMany.mockResolvedValue({});
+      mockPrisma.deployment.create.mockResolvedValue({ id: 'd-2', environment: 'staging', versionLabel: '1.0.0.2' });
+
+      const result = await service.promote(PROMPT_ID, { targetEnvironment: 'staging' }, USER_ID);
+      expect(result.environment).toBe('staging');
+    });
+
+    it('throws BadRequestException when promoting to dev', async () => {
+      mockPrisma.prompt.findFirst.mockResolvedValue({ id: PROMPT_ID });
+      await expect(
+        service.promote(PROMPT_ID, { targetEnvironment: 'dev' }, USER_ID),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('throws NotFoundException when no active deployment in source env', async () => {
+      mockPrisma.prompt.findFirst.mockResolvedValue({ id: PROMPT_ID });
+      mockPrisma.deployment.findFirst.mockResolvedValue(null);
+      await expect(
+        service.promote(PROMPT_ID, { targetEnvironment: 'staging' }, USER_ID),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('rollback', () => {
+    it('marks active deployment as rolled_back', async () => {
+      mockPrisma.prompt.findFirst.mockResolvedValue({ id: PROMPT_ID });
+      mockPrisma.deployment.findFirst.mockResolvedValue({ id: 'd-1' });
+      mockPrisma.deployment.update.mockResolvedValue({ id: 'd-1', status: 'rolled_back', isLive: false, rolledBackAt: new Date() });
+
+      const result = await service.rollback(PROMPT_ID, 'dev', USER_ID);
+      expect(result.status).toBe('rolled_back');
+    });
+
+    it('throws NotFoundException when no active deployment to roll back', async () => {
+      mockPrisma.prompt.findFirst.mockResolvedValue({ id: PROMPT_ID });
+      mockPrisma.deployment.findFirst.mockResolvedValue(null);
+      await expect(service.rollback(PROMPT_ID, 'dev', USER_ID)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('goLive', () => {
+    it('sets isLive true via transaction', async () => {
+      mockPrisma.prompt.findFirst.mockResolvedValue({ id: PROMPT_ID });
+      mockPrisma.deployment.findFirst.mockResolvedValue({ id: 'd-1', promptId: PROMPT_ID });
+      mockPrisma.$transaction.mockResolvedValue([{ id: 'd-1', isLive: true, endpointHash: 'abc' }]);
+
+      const result = await service.goLive(PROMPT_ID, 'dev', USER_ID);
+      expect(result.isLive).toBe(true);
+      expect(mockPrisma.$transaction).toHaveBeenCalled();
+    });
+
+    it('throws NotFoundException when no active deployment', async () => {
+      mockPrisma.prompt.findFirst.mockResolvedValue({ id: PROMPT_ID });
+      mockPrisma.deployment.findFirst.mockResolvedValue(null);
+      await expect(service.goLive(PROMPT_ID, 'dev', USER_ID)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('findHistory', () => {
+    it('returns all deployments for the prompt', async () => {
+      mockPrisma.prompt.findFirst.mockResolvedValue({ id: PROMPT_ID });
+      mockPrisma.deployment.findMany.mockResolvedValue([
+        { id: 'd-1', environment: 'dev', status: 'active' },
+        { id: 'd-2', environment: 'dev', status: 'rolled_back' },
+      ]);
+      const result = await service.findHistory(PROMPT_ID, USER_ID);
+      expect(result).toHaveLength(2);
+    });
+
+    it('throws NotFoundException when prompt not found', async () => {
+      mockPrisma.prompt.findFirst.mockResolvedValue(null);
+      await expect(service.findHistory('bad', USER_ID)).rejects.toThrow(NotFoundException);
     });
   });
 });

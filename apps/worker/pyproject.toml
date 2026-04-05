@@ -45,5 +45,8 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 
 [tool.coverage.run]
-source = ["main"]
+source = ["main", "app"]
 omit = ["tests/*"]
+
+[tool.coverage.report]
+fail_under = 80
